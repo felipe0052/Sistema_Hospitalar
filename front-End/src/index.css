@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 
+/* Habilita classes `dark:*` do Tailwind quando <html data-theme="dark">. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -44,6 +47,42 @@
 
   --alert-bg: #fff5f5;
   --alert-text: #ef4444;
+
+  --text-secondary: #64748b;
+  --border-strong: #cbd5e1;
+  --surface-hover: #fdf8f9;
+  --danger-border: #fecaca;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #0f1216;
+  --foreground: #e4e7eb;
+  --card: #1a1e24;
+  --card-foreground: #e4e7eb;
+  --primary: #b33951;
+  --primary-hover: #c9496f;
+  --primary-soft: #5c1b2c;
+  --primary-foreground: #ffffff;
+  --secondary: #242830;
+  --secondary-foreground: #e4e7eb;
+  --muted: #242830;
+  --muted-foreground: #7b8694;
+  --accent: #b33951;
+  --accent-foreground: #ffffff;
+  --border: #2b303a;
+  --ring: #c9496f;
+
+  --alert-bg: #3a1f26;
+  --alert-text: #f87171;
+
+  --text-secondary: #9aa4b2;
+  --border-strong: #3a4049;
+  --surface-hover: #1f242b;
+  --danger-border: #4a2730;
+
+  color-scheme: dark;
 }
 
 html, body, #root {
@@ -54,6 +93,7 @@ body {
   font-family: var(--font-family-sans);
   background-color: var(--background);
   color: var(--foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 * {
@@ -62,5 +102,5 @@ body {
 }
 
 *:hover {
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, avisos, documentos, usuarios
+from app.routers import auth, avisos, documentos, usuarios
 
 api_router = APIRouter()
 api_router.include_router(auth.router)

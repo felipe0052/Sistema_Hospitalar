@@ -18,5 +18,9 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
+    # RN06 — upload de POPs/documentos: diretório de destino e limite de tamanho.
+    UPLOAD_DIR: str = "uploads"
+    MAX_UPLOAD_SIZE_MB: int = 10
+
 
 settings = Settings()

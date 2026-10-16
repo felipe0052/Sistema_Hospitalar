@@ -1,7 +1,8 @@
 from sqlalchemy import extract, or_
 from sqlalchemy.orm import Session
 
-from app.db.models import SetorModel, UsuarioModel
+from app.models.setor import SetorModel
+from app.models.usuario import UsuarioModel
 from app.schemas.usuario import UsuarioCreate
 
 
@@ -20,9 +21,19 @@ def criar(db: Session, dados: UsuarioCreate, senha_hash: str) -> UsuarioModel:
         senha_hash=senha_hash,
         id_setor=dados.id_setor,
         cargo=dados.cargo,
+        perfil=dados.perfil,
         data_nascimento=dados.data_nascimento,
     )
     db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+def atualizar_senha(db: Session, usuario: UsuarioModel, senha_hash: str) -> UsuarioModel:
+    """RN07 — ao trocar a senha, a conta deixa de exigir troca no próximo login."""
+    usuario.senha_hash = senha_hash
+    usuario.senha_provisoria = False
     db.commit()
     db.refresh(usuario)
     return usuario

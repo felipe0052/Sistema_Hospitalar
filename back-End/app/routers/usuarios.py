@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.core.database import get_db
 from app.schemas.usuario import AniversarianteOut, SetorOut, UsuarioOut
 from app.services import usuario_service
 

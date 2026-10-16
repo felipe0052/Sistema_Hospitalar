@@ -5,9 +5,14 @@ Uso: python -m app.scripts.seed
 
 from datetime import date
 
+from app.core.database import Base, SessionLocal, engine
 from app.core.security import hash_password
-from app.db.models import AvisoModel, DocumentoModel, FaqModel, SetorModel, UsuarioModel
-from app.db.session import Base, SessionLocal, engine
+from app.models.aviso import AvisoModel
+from app.models.documento import DocumentoModel
+from app.models.enums import Perfil, Prioridade, StatusUsuario, TipoDocumento
+from app.models.faq import FaqModel
+from app.models.setor import SetorModel
+from app.models.usuario import UsuarioModel
 
 
 def run() -> None:
@@ -31,6 +36,9 @@ def run() -> None:
             senha_hash=hash_password("decos123"),
             id_setor=rh.id_setor,
             cargo="Gestão de Pessoas",
+            perfil=Perfil.ADMINISTRADOR,
+            status=StatusUsuario.ATIVO,
+            senha_provisoria=False,
             # Nascimento no dia/mês atual para que o widget "Aniversários do mês"
             # sempre tenha algo a mostrar na demonstração.
             data_nascimento=date(1990, hoje.month, hoje.day),
@@ -41,9 +49,33 @@ def run() -> None:
             senha_hash=hash_password("decos123"),
             id_setor=ti.id_setor,
             cargo="Cardiologista · UTI Adulto",
+            perfil=Perfil.COLABORADOR,
+            status=StatusUsuario.ATIVO,
+            senha_provisoria=False,
             data_nascimento=date(1985, 9, 4),
         )
-        db.add_all([admin, carlos])
+        laura = UsuarioModel(
+            nome="Laura Nascimento",
+            email="laura.nascimento@decos.com.br",
+            senha_hash=hash_password("decos123"),
+            id_setor=comunicacao.id_setor,
+            cargo="Analista de Comunicação",
+            perfil=Perfil.MARKETING,
+            status=StatusUsuario.ATIVO,
+            senha_provisoria=False,
+            data_nascimento=date(1992, 3, 15),
+        )
+        admin_ti = UsuarioModel(
+            nome="Admin TI",
+            email="admin.ti@decos.com.br",
+            senha_hash=hash_password("abcd1234"),
+            id_setor=ti.id_setor,
+            cargo="Administrador de TI",
+            perfil=Perfil.ADMINISTRADOR,
+            status=StatusUsuario.ATIVO,
+            senha_provisoria=False,
+        )
+        db.add_all([admin, carlos, laura, admin_ti])
         db.flush()
 
         db.add_all(
@@ -55,13 +87,16 @@ def run() -> None:
                         "certificação da Organização Nacional de Acreditação."
                     ),
                     categoria="Comunicado",
+                    prioridade=Prioridade.ALTA,
                     id_autor=admin.id_usuario,
                 ),
                 AvisoModel(
                     titulo="Treinamento BLS/ACLS — Turma C",
                     conteudo="Suporte Básico e Avançado de Vida. Obrigatório para equipes de UTI.",
                     categoria="Evento",
-                    id_autor=admin.id_usuario,
+                    prioridade=Prioridade.MEDIA,
+                    data_expiracao=date(hoje.year, 12, 31),
+                    id_autor=laura.id_usuario,
                 ),
             ]
         )
@@ -70,7 +105,11 @@ def run() -> None:
             DocumentoModel(
                 titulo="POP — Higienização das Mãos",
                 categoria="Protocolo",
-                url_arquivo="https://documentos.decos.com.br/pop/higienizacao-maos.pdf",
+                descricao="Procedimento operacional padrão para higienização das mãos conforme ANVISA.",
+                palavras_chave="higienização, mãos, protocolo, segurança do paciente",
+                tipo=TipoDocumento.PDF,
+                url_arquivo="/uploads/pop-higienizacao-maos.pdf",
+                versao="1.0",
             )
         )
 

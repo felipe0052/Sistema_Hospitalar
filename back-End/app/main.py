@@ -1,16 +1,22 @@
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.api.v1.api import api_router
+from app import models  # noqa: F401 — garante o registro das tabelas no metadata
 from app.core.config import settings
-from app.db import models  # noqa: F401 — garante o registro das tabelas no metadata
-from app.db.session import Base, engine
+from app.core.database import Base, engine
+from app.routers import api_router
 
 # MVP acadêmico: cria o schema diretamente via metadata (sem Alembic).
 # Em produção/Oracle, prefira migrações versionadas.
 Base.metadata.create_all(bind=engine)
+
+# RN06 — diretório onde os uploads de POPs/documentos são salvos e servidos.
+Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -48,3 +54,4 @@ def health_check() -> dict[str, str]:
 
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+app.mount(f"/{settings.UPLOAD_DIR}", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

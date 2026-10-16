@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.db.models import AvisoModel
-from app.schemas.aviso import AvisoCreate
+from app.models.aviso import AvisoModel
+from app.schemas.aviso import AvisoCreate, AvisoUpdate
 
 CATEGORIA_EVENTO = "Evento"
 
@@ -31,9 +31,24 @@ def criar(db: Session, dados: AvisoCreate, id_autor: int) -> AvisoModel:
         titulo=dados.titulo,
         conteudo=dados.conteudo,
         categoria=dados.categoria,
+        prioridade=dados.prioridade,
+        data_expiracao=dados.data_expiracao,
         id_autor=id_autor,
     )
     db.add(aviso)
     db.commit()
     db.refresh(aviso)
     return aviso
+
+
+def atualizar(db: Session, aviso: AvisoModel, dados: AvisoUpdate) -> AvisoModel:
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(aviso, campo, valor)
+    db.commit()
+    db.refresh(aviso)
+    return aviso
+
+
+def remover(db: Session, aviso: AvisoModel) -> None:
+    db.delete(aviso)
+    db.commit()

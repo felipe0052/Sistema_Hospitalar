@@ -2,7 +2,8 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.db.models import SetorModel, UsuarioModel
+from app.models.setor import SetorModel
+from app.models.usuario import UsuarioModel
 from app.repositories import usuario_repository
 
 
