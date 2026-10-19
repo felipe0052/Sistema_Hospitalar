@@ -1479,16 +1479,16 @@ function App() {
         </main>
       </div>
       <button type="button" popoverTarget="quick-access-dialog" popoverTargetAction="toggle"
+        aria-label="Acesso Rápido" title="Acesso Rápido"
         aria-haspopup="dialog" aria-controls="quick-access-dialog" aria-expanded={quickAccessOpen}
         onClick={() => setQuickAccessNotice("")}
-        className="fixed bottom-5 right-5 z-40 flex h-14 items-center gap-2.5 rounded-full bg-[#800020] px-5 text-sm font-semibold text-white shadow-[0_5px_24px_rgba(128,0,32,0.3)] transition-colors hover:bg-[#630019] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#800020]">
-        <Icon path={quickAccessOpen ? "M6 6l12 12 M18 6L6 18" : ICONS.chat} size={22} />
-        Acesso Rápido
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#800020] text-white shadow-[0_5px_24px_rgba(128,0,32,0.3)] transition-colors hover:bg-[#630019] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#800020]">
+        <Icon path={quickAccessOpen ? "M6 6l12 12 M18 6L6 18" : ICONS.chat} size={20} />
       </button>
       <div ref={quickAccessDialog} id="quick-access-dialog" popover="auto" role="dialog"
         aria-labelledby="quick-access-title" aria-describedby="quick-access-description"
         onToggle={event => setQuickAccessOpen(event.newState === "open")}
-        className="fixed inset-auto bottom-[88px] right-5 m-0 w-[min(360px,calc(100vw-40px))] overflow-visible rounded-2xl border border-[#ead4dc] bg-white p-0 text-[#334155] shadow-[0_8px_40px_rgba(51,65,85,0.18)] after:absolute after:-bottom-2 after:right-7 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-[#ead4dc] after:bg-white">
+        className="fixed inset-auto bottom-20 right-5 m-0 w-[min(360px,calc(100vw-40px))] overflow-visible rounded-2xl border border-[#ead4dc] bg-white p-0 text-[#334155] shadow-[0_8px_40px_rgba(51,65,85,0.18)] after:absolute after:-bottom-2 after:right-4 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-[#ead4dc] after:bg-white">
         <div className="max-h-[calc(100dvh-120px)] overflow-y-auto rounded-2xl p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
