@@ -1,12 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import * as api from "./api";
 
-// Credenciais do usuário de demonstração semeado pelo back-end (ver
-// back-End/app/scripts/seed.py). Login automático porque esta intranet
-// ainda não tem uma tela de login própria — mantém o layout existente
-// (header já exibia "Mariana Ferreira" como usuária fixa).
-const DEMO_EMAIL = "mariana.ferreira@decos.com.br";
-const DEMO_SENHA = "decos123";
+import { useAuth } from "./auth-context";
 
 interface DataContextValue {
   loading: boolean;
@@ -28,8 +23,7 @@ const DataContext = createContext<DataContextValue | null>(null);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [apiOnline, setApiOnline] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-  const [usuarioLogado, setUsuarioLogado] = useState<api.UsuarioOut | null>(null);
+  const { token, user: usuarioLogado } = useAuth();
   const [avisos, setAvisos] = useState<api.AvisoOut[]>([]);
   const [aniversariantes, setAniversariantes] = useState<api.AniversarianteOut[]>([]);
   const [documentos, setDocumentos] = useState<api.DocumentoOut[]>([]);
@@ -58,11 +52,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const auth = await api.login(DEMO_EMAIL, DEMO_SENHA);
-        if (cancelled) return;
-        setToken(auth.access_token);
-        setUsuarioLogado(auth.usuario);
-
         const [avisosData, aniversariantesData, documentosData, faqData, contatosData, setoresData] =
           await Promise.all([
             api.getAvisos(),

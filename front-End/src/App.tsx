@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import decoLogo from "./imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import { DataProvider, useData } from "./lib/data-context";
 import * as api from "./lib/api";
+import { AuthProvider, useAuth } from "./lib/auth-context";
+import Login from "./Login";
 
 // ─── Icon helper ─────────────────────────────────────────────────────────────
 function Icon({ path, size = 20, className = "", style }: { path: string; size?: number; className?: string; style?: React.CSSProperties }) {
@@ -646,7 +648,7 @@ function NewsView() {
       </div>
 
       {/* Featured */}
-      <div className="relative rounded-2xl overflow-hidden h-56 group cursor-pointer">
+      {featured ? (<div className="relative rounded-2xl overflow-hidden h-56 group cursor-pointer">
         <img src={`https://images.unsplash.com/photo-${featured.image}?w=1200&h=450&fit=crop&auto=format`}
           alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
@@ -660,7 +662,7 @@ function NewsView() {
           </div>
           <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
         </div>
-      </div>
+      </div>) : <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Nenhum comunicado publicado ainda.</p>}
 
       {/* Grid */}
       <div className="grid grid-cols-3 gap-4">
@@ -1083,6 +1085,7 @@ function MiniCalendar() {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App() {
   const data = useData();
+  const { signOut } = useAuth();
   const useApi = data.apiOnline && !data.loading;
 
   const [activeNav,    setActiveNav]    = useState<NavKey>("home");
@@ -1205,12 +1208,12 @@ function App() {
         </div>
 
         <div className="flex items-center gap-2.5 pl-3" style={{ borderLeft: "1px solid #e2e8f0" }}>
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 ring-2 ring-white" style={{ boxShadow: "0 0 0 2px rgba(128,0,32,0.12)" }}>
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=face&auto=format" alt="perfil" className="w-full h-full object-cover" />
+          <div aria-hidden="true" className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold bg-[#fff5f5] text-[#800020]">
+            {data.usuarioLogado?.nome.split(" ").filter(Boolean).slice(0, 2).map(n => n[0]).join("")}
           </div>
           <div className="hidden xl:block text-right">
-            <div className="text-sm font-semibold leading-none" style={{ color: "#334155" }}>{data.usuarioLogado?.nome ?? "Mariana Ferreira"}</div>
-            <div className="text-[11px] mt-0.5" style={{ color: "#800020" }}> {data.usuarioLogado?.cargo ?? "Gestão de Pessoas"}</div>
+            <div className="text-sm font-semibold leading-none" style={{ color: "#334155" }}>{data.usuarioLogado?.nome ?? "Colaborador"}</div>
+            <div className="text-[11px] mt-0.5" style={{ color: "#800020" }}> {data.usuarioLogado?.cargo ?? "Colaborador"}</div>
           </div>
         </div>
       </header>
@@ -1257,7 +1260,7 @@ function App() {
           )}
 
           <div className="px-3 pt-3 mt-auto" style={{ borderTop: "1px solid #e2e8f0" }}>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ color: "#94a3b8" }}
+            <button onClick={() => signOut()} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ color: "#94a3b8" }}
               onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "#fff5f5"; el.style.color = "#ef4444"; }}
               onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "transparent"; el.style.color = "#94a3b8"; }}>
               <Icon path={ICONS.logout} size={18} />Sair
@@ -1305,7 +1308,7 @@ function App() {
                 {/* LEFT */}
                 <div className="space-y-5">
                   {/* Featured */}
-                  <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
+                  {featured ? (<div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
                     <img src={`https://images.unsplash.com/photo-${featured.image}?w=900&h=400&fit=crop&auto=format`}
                       alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -1320,7 +1323,7 @@ function App() {
                       <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
                       <p className="text-white/70 text-sm mt-1 line-clamp-2">{featured.excerpt}</p>
                     </div>
-                  </div>
+                  </div>) : <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Nenhum comunicado publicado ainda.</p>}
 
                   {/* Tabs */}
                   <div className="flex items-center gap-1 bg-white rounded-xl p-1 w-fit" style={{ border: "1px solid #e2e8f0" }}>
@@ -1556,10 +1559,13 @@ function App() {
   );
 }
 
+function AuthenticatedApp() {
+  const { user, restoring } = useAuth();
+  if (restoring) return <main className="min-h-dvh flex items-center justify-center bg-white text-[#800020]" role="status">Validando seu acesso…</main>;
+  if (!user) return <Login />;
+  return <DataProvider><App /></DataProvider>;
+}
+
 export default function Root() {
-  return (
-    <DataProvider>
-      <App />
-    </DataProvider>
-  );
+  return <AuthProvider><AuthenticatedApp /></AuthProvider>;
 }

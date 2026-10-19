@@ -57,15 +57,23 @@ export interface TokenResponse {
   usuario: UsuarioOut;
 }
 
+export class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    signal: options.signal ?? AbortSignal.timeout(15000),
     headers: { "Content-Type": "application/json", ...(options.headers ?? {}) },
   });
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.detail ? JSON.stringify(body.detail) : `Erro ${res.status} em ${path}`);
+    if (res.status === 401 && new Headers(options.headers).has("Authorization")) {
+      window.dispatchEvent(new Event("decos:unauthorized"));
+    }
+    throw new ApiError(res.status, typeof body?.detail === "string" ? body.detail : `Erro ${res.status}`);
   }
 
   if (res.status === 204) return undefined as T;
@@ -133,4 +141,8 @@ export function createDocumento(
 
 export function getFaq(categoria?: string): Promise<FaqOut[]> {
   return request(`/api/v1/documentos/faq${qs({ categoria })}`);
+}
+
+export function getCurrentUser(token: string): Promise<UsuarioOut> {
+  return request("/api/v1/auth/me", { headers: { Authorization: `Bearer ${token}` } });
 }
