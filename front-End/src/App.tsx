@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import decoLogo from "./imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import { DataProvider, useData } from "./lib/data-context";
 import * as api from "./lib/api";
+import { AuthProvider, useAuth } from "./lib/auth-context";
+import Login from "./Login";
 
 // ─── Icon helper ─────────────────────────────────────────────────────────────
 function Icon({ path, size = 20, className = "", style }: { path: string; size?: number; className?: string; style?: React.CSSProperties }) {
@@ -646,7 +648,7 @@ function NewsView() {
       </div>
 
       {/* Featured */}
-      <div className="relative rounded-2xl overflow-hidden h-56 group cursor-pointer">
+      {featured ? (<div className="relative rounded-2xl overflow-hidden h-56 group cursor-pointer">
         <img src={`https://images.unsplash.com/photo-${featured.image}?w=1200&h=450&fit=crop&auto=format`}
           alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
@@ -660,7 +662,7 @@ function NewsView() {
           </div>
           <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
         </div>
-      </div>
+      </div>) : <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Nenhum comunicado publicado ainda.</p>}
 
       {/* Grid */}
       <div className="grid grid-cols-3 gap-4">
@@ -1083,6 +1085,7 @@ function MiniCalendar() {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App() {
   const data = useData();
+  const { signOut } = useAuth();
   const useApi = data.apiOnline && !data.loading;
 
   const [activeNav,    setActiveNav]    = useState<NavKey>("home");
@@ -1091,9 +1094,18 @@ function App() {
   const [activeTab,    setActiveTab]    = useState<"noticias" | "reconhecimentos">("noticias");
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [searchFocused,setSearchFocused]= useState(false);
-  const [quickLinks,   setQuickLinks]   = useState<QuickLink[]>(DEFAULT_QUICK_LINKS);
-  const [addingLink,   setAddingLink]   = useState(false);
-  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const quickAccessDialog = useRef<HTMLDivElement>(null);
+  const [quickAccessOpen, setQuickAccessOpen] = useState(false);
+  const [quickAccessNotice, setQuickAccessNotice] = useState("");
+
+  function selectQuickLink(link: QuickLink) {
+    if (link.id === "docs" || link.id === "faq") {
+      quickAccessDialog.current?.hidePopover();
+      setActiveNav(link.id === "docs" ? "documentos" : "faq");
+      return;
+    }
+    setQuickAccessNotice(`${link.label}: este módulo interno ainda não foi implementado.`);
+  }
 
   // Add-new modal state (admin)
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1147,15 +1159,6 @@ function App() {
   const toggleLike = (id: number) =>
     setLikedPosts(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const confirmAddLink = () => {
-    const label = newLinkLabel.trim();
-    if (!label) return;
-    setQuickLinks(prev => [...prev, { id: Date.now().toString(), label, icon: "pin" }]);
-    setNewLinkLabel(""); setAddingLink(false);
-  };
-
-  const removeLink = (id: string) => setQuickLinks(prev => prev.filter(l => l.id !== id));
-
   // dashboard events for right panel (Sep only)
   const dashEvents = EVENTS_FULL.filter(e => e.date.startsWith("2026-09")).slice(0, 4);
   const newsList: NewsItem[] = useApi ? data.avisos.map(avisoToNewsItem) : MOCK_NEWS;
@@ -1205,12 +1208,12 @@ function App() {
         </div>
 
         <div className="flex items-center gap-2.5 pl-3" style={{ borderLeft: "1px solid #e2e8f0" }}>
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 ring-2 ring-white" style={{ boxShadow: "0 0 0 2px rgba(128,0,32,0.12)" }}>
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=face&auto=format" alt="perfil" className="w-full h-full object-cover" />
+          <div aria-hidden="true" className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold bg-[#fff5f5] text-[#800020]">
+            {data.usuarioLogado?.nome.split(" ").filter(Boolean).slice(0, 2).map(n => n[0]).join("")}
           </div>
           <div className="hidden xl:block text-right">
-            <div className="text-sm font-semibold leading-none" style={{ color: "#334155" }}>{data.usuarioLogado?.nome ?? "Mariana Ferreira"}</div>
-            <div className="text-[11px] mt-0.5" style={{ color: "#800020" }}> {data.usuarioLogado?.cargo ?? "Gestão de Pessoas"}</div>
+            <div className="text-sm font-semibold leading-none" style={{ color: "#334155" }}>{data.usuarioLogado?.nome ?? "Colaborador"}</div>
+            <div className="text-[11px] mt-0.5" style={{ color: "#800020" }}> {data.usuarioLogado?.cargo ?? "Colaborador"}</div>
           </div>
         </div>
       </header>
@@ -1257,7 +1260,7 @@ function App() {
           )}
 
           <div className="px-3 pt-3 mt-auto" style={{ borderTop: "1px solid #e2e8f0" }}>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ color: "#94a3b8" }}
+            <button onClick={() => signOut()} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ color: "#94a3b8" }}
               onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "#fff5f5"; el.style.color = "#ef4444"; }}
               onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "transparent"; el.style.color = "#94a3b8"; }}>
               <Icon path={ICONS.logout} size={18} />Sair
@@ -1305,7 +1308,7 @@ function App() {
                 {/* LEFT */}
                 <div className="space-y-5">
                   {/* Featured */}
-                  <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
+                  {featured ? (<div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
                     <img src={`https://images.unsplash.com/photo-${featured.image}?w=900&h=400&fit=crop&auto=format`}
                       alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
@@ -1320,7 +1323,7 @@ function App() {
                       <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
                       <p className="text-white/70 text-sm mt-1 line-clamp-2">{featured.excerpt}</p>
                     </div>
-                  </div>
+                  </div>) : <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Nenhum comunicado publicado ainda.</p>}
 
                   {/* Tabs */}
                   <div className="flex items-center gap-1 bg-white rounded-xl p-1 w-fit" style={{ border: "1px solid #e2e8f0" }}>
@@ -1404,56 +1407,6 @@ function App() {
 
                 {/* RIGHT PANEL */}
                 <div className="space-y-4">
-                  {/* Quick access */}
-                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Acesso Rápido</span>
-                      
-                    </div>
-                   
-                    <div className="grid grid-cols-3 gap-2">
-                      {quickLinks.map(link => (
-                        <div key={link.id} className="relative group/link">
-                          <button className="w-full flex flex-col items-center gap-1.5 p-2.5 rounded-xl text-xs font-medium transition-all hover:scale-105 hover:shadow-sm"
-                            style={{ backgroundColor: "#fff5f5", color: "#800020" }}>
-                            <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={20} />
-                            <span className="text-center leading-tight text-[11px]">{link.label}</span>
-                          </button>
-                          <button onClick={() => removeLink(link.id)} title="Remover"
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover/link:opacity-100 transition-all"
-                            style={{ backgroundColor: "#94a3b8" }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#ef4444"; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#94a3b8"; }}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Birthdays */}
-                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
-                        <Icon path={ICONS.gift} size={14} style={{ color: "#800020" }} />
-                      </div>
-                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Aniversários</span>
-                    </div>
-                    <div className="space-y-2.5">
-                      {birthdays.length === 0 && (
-                        <p className="text-xs" style={{ color: "#94a3b8" }}>Nenhum aniversariante este mês.</p>
-                      )}
-                      {birthdays.map((b, i) => (
-                        <div key={i} className="flex items-center gap-2.5">
-                          <div className="relative"><Avatar id={b.avatar} size={36} />{b.today && <span className="absolute -top-1 -right-1 text-sm">🎂</span>}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate" style={{ color: "#334155" }}>{b.name}</div>
-                            <div className="text-xs truncate" style={{ color: "#94a3b8" }}>{b.role}</div>
-                          </div>
-                          {b.today && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#fff5f5", color: "#800020" }}>hoje</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Events */}
                   <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
                     <div className="flex items-center justify-between mb-3">
@@ -1494,11 +1447,70 @@ function App() {
                       })}
                     </div>
                   </div>
+
+                  {/* Birthdays */}
+                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
+                        <Icon path={ICONS.gift} size={14} style={{ color: "#800020" }} />
+                      </div>
+                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Aniversários</span>
+                    </div>
+                    <div className="space-y-2.5">
+                      {birthdays.length === 0 && (
+                        <p className="text-xs" style={{ color: "#94a3b8" }}>Nenhum aniversariante este mês.</p>
+                      )}
+                      {birthdays.map((b, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="relative"><Avatar id={b.avatar} size={36} />{b.today && <span className="absolute -top-1 -right-1 text-sm">🎂</span>}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate" style={{ color: "#334155" }}>{b.name}</div>
+                            <div className="text-xs truncate" style={{ color: "#94a3b8" }}>{b.role}</div>
+                          </div>
+                          {b.today && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#fff5f5", color: "#800020" }}>hoje</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </main>
+      </div>
+      <button type="button" popoverTarget="quick-access-dialog" popoverTargetAction="toggle"
+        aria-label="Acesso Rápido" title="Acesso Rápido"
+        aria-haspopup="dialog" aria-controls="quick-access-dialog" aria-expanded={quickAccessOpen}
+        onClick={() => setQuickAccessNotice("")}
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#800020] text-white shadow-[0_5px_24px_rgba(128,0,32,0.3)] transition-colors hover:bg-[#630019] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#800020]">
+        <Icon path={quickAccessOpen ? "M6 6l12 12 M18 6L6 18" : ICONS.chat} size={20} />
+      </button>
+      <div ref={quickAccessDialog} id="quick-access-dialog" popover="auto" role="dialog"
+        aria-labelledby="quick-access-title" aria-describedby="quick-access-description"
+        onToggle={event => setQuickAccessOpen(event.newState === "open")}
+        className="fixed inset-auto bottom-20 right-5 m-0 w-[min(360px,calc(100vw-40px))] overflow-visible rounded-2xl border border-[#ead4dc] bg-white p-0 text-[#334155] shadow-[0_8px_40px_rgba(51,65,85,0.18)] after:absolute after:-bottom-2 after:right-4 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-[#ead4dc] after:bg-white">
+        <div className="max-h-[calc(100dvh-120px)] overflow-y-auto rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="quick-access-title" className="text-lg font-bold text-[#800020]">Acesso Rápido</h2>
+              <p id="quick-access-description" className="mt-1 text-sm text-slate-500">Escolha o serviço que deseja acessar.</p>
+            </div>
+            <button type="button" autoFocus aria-label="Fechar acesso rápido" onClick={() => quickAccessDialog.current?.hidePopover()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[#800020]">
+              <Icon path="M6 6l12 12 M18 6L6 18" size={20} />
+            </button>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {DEFAULT_QUICK_LINKS.map(link => (
+              <button type="button" key={link.id} onClick={() => selectQuickLink(link)}
+                className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-[#f3dfe5] bg-[#fff5f5] p-4 text-center text-sm font-medium text-[#800020] transition-colors hover:border-[#b33951] hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
+                <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={24} />
+                {link.label}
+              </button>
+            ))}
+          </div>
+          {quickAccessNotice && <p role="status" className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">{quickAccessNotice}</p>}
+        </div>
       </div>
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -1556,10 +1568,13 @@ function App() {
   );
 }
 
+function AuthenticatedApp() {
+  const { user, restoring } = useAuth();
+  if (restoring) return <main className="min-h-dvh flex items-center justify-center bg-white text-[#800020]" role="status">Validando seu acesso…</main>;
+  if (!user) return <Login />;
+  return <DataProvider><App /></DataProvider>;
+}
+
 export default function Root() {
-  return (
-    <DataProvider>
-      <App />
-    </DataProvider>
-  );
+  return <AuthProvider><AuthenticatedApp /></AuthProvider>;
 }
