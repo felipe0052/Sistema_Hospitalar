@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import decoLogo from "./imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import { DataProvider, useData } from "./lib/data-context";
 import * as api from "./lib/api";
@@ -1094,9 +1094,22 @@ function App() {
   const [activeTab,    setActiveTab]    = useState<"noticias" | "reconhecimentos">("noticias");
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [searchFocused,setSearchFocused]= useState(false);
-  const [quickLinks,   setQuickLinks]   = useState<QuickLink[]>(DEFAULT_QUICK_LINKS);
-  const [addingLink,   setAddingLink]   = useState(false);
-  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const quickAccessDialog = useRef<HTMLDialogElement>(null);
+  const [quickAccessNotice, setQuickAccessNotice] = useState("");
+
+  function openQuickAccess() {
+    setQuickAccessNotice("");
+    quickAccessDialog.current?.showModal();
+  }
+
+  function selectQuickLink(link: QuickLink) {
+    if (link.id === "docs" || link.id === "faq") {
+      quickAccessDialog.current?.close();
+      setActiveNav(link.id === "docs" ? "documentos" : "faq");
+      return;
+    }
+    setQuickAccessNotice(`${link.label}: o acesso estará disponível assim que o endereço do serviço for informado.`);
+  }
 
   // Add-new modal state (admin)
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1149,15 +1162,6 @@ function App() {
 
   const toggleLike = (id: number) =>
     setLikedPosts(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
-  const confirmAddLink = () => {
-    const label = newLinkLabel.trim();
-    if (!label) return;
-    setQuickLinks(prev => [...prev, { id: Date.now().toString(), label, icon: "pin" }]);
-    setNewLinkLabel(""); setAddingLink(false);
-  };
-
-  const removeLink = (id: string) => setQuickLinks(prev => prev.filter(l => l.id !== id));
 
   // dashboard events for right panel (Sep only)
   const dashEvents = EVENTS_FULL.filter(e => e.date.startsWith("2026-09")).slice(0, 4);
@@ -1407,56 +1411,6 @@ function App() {
 
                 {/* RIGHT PANEL */}
                 <div className="space-y-4">
-                  {/* Quick access */}
-                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Acesso Rápido</span>
-                      
-                    </div>
-                   
-                    <div className="grid grid-cols-3 gap-2">
-                      {quickLinks.map(link => (
-                        <div key={link.id} className="relative group/link">
-                          <button className="w-full flex flex-col items-center gap-1.5 p-2.5 rounded-xl text-xs font-medium transition-all hover:scale-105 hover:shadow-sm"
-                            style={{ backgroundColor: "#fff5f5", color: "#800020" }}>
-                            <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={20} />
-                            <span className="text-center leading-tight text-[11px]">{link.label}</span>
-                          </button>
-                          <button onClick={() => removeLink(link.id)} title="Remover"
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover/link:opacity-100 transition-all"
-                            style={{ backgroundColor: "#94a3b8" }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#ef4444"; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "#94a3b8"; }}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Birthdays */}
-                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
-                        <Icon path={ICONS.gift} size={14} style={{ color: "#800020" }} />
-                      </div>
-                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Aniversários</span>
-                    </div>
-                    <div className="space-y-2.5">
-                      {birthdays.length === 0 && (
-                        <p className="text-xs" style={{ color: "#94a3b8" }}>Nenhum aniversariante este mês.</p>
-                      )}
-                      {birthdays.map((b, i) => (
-                        <div key={i} className="flex items-center gap-2.5">
-                          <div className="relative"><Avatar id={b.avatar} size={36} />{b.today && <span className="absolute -top-1 -right-1 text-sm">🎂</span>}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate" style={{ color: "#334155" }}>{b.name}</div>
-                            <div className="text-xs truncate" style={{ color: "#94a3b8" }}>{b.role}</div>
-                          </div>
-                          {b.today && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#fff5f5", color: "#800020" }}>hoje</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Events */}
                   <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
                     <div className="flex items-center justify-between mb-3">
@@ -1497,12 +1451,79 @@ function App() {
                       })}
                     </div>
                   </div>
+
+                  <button type="button" onClick={openQuickAccess}
+                    aria-haspopup="dialog" aria-controls="quick-access-dialog"
+                    className="w-full flex items-center gap-3 rounded-xl border border-[#ead4dc] bg-[#fff5f5] p-4 text-left text-[#800020] transition-colors hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white"><Icon path={ICONS.pin} size={19} /></span>
+                    <span className="flex-1"><span className="block text-sm font-semibold">Acesso Rápido</span><span className="mt-0.5 block text-xs text-[#78616a]">Portal RH, escala e outros serviços</span></span>
+                    <Icon path={ICONS.chevronRight} size={17} />
+                  </button>
+
+                  {/* Birthdays */}
+                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
+                        <Icon path={ICONS.gift} size={14} style={{ color: "#800020" }} />
+                      </div>
+                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Aniversários</span>
+                    </div>
+                    <div className="space-y-2.5">
+                      {birthdays.length === 0 && (
+                        <p className="text-xs" style={{ color: "#94a3b8" }}>Nenhum aniversariante este mês.</p>
+                      )}
+                      {birthdays.map((b, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="relative"><Avatar id={b.avatar} size={36} />{b.today && <span className="absolute -top-1 -right-1 text-sm">🎂</span>}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate" style={{ color: "#334155" }}>{b.name}</div>
+                            <div className="text-xs truncate" style={{ color: "#94a3b8" }}>{b.role}</div>
+                          </div>
+                          {b.today && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#fff5f5", color: "#800020" }}>hoje</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </main>
       </div>
+      <dialog ref={quickAccessDialog} id="quick-access-dialog" aria-labelledby="quick-access-title" aria-describedby="quick-access-description"
+        className="fixed inset-0 m-auto max-h-[calc(100dvh-32px)] w-[min(480px,calc(100vw-32px))] overflow-y-auto rounded-2xl border-0 bg-white p-0 text-[#334155] shadow-2xl backdrop:bg-slate-950/45"
+        onKeyDown={event => {
+          if (event.key !== "Tab") return;
+          const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not([disabled])");
+          const first = buttons[0];
+          const last = buttons[buttons.length - 1];
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }}
+        onClick={event => { if (event.target === event.currentTarget) quickAccessDialog.current?.close(); }}>
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="quick-access-title" className="text-lg font-bold text-[#800020]">Acesso Rápido</h2>
+              <p id="quick-access-description" className="mt-1 text-sm text-slate-500">Escolha o serviço que deseja acessar.</p>
+            </div>
+            <button type="button" autoFocus aria-label="Fechar acesso rápido" onClick={() => quickAccessDialog.current?.close()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[#800020]">
+              <Icon path="M6 6l12 12 M18 6L6 18" size={20} />
+            </button>
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            {DEFAULT_QUICK_LINKS.map(link => (
+              <button type="button" key={link.id} onClick={() => selectQuickLink(link)}
+                className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border border-[#f3dfe5] bg-[#fff5f5] p-4 text-center text-sm font-medium text-[#800020] transition-colors hover:border-[#b33951] hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
+                <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={24} />
+                {link.label}
+              </button>
+            ))}
+          </div>
+          {quickAccessNotice && <p role="status" className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">{quickAccessNotice}</p>}
+        </div>
+      </dialog>
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddModal(false)} />
