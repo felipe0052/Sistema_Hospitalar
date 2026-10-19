@@ -1094,21 +1094,17 @@ function App() {
   const [activeTab,    setActiveTab]    = useState<"noticias" | "reconhecimentos">("noticias");
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [searchFocused,setSearchFocused]= useState(false);
-  const quickAccessDialog = useRef<HTMLDialogElement>(null);
+  const quickAccessDialog = useRef<HTMLDivElement>(null);
+  const [quickAccessOpen, setQuickAccessOpen] = useState(false);
   const [quickAccessNotice, setQuickAccessNotice] = useState("");
-
-  function openQuickAccess() {
-    setQuickAccessNotice("");
-    quickAccessDialog.current?.showModal();
-  }
 
   function selectQuickLink(link: QuickLink) {
     if (link.id === "docs" || link.id === "faq") {
-      quickAccessDialog.current?.close();
+      quickAccessDialog.current?.hidePopover();
       setActiveNav(link.id === "docs" ? "documentos" : "faq");
       return;
     }
-    setQuickAccessNotice(`${link.label}: o acesso estará disponível assim que o endereço do serviço for informado.`);
+    setQuickAccessNotice(`${link.label}: este módulo interno ainda não foi implementado.`);
   }
 
   // Add-new modal state (admin)
@@ -1452,14 +1448,6 @@ function App() {
                     </div>
                   </div>
 
-                  <button type="button" onClick={openQuickAccess}
-                    aria-haspopup="dialog" aria-controls="quick-access-dialog"
-                    className="w-full flex items-center gap-3 rounded-xl border border-[#ead4dc] bg-[#fff5f5] p-4 text-left text-[#800020] transition-colors hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white"><Icon path={ICONS.pin} size={19} /></span>
-                    <span className="flex-1"><span className="block text-sm font-semibold">Acesso Rápido</span><span className="mt-0.5 block text-xs text-[#78616a]">Portal RH, escala e outros serviços</span></span>
-                    <Icon path={ICONS.chevronRight} size={17} />
-                  </button>
-
                   {/* Birthdays */}
                   <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
                     <div className="flex items-center gap-2 mb-3">
@@ -1490,32 +1478,32 @@ function App() {
           )}
         </main>
       </div>
-      <dialog ref={quickAccessDialog} id="quick-access-dialog" aria-labelledby="quick-access-title" aria-describedby="quick-access-description"
-        className="fixed inset-0 m-auto max-h-[calc(100dvh-32px)] w-[min(480px,calc(100vw-32px))] overflow-y-auto rounded-2xl border-0 bg-white p-0 text-[#334155] shadow-2xl backdrop:bg-slate-950/45"
-        onKeyDown={event => {
-          if (event.key !== "Tab") return;
-          const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not([disabled])");
-          const first = buttons[0];
-          const last = buttons[buttons.length - 1];
-          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-        }}
-        onClick={event => { if (event.target === event.currentTarget) quickAccessDialog.current?.close(); }}>
-        <div className="p-6">
+      <button type="button" popoverTarget="quick-access-dialog" popoverTargetAction="toggle"
+        aria-haspopup="dialog" aria-controls="quick-access-dialog" aria-expanded={quickAccessOpen}
+        onClick={() => setQuickAccessNotice("")}
+        className="fixed bottom-5 right-5 z-40 flex h-14 items-center gap-2.5 rounded-full bg-[#800020] px-5 text-sm font-semibold text-white shadow-[0_5px_24px_rgba(128,0,32,0.3)] transition-colors hover:bg-[#630019] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#800020]">
+        <Icon path={quickAccessOpen ? "M6 6l12 12 M18 6L6 18" : ICONS.chat} size={22} />
+        Acesso Rápido
+      </button>
+      <div ref={quickAccessDialog} id="quick-access-dialog" popover="auto" role="dialog"
+        aria-labelledby="quick-access-title" aria-describedby="quick-access-description"
+        onToggle={event => setQuickAccessOpen(event.newState === "open")}
+        className="fixed inset-auto bottom-[88px] right-5 m-0 w-[min(360px,calc(100vw-40px))] overflow-visible rounded-2xl border border-[#ead4dc] bg-white p-0 text-[#334155] shadow-[0_8px_40px_rgba(51,65,85,0.18)] after:absolute after:-bottom-2 after:right-7 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-[#ead4dc] after:bg-white">
+        <div className="max-h-[calc(100dvh-120px)] overflow-y-auto rounded-2xl p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 id="quick-access-title" className="text-lg font-bold text-[#800020]">Acesso Rápido</h2>
               <p id="quick-access-description" className="mt-1 text-sm text-slate-500">Escolha o serviço que deseja acessar.</p>
             </div>
-            <button type="button" autoFocus aria-label="Fechar acesso rápido" onClick={() => quickAccessDialog.current?.close()}
+            <button type="button" autoFocus aria-label="Fechar acesso rápido" onClick={() => quickAccessDialog.current?.hidePopover()}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[#800020]">
               <Icon path="M6 6l12 12 M18 6L6 18" size={20} />
             </button>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             {DEFAULT_QUICK_LINKS.map(link => (
               <button type="button" key={link.id} onClick={() => selectQuickLink(link)}
-                className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border border-[#f3dfe5] bg-[#fff5f5] p-4 text-center text-sm font-medium text-[#800020] transition-colors hover:border-[#b33951] hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
+                className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-[#f3dfe5] bg-[#fff5f5] p-4 text-center text-sm font-medium text-[#800020] transition-colors hover:border-[#b33951] hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
                 <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={24} />
                 {link.label}
               </button>
@@ -1523,7 +1511,7 @@ function App() {
           </div>
           {quickAccessNotice && <p role="status" className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">{quickAccessNotice}</p>}
         </div>
-      </dialog>
+      </div>
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddModal(false)} />
