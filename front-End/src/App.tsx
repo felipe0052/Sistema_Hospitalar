@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import decoLogo from "./imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import { DataProvider, useData } from "./lib/data-context";
 import * as api from "./lib/api";
-import { useTheme } from "./lib/theme";
+import { AuthProvider, useAuth } from "./lib/auth-context";
+import Login from "./Login";
 
 // ─── Icon helper ─────────────────────────────────────────────────────────────
 function Icon({ path, size = 20, className = "", style }: { path: string; size?: number; className?: string; style?: React.CSSProperties }) {
@@ -36,14 +37,10 @@ const ICONS = {
   mapPin:        "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 10a3 3 0 100-6 3 3 0 000 6",
   clock:         "M12 2a10 10 0 100 20A10 10 0 0012 2z M12 6v6l4 2",
   quote:         "M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z",
-  sun:           "M12 17a5 5 0 100-10 5 5 0 000 10z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42",
-  moon:          "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
-  userPlus:      "M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M8.5 11a4 4 0 100-8 4 4 0 000 8z M20 8v6 M23 11h-6",
-  lock:          "M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z M7 11V7a5 5 0 0110 0v4",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type NavKey = "home" | "noticias" | "eventos" | "diretorio" | "reconhecimentos" | "documentos" | "faq" | "usuarios";
+type NavKey = "home" | "noticias" | "eventos" | "diretorio" | "reconhecimentos" | "documentos" | "faq";
 type DocCategory = string;
 type EventType = "campanha" | "treinamento" | "institucional" | "social" | "saude";
 
@@ -186,9 +183,9 @@ function documentoToDocItem(d: api.DocumentoOut): DocItem {
     title: d.titulo,
     category: d.categoria ?? "Geral",
     uploadDate: formatDate(d.data_upload),
-    version: `v${d.versao}`,
+    version: "—",
     size: "—",
-    url: api.resolveFileUrl(d.url_arquivo),
+    url: d.url_arquivo,
   };
 }
 
@@ -245,22 +242,20 @@ function Avatar({ id, size = 32, ring = false }: { id: string; size?: number; ri
       src={`https://images.unsplash.com/photo-${id}?w=${size * 2}&h=${size * 2}&fit=crop&crop=face&auto=format`}
       alt="foto"
       style={{ width: size, height: size, minWidth: size }}
-      className={`rounded-full object-cover ${ring ? "ring-2 ring-[var(--card)]" : ""}`}
+      className={`rounded-full object-cover ${ring ? "ring-2 ring-white" : ""}`}
     />
   );
 }
 
 // ─── Admin flag & helper ─────────────────────────────────────────────────────
+const IS_ADMIN = true; // Simula o usuário logado como Administrador
+
 function AdminAddButton({ label = "+ Adicionar Novo", onClick }: { label?: string; onClick?: () => void }) {
-  const data = useData();
-  // Offline (API fora do ar): mantém o sandbox de demonstração liberado.
-  // Online: respeita o perfil real do usuário autenticado (RN09).
-  const isAdmin = !data.apiOnline || data.usuarioLogado?.perfil === "Administrador";
-  if (!isAdmin) return null;
+  if (!IS_ADMIN) return null;
   return (
     <button onClick={onClick}
       className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all hover:shadow-md"
-      style={{ backgroundColor: "var(--primary)" }}>
+      style={{ backgroundColor: "#800020" }}>
       <Icon path={ICONS.plus} size={14} />
       {label}
     </button>
@@ -268,7 +263,7 @@ function AdminAddButton({ label = "+ Adicionar Novo", onClick }: { label?: strin
 }
 
 function CategoryPill({ label }: { label: string }) {
-  const [bg, text] = CATEGORY_COLORS[label] ?? ["var(--secondary)", "var(--text-secondary)"];
+  const [bg, text] = CATEGORY_COLORS[label] ?? ["#f1f5f9", "#64748b"];
   return (
     <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: bg, color: text }}>
       {label}
@@ -365,8 +360,8 @@ function EventsView() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Agenda de Eventos</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>Calendário de eventos, treinamentos e compromissos institucionais da rede Decós</p>
+          <h1 className="text-xl font-bold" style={{ color: "#334155" }}>Agenda de Eventos</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>Calendário de eventos, treinamentos e compromissos institucionais da rede Decós</p>
         </div>
         <div>
           <AdminAddButton onClick={() => (window as any).__openAddModal?.('evento')} />
@@ -374,17 +369,17 @@ function EventsView() {
       </div>
 
       {/* ── CALENDAR ── */}
-      <div className="bg-[var(--card)] rounded-2xl border p-6" style={{ borderColor: "var(--border)" }}>
+      <div className="bg-white rounded-2xl border p-6" style={{ borderColor: "#e2e8f0" }}>
         {/* Month nav */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold uppercase tracking-wider" style={{ color: "var(--foreground)" }}>
+          <h2 className="text-base font-bold uppercase tracking-wider" style={{ color: "#334155" }}>
             {MONTH_NAMES[calMonth]} {calYear}
           </h2>
           <div className="flex gap-1">
             {[prevMonth, nextMonth].map((fn, i) => (
               <button key={i} onClick={fn}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-[var(--secondary)]"
-                style={{ color: "var(--muted-foreground)" }}>
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors hover:bg-gray-100"
+                style={{ color: "#94a3b8" }}>
                 {i === 0 ? "‹" : "›"}
               </button>
             ))}
@@ -396,7 +391,7 @@ function EventsView() {
           {([['todos','Todos'], ['aniversariantes','Aniversariantes'], ['eventos','Eventos']] as Array<[any,string]>).map(([key,label]) => (
             <button key={key} onClick={() => setFilterMode(key)}
               className="px-3 py-1.5 rounded-full text-sm font-medium"
-              style={{ backgroundColor: filterMode === key ? 'var(--primary)' : 'var(--secondary)', color: filterMode === key ? 'var(--primary-foreground)' : 'var(--text-secondary)', border: `1px solid ${filterMode === key ? 'var(--primary)' : 'var(--border)'}` }}>
+              style={{ backgroundColor: filterMode === key ? '#800020' : '#f1f5f9', color: filterMode === key ? '#fff' : '#64748b', border: `1px solid ${filterMode === key ? '#800020' : '#e2e8f0'}` }}>
               {label}
             </button>
           ))}
@@ -405,7 +400,7 @@ function EventsView() {
         {/* Day-of-week headers */}
         <div className="grid grid-cols-7 mb-2">
           {DAY_SHORT.map(d => (
-            <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider py-1" style={{ color: "var(--muted-foreground)" }}>{d}</div>
+            <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider py-1" style={{ color: "#94a3b8" }}>{d}</div>
           ))}
         </div>
 
@@ -431,15 +426,15 @@ function EventsView() {
               <button
                 key={day}
                 onClick={() => setSelectedDate(prev => prev === dateStr ? null : dateStr)}
-                className="flex flex-col items-center py-1.5 rounded-xl transition-all hover:bg-[var(--secondary)] group"
-                style={{ backgroundColor: isSelected ? "var(--primary)" : undefined }}
+                className="flex flex-col items-center py-1.5 rounded-xl transition-all hover:bg-gray-50 group"
+                style={{ backgroundColor: isSelected ? "#800020" : undefined }}
               >
                 <span
                   className="w-8 h-8 flex items-center justify-center rounded-full text-sm font-semibold transition-colors"
                   style={{
-                    color: isSelected ? "var(--primary-foreground)" : isToday ? "var(--primary)" : "var(--foreground)",
+                    color: isSelected ? "#ffffff" : isToday ? "#800020" : "#334155",
                     fontWeight: isToday || isSelected ? 700 : 400,
-                    boxShadow: isToday && !isSelected ? "0 0 0 2px var(--primary)" : undefined,
+                    boxShadow: isToday && !isSelected ? "0 0 0 2px #800020" : undefined,
                   }}
                 >
                   {day}
@@ -450,8 +445,8 @@ function EventsView() {
                   (() => {
                     const ev = eventsThisMonth.find(e => new Date(e.date + "T12:00:00").getDate() === day);
                     return ev ? (
-                      <div className="mt-2 px-2 py-1 rounded-lg text-[11px] text-left w-full truncate" style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.08)" : "var(--card)", color: "var(--foreground)", border: "1px solid var(--secondary)" }}>
-                        <div className="font-semibold truncate" style={{ color: "var(--foreground)" }}>{ev.title}</div>
+                      <div className="mt-2 px-2 py-1 rounded-lg text-[11px] text-left w-full truncate" style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.08)" : "#fff", color: "#334155", border: "1px solid #f1f5f9" }}>
+                        <div className="font-semibold truncate" style={{ color: "#334155" }}>{ev.title}</div>
                       </div>
                     ) : null;
                   })()
@@ -459,14 +454,14 @@ function EventsView() {
 
                 {/* single birthday preview */}
                 {totalVisible === 1 && visibleBirthdayCount === 1 && (
-                  <div className="mt-2 px-2 py-1 rounded-lg text-[12px] w-full text-center" style={{ backgroundColor: "var(--alert-bg)", color: "var(--primary)", border: "1px solid var(--danger-border)" }}>
+                  <div className="mt-2 px-2 py-1 rounded-lg text-[12px] w-full text-center" style={{ backgroundColor: "#fff5f5", color: "#800020", border: "1px solid #fdecea" }}>
                     🎂 {birthdays[0]?.name.split(' ')[0]}
                   </div>
                 )}
 
                 {/* multiple indicator */}
                 {totalVisible > 1 && (
-                  <div className="mt-2 px-2 py-1 rounded-full text-[11px] font-semibold" style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.12)" : "var(--primary)", color: "var(--primary-foreground)" }}>
+                  <div className="mt-2 px-2 py-1 rounded-full text-[11px] font-semibold" style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.12)" : "#800020", color: "#fff" }}>
                     +{totalVisible}
                   </div>
                 )}
@@ -476,30 +471,30 @@ function EventsView() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 mt-4 pt-4" style={{ borderTop: "1px solid var(--secondary)" }}>
+        <div className="flex items-center gap-4 mt-4 pt-4" style={{ borderTop: "1px solid #f1f5f9" }}>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full border-2" style={{ borderColor: "var(--primary)" }} />
-            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Hoje</span>
+            <span className="w-3 h-3 rounded-full border-2" style={{ borderColor: "#800020" }} />
+            <span className="text-xs" style={{ color: "#94a3b8" }}>Hoje</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
-            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Com eventos</span>
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#800020" }} />
+            <span className="text-xs" style={{ color: "#94a3b8" }}>Com eventos</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-lg" style={{ backgroundColor: "var(--primary)" }} />
-            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>Selecionado</span>
+            <span className="w-5 h-5 rounded-lg" style={{ backgroundColor: "#800020" }} />
+            <span className="text-xs" style={{ color: "#94a3b8" }}>Selecionado</span>
           </div>
         </div>
       </div>
 
       {/* ── TIMELINE ── */}
       {selectedDate ? (
-        <div className="bg-[var(--card)] rounded-2xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
+        <div className="bg-white rounded-2xl border overflow-hidden" style={{ borderColor: "#e2e8f0" }}>
           {/* Timeline header */}
-          <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
+          <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid #e2e8f0" }}>
             <div>
-              <h3 className="font-bold text-base capitalize" style={{ color: "var(--foreground)" }}>{fmtSelectedDate()}</h3>
-              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              <h3 className="font-bold text-base capitalize" style={{ color: "#334155" }}>{fmtSelectedDate()}</h3>
+              <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>
                 { (dayEvents.length + dayBirthdays.length) === 0 ? "Nenhum evento agendado para este dia" : `${dayEvents.length + dayBirthdays.length} item${dayEvents.length + dayBirthdays.length > 1 ? "s" : ""} agendado${dayEvents.length + dayBirthdays.length > 1 ? "s" : ""}` }
               </p>
             </div>
@@ -514,27 +509,27 @@ function EventsView() {
    
           {(dayEvents.length + dayBirthdays.length) === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--background)" }}>
-                <Icon path={ICONS.calendar} size={24} style={{ color: "var(--border-strong)" }} />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "#f8fafc" }}>
+                <Icon path={ICONS.calendar} size={24} style={{ color: "#cbd5e1" }} />
               </div>
-              <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>Nenhum evento para este dia</p>
-              <p className="text-xs" style={{ color: "var(--border-strong)" }}>Selecione outra data no calendário</p>
+              <p className="text-sm font-medium" style={{ color: "#94a3b8" }}>Nenhum evento para este dia</p>
+              <p className="text-xs" style={{ color: "#cbd5e1" }}>Selecione outra data no calendário</p>
             </div>
           ) : (
             <div className="p-6 overflow-y-auto" style={{ maxHeight: 560 }}>
               {/* show birthdays first */}
               {dayBirthdays.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Aniversariantes</h4>
+                  <h4 className="text-sm font-semibold" style={{ color: "#334155" }}>Aniversariantes</h4>
                   <div className="mt-2 space-y-2">
                     {dayBirthdays.map((b, i) => (
-                      <div key={i} className="bg-[var(--card)] rounded-lg p-3 border" style={{ borderColor: "var(--secondary)" }}>
+                      <div key={i} className="bg-white rounded-lg p-3 border" style={{ borderColor: "#f1f5f9" }}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-semibold" style={{ color: "var(--foreground)" }}>{b.name}</div>
-                            <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{b.role}</div>
+                            <div className="font-semibold" style={{ color: "#334155" }}>{b.name}</div>
+                            <div className="text-xs" style={{ color: "#94a3b8" }}>{b.role}</div>
                           </div>
-                          <div className="text-sm text-white px-3 py-1 rounded-full" style={{ backgroundColor: "var(--primary)" }}>🎂 Hoje</div>
+                          <div className="text-sm text-white px-3 py-1 rounded-full" style={{ backgroundColor: "#800020" }}>🎂 Hoje</div>
                         </div>
                       </div>
                     ))}
@@ -551,10 +546,10 @@ function EventsView() {
                     className="absolute left-0 right-0 flex items-center gap-3"
                     style={{ top: (hour - HOUR_START) * HOUR_H - 9, marginLeft: -LABEL_W }}
                   >
-                    <span className="text-[11px] font-mono font-semibold w-10 text-right flex-shrink-0" style={{ color: "var(--border-strong)" }}>
+                    <span className="text-[11px] font-mono font-semibold w-10 text-right flex-shrink-0" style={{ color: "#cbd5e1" }}>
                       {pad(hour)}h
                     </span>
-                    <div className="flex-1 border-t" style={{ borderColor: "var(--secondary)" }} />
+                    <div className="flex-1 border-t" style={{ borderColor: "#f1f5f9" }} />
                   </div>
                 ))}
 
@@ -590,14 +585,14 @@ function EventsView() {
                               {timeLabel(ev.startHour, ev.startMin)} – {timeLabel(ev.endHour, ev.endMin)}
                             </span>
                           </div>
-                          <div className="text-xs font-semibold leading-tight truncate" style={{ color: "var(--foreground)" }}>{ev.title}</div>
+                          <div className="text-xs font-semibold leading-tight truncate" style={{ color: "#334155" }}>{ev.title}</div>
                           {height > 56 && (
-                            <div className="text-[11px] mt-1 leading-tight line-clamp-2" style={{ color: "var(--text-secondary)" }}>{ev.description}</div>
+                            <div className="text-[11px] mt-1 leading-tight line-clamp-2" style={{ color: "#64748b" }}>{ev.description}</div>
                           )}
                           {height > 80 && (
                             <div className="flex items-center gap-1 mt-1.5">
-                              <Icon path={ICONS.mapPin} size={10} style={{ color: "var(--muted-foreground)" }} />
-                              <span className="text-[10px] truncate" style={{ color: "var(--muted-foreground)" }}>{ev.location}</span>
+                              <Icon path={ICONS.mapPin} size={10} style={{ color: "#94a3b8" }} />
+                              <span className="text-[10px] truncate" style={{ color: "#94a3b8" }}>{ev.location}</span>
                             </div>
                           )}
                         </div>
@@ -611,9 +606,9 @@ function EventsView() {
           )}
         </div>
       ) : (
-        <div className="rounded-2xl border-2 border-dashed flex items-center justify-center py-12 gap-3" style={{ borderColor: "var(--border)" }}>
-          <Icon path={ICONS.calendar} size={20} style={{ color: "var(--border-strong)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>Selecione um dia no calendário para ver a linha do tempo</p>
+        <div className="rounded-2xl border-2 border-dashed flex items-center justify-center py-12 gap-3" style={{ borderColor: "#e2e8f0" }}>
+          <Icon path={ICONS.calendar} size={20} style={{ color: "#cbd5e1" }} />
+          <p className="text-sm font-medium" style={{ color: "#94a3b8" }}>Selecione um dia no calendário para ver a linha do tempo</p>
         </div>
       )}
     </div>
@@ -638,66 +633,64 @@ function NewsView() {
     <div className="p-6 space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Notícias e Comunicados</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>Informações institucionais, protocolos e atualizações da rede Decós</p>
+          <h1 className="text-xl font-bold" style={{ color: "#334155" }}>Notícias e Comunicados</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>Informações institucionais, protocolos e atualizações da rede Decós</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-72">
-          <Icon path={ICONS.search} size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
+          <Icon path={ICONS.search} size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#94a3b8" }} />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar notícias..."
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg focus:outline-none placeholder:text-[var(--muted-foreground)]"
-            style={{ backgroundColor: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg focus:outline-none placeholder:text-[#94a3b8]"
+            style={{ backgroundColor: "#f1f5f9", border: "1px solid #e2e8f0", color: "#334155" }} />
         </div>
           <AdminAddButton onClick={() => (window as any).__openAddModal?.('noticia')} />
         </div>
       </div>
 
       {/* Featured */}
-      {featured && (
-        <div className="relative rounded-2xl overflow-hidden h-56 group cursor-pointer">
-          <img src={`https://images.unsplash.com/photo-${featured.image}?w=1200&h=450&fit=crop&auto=format`}
-            alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-          <div className="absolute top-4 left-4">
-            <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: "var(--primary)" }}>★ Destaque</span>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <CategoryPill label={featured.category} />
-              <span className="text-white/60 text-xs">{featured.date} · {featured.readTime} de leitura</span>
-            </div>
-            <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
-          </div>
+      {featured ? (<div className="relative rounded-2xl overflow-hidden h-56 group cursor-pointer">
+        <img src={`https://images.unsplash.com/photo-${featured.image}?w=1200&h=450&fit=crop&auto=format`}
+          alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+        <div className="absolute top-4 left-4">
+          <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#800020" }}>★ Destaque</span>
         </div>
-      )}
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <CategoryPill label={featured.category} />
+            <span className="text-white/60 text-xs">{featured.date} · {featured.readTime} de leitura</span>
+          </div>
+          <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
+        </div>
+      </div>) : <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Nenhum comunicado publicado ainda.</p>}
 
       {/* Grid */}
       <div className="grid grid-cols-3 gap-4">
         {filtered.slice(1).map(news => (
           <article key={news.id}
-            className="bg-[var(--card)] rounded-xl border overflow-hidden flex flex-col group cursor-pointer hover:shadow-md transition-all"
-            style={{ borderColor: "var(--border)" }}>
-            <div className="h-40 overflow-hidden bg-[var(--secondary)] flex-shrink-0">
+            className="bg-white rounded-xl border overflow-hidden flex flex-col group cursor-pointer hover:shadow-md transition-all"
+            style={{ borderColor: "#e2e8f0" }}>
+            <div className="h-40 overflow-hidden bg-gray-100 flex-shrink-0">
               <img src={`https://images.unsplash.com/photo-${news.image}?w=500&h=280&fit=crop&auto=format`}
                 alt={news.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             </div>
             <div className="p-4 flex flex-col flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <CategoryPill label={news.category} />
-                <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{news.readTime}</span>
+                <span className="text-[11px]" style={{ color: "#94a3b8" }}>{news.readTime}</span>
               </div>
-              <h3 className="font-semibold text-sm leading-snug line-clamp-2 flex-1 transition-colors group-hover:text-[var(--primary)]" style={{ color: "var(--foreground)" }}>
+              <h3 className="font-semibold text-sm leading-snug line-clamp-2 flex-1 transition-colors group-hover:text-[#800020]" style={{ color: "#334155" }}>
                 {news.title}
               </h3>
-              <p className="text-xs mt-2 line-clamp-2" style={{ color: "var(--muted-foreground)" }}>{news.excerpt}</p>
-              <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: "1px solid var(--secondary)" }}>
-                <span className="text-xs font-medium flex-1 truncate" style={{ color: "var(--muted-foreground)" }}>{news.date}</span>
-                <button className="flex items-center gap-1 text-xs transition-colors" style={{ color: "var(--muted-foreground)" }}>
+              <p className="text-xs mt-2 line-clamp-2" style={{ color: "#94a3b8" }}>{news.excerpt}</p>
+              <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: "1px solid #f1f5f9" }}>
+                <span className="text-xs font-medium flex-1 truncate" style={{ color: "#94a3b8" }}>{news.date}</span>
+                <button className="flex items-center gap-1 text-xs transition-colors" style={{ color: "#94a3b8" }}>
                   <Icon path={ICONS.eye} size={12} />{news.views}
                 </button>
                 <button onClick={e => { e.stopPropagation(); toggleLike(news.id); }}
                   className="flex items-center gap-1 text-xs transition-colors"
-                  style={{ color: likedPosts.has(news.id) ? "var(--primary)" : "var(--muted-foreground)" }}>
+                  style={{ color: likedPosts.has(news.id) ? "#800020" : "#94a3b8" }}>
                   <Icon path={ICONS.heart} size={12} />{news.likes + (likedPosts.has(news.id) ? 1 : 0)}
                 </button>
               </div>
@@ -707,8 +700,8 @@ function NewsView() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="bg-[var(--card)] rounded-xl border flex flex-col items-center justify-center py-16" style={{ borderColor: "var(--border)" }}>
-          <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>Nenhuma notícia encontrada para "{search}"</p>
+        <div className="bg-white rounded-xl border flex flex-col items-center justify-center py-16" style={{ borderColor: "#e2e8f0" }}>
+          <p className="text-sm font-medium" style={{ color: "#94a3b8" }}>Nenhuma notícia encontrada para "{search}"</p>
         </div>
       )}
     </div>
@@ -725,8 +718,8 @@ function RecognitionsView() {
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Mural de Reconhecimentos</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>Valorize quem faz a diferença — celebre pessoas e equipes da rede Decós</p>
+          <h1 className="text-xl font-bold" style={{ color: "#334155" }}>Mural de Reconhecimentos</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>Valorize quem faz a diferença — celebre pessoas e equipes da rede Decós</p>
         </div>
         <AdminAddButton label="+ Adicionar Novo" onClick={() => (window as any).__openAddModal?.('noticia')} />
       </div>
@@ -738,10 +731,10 @@ function RecognitionsView() {
           { label: "Colaboradores homenageados", value: "24", sub: "de 8 setores diferentes" },
           { label: "Curtidas acumuladas",        value: "268", sub: "em todo o mural" },
         ].map((s, i) => (
-          <div key={i} className="bg-[var(--card)] rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
-            <div className="text-2xl font-black" style={{ color: "var(--primary)" }}>{s.value}</div>
-            <div className="text-sm font-semibold mt-0.5" style={{ color: "var(--foreground)" }}>{s.label}</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{s.sub}</div>
+          <div key={i} className="bg-white rounded-xl border p-4" style={{ borderColor: "#e2e8f0" }}>
+            <div className="text-2xl font-black" style={{ color: "#800020" }}>{s.value}</div>
+            <div className="text-sm font-semibold mt-0.5" style={{ color: "#334155" }}>{s.label}</div>
+            <div className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>{s.sub}</div>
           </div>
         ))}
       </div>
@@ -749,39 +742,39 @@ function RecognitionsView() {
       {/* Cards grid */}
       <div className="grid grid-cols-3 gap-4">
         {ALL_RECOGNITIONS.map(rec => (
-          <div key={rec.id} className="bg-[var(--card)] rounded-xl border flex flex-col hover:shadow-md transition-all" style={{ borderColor: "var(--border)" }}>
+          <div key={rec.id} className="bg-white rounded-xl border flex flex-col hover:shadow-md transition-all" style={{ borderColor: "#e2e8f0" }}>
             {/* Top band */}
-            <div className="h-2 rounded-t-xl" style={{ backgroundColor: "var(--primary)" }} />
+            <div className="h-2 rounded-t-xl" style={{ backgroundColor: "#800020" }} />
 
             <div className="p-5 flex flex-col flex-1 gap-3">
               {/* Honoree */}
               <div className="flex items-center gap-3">
                 <Avatar id={rec.honoreeAvatar} size={44} />
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm truncate" style={{ color: "var(--foreground)" }}>{rec.honoree}</div>
-                  <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{rec.honoreeRole} · {rec.honoreeUnit}</div>
+                  <div className="font-bold text-sm truncate" style={{ color: "#334155" }}>{rec.honoree}</div>
+                  <div className="text-xs" style={{ color: "#94a3b8" }}>{rec.honoreeRole} · {rec.honoreeUnit}</div>
                 </div>
                 <span className="text-lg">🏅</span>
               </div>
 
               {/* Message */}
-              <div className="flex-1 relative pl-3" style={{ borderLeft: "2px solid var(--primary-soft)" }}>
-                <Icon path={ICONS.quote} size={14} className="absolute -top-1 -left-1 opacity-20" style={{ color: "var(--primary)" }} />
-                <p className="text-sm leading-relaxed line-clamp-3" style={{ color: "var(--text-secondary)" }}>{rec.message}</p>
+              <div className="flex-1 relative pl-3" style={{ borderLeft: "2px solid #b33951" }}>
+                <Icon path={ICONS.quote} size={14} className="absolute -top-1 -left-1 opacity-20" style={{ color: "#800020" }} />
+                <p className="text-sm leading-relaxed line-clamp-3" style={{ color: "#64748b" }}>{rec.message}</p>
               </div>
 
               {/* Footer */}
-              <div className="flex items-center gap-2 pt-3" style={{ borderTop: "1px solid var(--secondary)" }}>
+              <div className="flex items-center gap-2 pt-3" style={{ borderTop: "1px solid #f1f5f9" }}>
                 <Avatar id={rec.fromAvatar} size={24} />
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>{rec.fromName}</span>
-                  <span className="text-xs ml-1" style={{ color: "var(--muted-foreground)" }}>· {rec.fromRole}</span>
+                  <span className="text-xs font-semibold" style={{ color: "#334155" }}>{rec.fromName}</span>
+                  <span className="text-xs ml-1" style={{ color: "#94a3b8" }}>· {rec.fromRole}</span>
                 </div>
-                <span className="text-[10px] mr-2" style={{ color: "var(--muted-foreground)" }}>{rec.time}</span>
+                <span className="text-[10px] mr-2" style={{ color: "#94a3b8" }}>{rec.time}</span>
                 <button
                   onClick={() => toggleLike(rec.id)}
                   className="flex items-center gap-1 text-xs transition-colors"
-                  style={{ color: liked.has(rec.id) ? "var(--primary)" : "var(--muted-foreground)" }}>
+                  style={{ color: liked.has(rec.id) ? "#800020" : "#94a3b8" }}>
                   <Icon path={ICONS.heart} size={13} />
                   {rec.likes + (liked.has(rec.id) ? 1 : 0)}
                 </button>
@@ -816,17 +809,17 @@ function DocumentsView() {
   return (
     <div className="p-6 space-y-5">
       <div>
-        <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Documentos e POPs</h1>
-        <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>Procedimentos Operacionais Padrão e documentos regulatórios da instituição</p>
+        <h1 className="text-xl font-bold" style={{ color: "#334155" }}>Documentos e POPs</h1>
+        <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>Procedimentos Operacionais Padrão e documentos regulatórios da instituição</p>
       </div>
 
       <div className="flex items-center justify-between">
         <div className="relative w-full max-w-xl">
-        <Icon path={ICONS.search} size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
+        <Icon path={ICONS.search} size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "#94a3b8" }} />
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Buscar Procedimentos Operacionais Padrão (POPs) ou palavras-chave..."
-          className="w-full pl-12 pr-5 py-3.5 text-sm bg-[var(--card)] border rounded-xl focus:outline-none transition-all placeholder:text-[var(--muted-foreground)]"
-          style={{ borderColor: "var(--border)", color: "var(--foreground)" }} />
+          className="w-full pl-12 pr-5 py-3.5 text-sm bg-white border rounded-xl focus:outline-none transition-all placeholder:text-[#94a3b8]"
+          style={{ borderColor: "#e2e8f0", color: "#334155" }} />
         </div>
         <div className="pl-4">
           <AdminAddButton onClick={() => (window as any).__openAddModal?.('noticia')} />
@@ -839,39 +832,39 @@ function DocumentsView() {
           return (
             <button key={cat} onClick={() => setActiveFilter(cat as DocCategory | "Todos")}
               className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{ backgroundColor: active ? "var(--primary)" : "var(--secondary)", color: active ? "var(--primary-foreground)" : "var(--text-secondary)", border: `1px solid ${active ? "var(--primary)" : "var(--border)"}` }}>
+              style={{ backgroundColor: active ? "#800020" : "#f1f5f9", color: active ? "#ffffff" : "#64748b", border: `1px solid ${active ? "#800020" : "#e2e8f0"}` }}>
               {cat}
             </button>
           );
         })}
       </div>
 
-      <div className="bg-[var(--card)] rounded-xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-        <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider" style={{ borderColor: "var(--border)", backgroundColor: "var(--background)", color: "var(--muted-foreground)" }}>
+      <div className="bg-white rounded-xl border overflow-hidden" style={{ borderColor: "#e2e8f0" }}>
+        <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider" style={{ borderColor: "#e2e8f0", backgroundColor: "#f8fafc", color: "#94a3b8" }}>
           <div /><div>Título</div><div className="text-center">Categoria</div><div className="text-right">Upload</div><div className="text-center">Ação</div>
         </div>
         {filtered.map((doc, i) => (
-          <div key={doc.id} className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-5 py-3.5 items-center transition-colors hover:bg-[var(--surface-hover)] group"
-            style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--secondary)" : "none" }}>
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--alert-bg)" }}>
+          <div key={doc.id} className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 px-5 py-3.5 items-center transition-colors hover:bg-[#fdf8f9] group"
+            style={{ borderBottom: i < filtered.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="var(--danger-border)" stroke="var(--alert-text)" strokeWidth="1.5" strokeLinejoin="round" />
-                <path d="M14 2v6h6" stroke="var(--alert-text)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                <text x="5.5" y="17" fontSize="5" fontWeight="800" fill="var(--alert-text)" fontFamily="Inter,sans-serif">PDF</text>
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="#fecaca" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round" />
+                <path d="M14 2v6h6" stroke="#ef4444" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <text x="5.5" y="17" fontSize="5" fontWeight="800" fill="#ef4444" fontFamily="Inter,sans-serif">PDF</text>
               </svg>
             </div>
             <div>
-              <div className="text-sm font-semibold truncate transition-colors group-hover:text-[var(--primary)]" style={{ color: "var(--foreground)" }}>{doc.title}</div>
-              <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Versão {doc.version} · {doc.size}</div>
+              <div className="text-sm font-semibold truncate transition-colors group-hover:text-[#800020]" style={{ color: "#334155" }}>{doc.title}</div>
+              <div className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>Versão {doc.version} · {doc.size}</div>
             </div>
             <div className="flex justify-center"><CategoryPill label={doc.category} /></div>
-            <div className="text-sm text-right" style={{ color: "var(--muted-foreground)" }}>{doc.uploadDate}</div>
+            <div className="text-sm text-right" style={{ color: "#94a3b8" }}>{doc.uploadDate}</div>
             <div className="flex justify-center">
               <a href={doc.url ?? "#"} target="_blank" rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-                style={{ color: "var(--primary)", backgroundColor: "var(--alert-bg)", border: "1px solid var(--danger-border)" }}
-                onMouseEnter={e => { const el = e.currentTarget; el.style.backgroundColor = "var(--primary)"; el.style.color = "var(--primary-foreground)"; el.style.borderColor = "var(--primary)"; }}
-                onMouseLeave={e => { const el = e.currentTarget; el.style.backgroundColor = "var(--alert-bg)"; el.style.color = "var(--primary)"; el.style.borderColor = "var(--danger-border)"; }}>
+                style={{ color: "#800020", backgroundColor: "#fff5f5", border: "1px solid #fecaca" }}
+                onMouseEnter={e => { const el = e.currentTarget; el.style.backgroundColor = "#800020"; el.style.color = "#fff"; el.style.borderColor = "#800020"; }}
+                onMouseLeave={e => { const el = e.currentTarget; el.style.backgroundColor = "#fff5f5"; el.style.color = "#800020"; el.style.borderColor = "#fecaca"; }}>
                 <Icon path={ICONS.download} size={13} />Baixar
               </a>
             </div>
@@ -879,7 +872,7 @@ function DocumentsView() {
         ))}
         {filtered.length === 0 && (
           <div className="flex flex-col items-center py-14 gap-2">
-            <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>Nenhum documento encontrado</p>
+            <p className="text-sm font-medium" style={{ color: "#94a3b8" }}>Nenhum documento encontrado</p>
           </div>
         )}
       </div>
@@ -924,8 +917,8 @@ function DirectoryView() {
     <div className="p-6 space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Diretório e Ramais</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>Lista de colaboradores, setores e ramais internos</p>
+          <h1 className="text-xl font-bold" style={{ color: "#334155" }}>Diretório e Ramais</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>Lista de colaboradores, setores e ramais internos</p>
         </div>
         <div>
           <AdminAddButton onClick={() => (window as any).__openAddModal?.('noticia')} />
@@ -934,38 +927,38 @@ function DirectoryView() {
 
       <div className="flex gap-3 items-center">
         <div className="relative w-96">
-          <Icon path={ICONS.search} size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
+          <Icon path={ICONS.search} size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#94a3b8" }} />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nome, cargo ou setor"
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg" style={{ backgroundColor: "var(--secondary)", border: "1px solid var(--border)", color: "var(--foreground)" }} />
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg" style={{ backgroundColor: "#f1f5f9", border: "1px solid #e2e8f0", color: "#334155" }} />
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setSector("Todos")} className="px-3 py-1.5 rounded-full" style={{ backgroundColor: sector === "Todos" ? "var(--primary)" : "var(--secondary)", color: sector === "Todos" ? "var(--primary-foreground)" : "var(--text-secondary)" }}>Todos</button>
+          <button onClick={() => setSector("Todos")} className="px-3 py-1.5 rounded-full" style={{ backgroundColor: sector === "Todos" ? "#800020" : "#f1f5f9", color: sector === "Todos" ? "#fff" : "#64748b" }}>Todos</button>
           {sectors.map(s => (
             <button key={s} onClick={() => setSector(s)} className="px-3 py-1.5 rounded-full"
-              style={{ backgroundColor: sector === s ? "var(--primary)" : "var(--background)", color: sector === s ? "var(--primary-foreground)" : "var(--text-secondary)", border: `1px solid ${sector === s ? "var(--primary)" : "var(--border)"}` }}>{s}</button>
+              style={{ backgroundColor: sector === s ? "#800020" : "#f8fafc", color: sector === s ? "#fff" : "#64748b", border: `1px solid ${sector === s ? "#800020" : "#e2e8f0"}` }}>{s}</button>
           ))}
         </div>
       </div>
 
       <div className="grid gap-3">
         {filtered.map(c => (
-          <div key={c.id} className="bg-[var(--card)] rounded-xl border p-3 flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
+          <div key={c.id} className="bg-white rounded-xl border p-3 flex items-center justify-between" style={{ borderColor: "#e2e8f0" }}>
             <div className="flex items-center gap-3">
               <Avatar id={"1472099645785-5658abf4ff4e"} size={48} />
               <div className="min-w-0">
-                <div className="font-semibold text-sm truncate" style={{ color: "var(--foreground)" }}>{c.name}</div>
-                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{c.role} · {c.sector}</div>
+                <div className="font-semibold text-sm truncate" style={{ color: "#334155" }}>{c.name}</div>
+                <div className="text-xs" style={{ color: "#94a3b8" }}>{c.role} · {c.sector}</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{c.phone}</div>
-              <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Ramal: {c.ext}</div>
+              <div className="text-sm font-semibold" style={{ color: "#334155" }}>{c.phone}</div>
+              <div className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>Ramal: {c.ext}</div>
             </div>
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="bg-[var(--card)] rounded-xl border p-6 text-center" style={{ borderColor: "var(--border)" }}>
-            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Nenhum colaborador encontrado</p>
+          <div className="bg-white rounded-xl border p-6 text-center" style={{ borderColor: "#e2e8f0" }}>
+            <p className="text-sm" style={{ color: "#94a3b8" }}>Nenhum colaborador encontrado</p>
           </div>
         )}
       </div>
@@ -995,8 +988,8 @@ function FAQView() {
     <div className="p-6 space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>FAQ — Central de Ajuda</h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>Perguntas frequentes organizadas por categoria</p>
+          <h1 className="text-xl font-bold" style={{ color: "#334155" }}>FAQ — Central de Ajuda</h1>
+          <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>Perguntas frequentes organizadas por categoria</p>
         </div>
         <div>
           <AdminAddButton onClick={() => (window as any).__openAddModal?.('noticia')} />
@@ -1005,20 +998,20 @@ function FAQView() {
 
       <div className="grid gap-4">
         {Object.entries(faqData).map(([cat, list]) => (
-          <div key={cat} className="bg-[var(--card)] rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+          <div key={cat} className="bg-white rounded-xl border p-4" style={{ borderColor: "#e2e8f0" }}>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold" style={{ color: "var(--foreground)" }}>{cat}</h3>
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{list.length} perguntas</span>
+              <h3 className="font-semibold" style={{ color: "#334155" }}>{cat}</h3>
+              <span className="text-xs" style={{ color: "#94a3b8" }}>{list.length} perguntas</span>
             </div>
             <div className="mt-3 space-y-2">
               {list.map((it, i) => (
-                <div key={i} className="p-3 rounded-lg border" style={{ borderColor: "var(--secondary)" }}>
+                <div key={i} className="p-3 rounded-lg border" style={{ borderColor: "#f1f5f9" }}>
                   <button className="w-full text-left flex items-center justify-between" onClick={() => setOpen(prev => ({ ...prev, [cat]: prev[cat] === i ? null : i }))}>
                     <div>
-                      <div className="font-medium" style={{ color: "var(--foreground)" }}>{it.q}</div>
-                      {open[cat] === i && <div className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>{it.a}</div>}
+                      <div className="font-medium" style={{ color: "#334155" }}>{it.q}</div>
+                      {open[cat] === i && <div className="text-sm mt-1" style={{ color: "#64748b" }}>{it.a}</div>}
                     </div>
-                    <Icon path={ICONS.chevronRight} size={16} style={{ transform: open[cat] === i ? "rotate(90deg)" : undefined, color: "var(--muted-foreground)" }} />
+                    <Icon path={ICONS.chevronRight} size={16} style={{ transform: open[cat] === i ? "rotate(90deg)" : undefined, color: "#94a3b8" }} />
                   </button>
                 </div>
               ))}
@@ -1044,17 +1037,17 @@ function MiniCalendar() {
   const isThisMonth = month === 8 && year === 2026;
 
   return (
-    <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--secondary)" }}>
+    <div className="mt-3 pt-3" style={{ borderTop: "1px solid #f1f5f9" }}>
       <div className="flex items-center justify-between mb-2">
         <button onClick={() => setMonth(m => m === 0 ? 11 : m - 1)}
-          className="w-6 h-6 flex items-center justify-center rounded text-xs font-bold hover:bg-[var(--secondary)] transition-colors" style={{ color: "var(--muted-foreground)" }}>‹</button>
-        <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>{MONTH_NAMES[month]} {year}</span>
+          className="w-6 h-6 flex items-center justify-center rounded text-xs font-bold hover:bg-gray-100 transition-colors" style={{ color: "#94a3b8" }}>‹</button>
+        <span className="text-xs font-semibold" style={{ color: "#334155" }}>{MONTH_NAMES[month]} {year}</span>
         <button onClick={() => setMonth(m => m === 11 ? 0 : m + 1)}
-          className="w-6 h-6 flex items-center justify-center rounded text-xs font-bold hover:bg-[var(--secondary)] transition-colors" style={{ color: "var(--muted-foreground)" }}>›</button>
+          className="w-6 h-6 flex items-center justify-center rounded text-xs font-bold hover:bg-gray-100 transition-colors" style={{ color: "#94a3b8" }}>›</button>
       </div>
       <div className="grid grid-cols-7 mb-1">
         {DAY_SHORT.map(d => (
-          <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wide" style={{ color: "var(--muted-foreground)" }}>{d[0]}</div>
+          <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wide" style={{ color: "#94a3b8" }}>{d[0]}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-y-0.5">
@@ -1065,308 +1058,24 @@ function MiniCalendar() {
           return (
             <div key={day} className="flex flex-col items-center py-0.5">
               <div className="w-6 h-6 flex items-center justify-center rounded-full text-[11px]"
-                style={{ backgroundColor: isToday ? "var(--primary)" : "transparent", color: isToday ? "var(--primary-foreground)" : "var(--foreground)", fontWeight: isToday || hasEvent ? 700 : 400 }}>
+                style={{ backgroundColor: isToday ? "#800020" : "transparent", color: isToday ? "#fff" : "#334155", fontWeight: isToday || hasEvent ? 700 : 400 }}>
                 {day}
               </div>
               {hasEvent && !isToday && (
-                <span className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: "var(--primary)" }} />
+                <span className="w-1 h-1 rounded-full mt-0.5" style={{ backgroundColor: "#800020" }} />
               )}
             </div>
           );
         })}
       </div>
-      <div className="flex gap-3 mt-2 pt-2" style={{ borderTop: "1px solid var(--secondary)" }}>
+      <div className="flex gap-3 mt-2 pt-2" style={{ borderTop: "1px solid #f1f5f9" }}>
         <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
-          <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Hoje</span>
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#800020" }} />
+          <span className="text-[10px]" style={{ color: "#94a3b8" }}>Hoje</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--primary)" }} />
-          <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Evento</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── AUTH SCREENS ──────────────────────────────────────────────────────────────
-function AuthShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="h-full flex items-center justify-center px-4" style={{ backgroundColor: "var(--background)" }}>
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-6">
-          <img src={decoLogo} alt="Decós Hospital" className="h-10 w-auto object-contain mb-1" />
-          <div className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>Intranet Corporativa</div>
-        </div>
-        <div className="bg-[var(--card)] rounded-2xl border p-6 shadow-sm" style={{ borderColor: "var(--border)" }}>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const fieldStyle: React.CSSProperties = {
-  backgroundColor: "var(--secondary)",
-  border: "1px solid var(--border)",
-  color: "var(--foreground)",
-};
-
-function LoginScreen() {
-  const data = useData();
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-    try {
-      await data.login(email.trim(), senha);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível entrar. Tente novamente.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <AuthShell>
-      <h1 className="text-lg font-bold mb-0.5" style={{ color: "var(--foreground)" }}>Entrar</h1>
-      <p className="text-xs mb-5" style={{ color: "var(--muted-foreground)" }}>Acesse com seu e-mail corporativo</p>
-
-      <form onSubmit={handleSubmit} className="space-y-3.5">
-        <FormField label="E-mail">
-          <input type="email" required autoFocus value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="nome.sobrenome@decos.com.br"
-            className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-        </FormField>
-        <FormField label="Senha">
-          <input type="password" required value={senha} onChange={e => setSenha(e.target.value)}
-            placeholder="••••••••"
-            className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-        </FormField>
-
-        {error && (
-          <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--alert-bg)", color: "var(--alert-text)" }}>
-            {error}
-          </div>
-        )}
-
-        <button type="submit" disabled={submitting}
-          className="w-full py-2.5 text-sm font-semibold rounded-lg transition-opacity disabled:opacity-60"
-          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}>
-          {submitting ? "Entrando…" : "Entrar"}
-        </button>
-      </form>
-    </AuthShell>
-  );
-}
-
-function ChangePasswordScreen() {
-  const data = useData();
-  const [senhaAtual, setSenhaAtual] = useState("");
-  const [novaSenha, setNovaSenha] = useState("");
-  const [confirmar, setConfirmar] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (novaSenha !== confirmar) {
-      setError("As senhas não coincidem.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await data.alterarSenhaObrigatoria(senhaAtual, novaSenha);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível trocar a senha.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <AuthShell>
-      <div className="flex items-center gap-2 mb-0.5">
-        <Icon path={ICONS.lock} size={16} style={{ color: "var(--primary)" }} />
-        <h1 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>Defina sua senha</h1>
-      </div>
-      <p className="text-xs mb-5" style={{ color: "var(--muted-foreground)" }}>
-        Este é seu primeiro acesso. Por segurança, troque a senha provisória antes de continuar.
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-3.5">
-        <FormField label="Senha provisória">
-          <input type="password" required autoFocus value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-        </FormField>
-        <FormField label="Nova senha (mín. 8 caracteres, com letras e números)">
-          <input type="password" required minLength={8} value={novaSenha} onChange={e => setNovaSenha(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-        </FormField>
-        <FormField label="Confirmar nova senha">
-          <input type="password" required minLength={8} value={confirmar} onChange={e => setConfirmar(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-        </FormField>
-
-        {error && (
-          <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--alert-bg)", color: "var(--alert-text)" }}>
-            {error}
-          </div>
-        )}
-
-        <button type="submit" disabled={submitting}
-          className="w-full py-2.5 text-sm font-semibold rounded-lg transition-opacity disabled:opacity-60"
-          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}>
-          {submitting ? "Salvando…" : "Salvar e continuar"}
-        </button>
-
-        <button type="button" onClick={data.logout}
-          className="w-full text-xs font-medium hover:underline" style={{ color: "var(--muted-foreground)" }}>
-          Sair
-        </button>
-      </form>
-    </AuthShell>
-  );
-}
-
-// ─── CREATE USER VIEW (admin/RH) ───────────────────────────────────────────────
-function CreateUserView() {
-  const data = useData();
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [cargo, setCargo] = useState("");
-  const [idSetor, setIdSetor] = useState<string>("");
-  const [perfil, setPerfil] = useState<api.Perfil>("Colaborador");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    if (!data.token) return;
-    setSubmitting(true);
-    try {
-      const criado = await api.registrarUsuario(
-        { nome, email, senha, cargo: cargo || undefined, id_setor: idSetor ? Number(idSetor) : undefined, perfil },
-        data.token,
-      );
-      setSuccess(`Conta de ${criado.nome} criada. A senha informada é provisória — será exigida a troca no primeiro acesso.`);
-      setNome(""); setEmail(""); setSenha(""); setCargo(""); setIdSetor(""); setPerfil("Colaborador");
-      await data.refetchContatos();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível cadastrar o usuário.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="p-6 space-y-5 max-w-3xl">
-      <div>
-        <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
-          <Icon path={ICONS.userPlus} size={20} style={{ color: "var(--primary)" }} />
-          Cadastrar Usuário
-        </h1>
-        <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-          Restrito a Administrador e RH. A conta é criada com senha provisória — o colaborador troca no primeiro acesso.
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-[var(--card)] rounded-2xl border p-6 space-y-4" style={{ borderColor: "var(--border)" }}>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Nome completo">
-            <input required value={nome} onChange={e => setNome(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-          </FormField>
-          <FormField label="E-mail corporativo">
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="nome.sobrenome@decos.com.br"
-              className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-          </FormField>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Senha provisória (mín. 8 caracteres, com letras e números)">
-            <input type="text" required minLength={8} value={senha} onChange={e => setSenha(e.target.value)}
-              placeholder="Ex.: abcd1234"
-              className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-          </FormField>
-          <FormField label="Cargo">
-            <input value={cargo} onChange={e => setCargo(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle} />
-          </FormField>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Setor">
-            <select value={idSetor} onChange={e => setIdSetor(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle}>
-              <option value="">Sem setor</option>
-              {data.setores.map(s => <option key={s.id_setor} value={s.id_setor}>{s.nome}</option>)}
-            </select>
-          </FormField>
-          <FormField label="Perfil de acesso">
-            <select value={perfil} onChange={e => setPerfil(e.target.value as api.Perfil)}
-              className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none" style={fieldStyle}>
-              <option value="Colaborador">Colaborador</option>
-              <option value="RH">RH</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Administrador">Administrador</option>
-            </select>
-          </FormField>
-        </div>
-
-        {error && (
-          <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--alert-bg)", color: "var(--alert-text)" }}>{error}</div>
-        )}
-        {success && (
-          <div className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: "var(--secondary)", color: "var(--foreground)" }}>{success}</div>
-        )}
-
-        <button type="submit" disabled={submitting}
-          className="px-5 py-2.5 text-sm font-semibold rounded-lg transition-opacity disabled:opacity-60"
-          style={{ backgroundColor: "var(--primary)", color: "var(--primary-foreground)" }}>
-          {submitting ? "Cadastrando…" : "Cadastrar usuário"}
-        </button>
-      </form>
-
-      <div className="bg-[var(--card)] rounded-2xl border overflow-hidden" style={{ borderColor: "var(--border)" }}>
-        <div className="px-5 py-3 text-xs font-semibold uppercase tracking-wider" style={{ borderBottom: "1px solid var(--border)", color: "var(--muted-foreground)" }}>
-          Colaboradores cadastrados ({data.contatos.length})
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-          {data.contatos.map(c => (
-            <div key={c.id_usuario} className="px-5 py-2.5 flex items-center justify-between text-sm" style={{ borderBottom: "1px solid var(--border)" }}>
-              <div>
-                <div className="font-medium" style={{ color: "var(--foreground)" }}>{c.nome}</div>
-                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{c.email}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--secondary)", color: "var(--text-secondary)" }}>{c.perfil}</span>
-                {c.senha_provisoria && (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--alert-bg)", color: "var(--alert-text)" }}>1º acesso pendente</span>
-                )}
-              </div>
-            </div>
-          ))}
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#800020" }} />
+          <span className="text-[10px]" style={{ color: "#94a3b8" }}>Evento</span>
         </div>
       </div>
     </div>
@@ -1376,8 +1085,8 @@ function CreateUserView() {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function App() {
   const data = useData();
+  const { signOut } = useAuth();
   const useApi = data.apiOnline && !data.loading;
-  const { theme, toggleTheme } = useTheme();
 
   const [activeNav,    setActiveNav]    = useState<NavKey>("home");
   const [activeAlert,  setActiveAlert]  = useState(0);
@@ -1385,9 +1094,18 @@ function App() {
   const [activeTab,    setActiveTab]    = useState<"noticias" | "reconhecimentos">("noticias");
   const [notifOpen,    setNotifOpen]    = useState(false);
   const [searchFocused,setSearchFocused]= useState(false);
-  const [quickLinks,   setQuickLinks]   = useState<QuickLink[]>(DEFAULT_QUICK_LINKS);
-  const [addingLink,   setAddingLink]   = useState(false);
-  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const quickAccessDialog = useRef<HTMLDivElement>(null);
+  const [quickAccessOpen, setQuickAccessOpen] = useState(false);
+  const [quickAccessNotice, setQuickAccessNotice] = useState("");
+
+  function selectQuickLink(link: QuickLink) {
+    if (link.id === "docs" || link.id === "faq") {
+      quickAccessDialog.current?.hidePopover();
+      setActiveNav(link.id === "docs" ? "documentos" : "faq");
+      return;
+    }
+    setQuickAccessNotice(`${link.label}: este módulo interno ainda não foi implementado.`);
+  }
 
   // Add-new modal state (admin)
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1438,33 +1156,8 @@ function App() {
     return () => { delete (window as any).__openAddModal; };
   }, []);
 
-  // ── Auth gate: backend online exige login real; offline cai no modo demo. ──
-  if (data.loading) {
-    return (
-      <div className="h-full flex items-center justify-center" style={{ backgroundColor: "var(--background)" }}>
-        <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>Carregando…</div>
-      </div>
-    );
-  }
-  if (data.apiOnline && !data.token) return <LoginScreen />;
-  if (data.apiOnline && data.usuarioLogado?.senha_provisoria) return <ChangePasswordScreen />;
-
-  const canManageUsers = data.usuarioLogado?.perfil === "Administrador" || data.usuarioLogado?.perfil === "RH";
-  const navItems = canManageUsers
-    ? [...NAV_ITEMS, { key: "usuarios", label: "Cadastrar Usuário", icon: "userPlus" }]
-    : NAV_ITEMS;
-
   const toggleLike = (id: number) =>
     setLikedPosts(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
-  const confirmAddLink = () => {
-    const label = newLinkLabel.trim();
-    if (!label) return;
-    setQuickLinks(prev => [...prev, { id: Date.now().toString(), label, icon: "pin" }]);
-    setNewLinkLabel(""); setAddingLink(false);
-  };
-
-  const removeLink = (id: string) => setQuickLinks(prev => prev.filter(l => l.id !== id));
 
   // dashboard events for right panel (Sep only)
   const dashEvents = EVENTS_FULL.filter(e => e.date.startsWith("2026-09")).slice(0, 4);
@@ -1473,59 +1166,54 @@ function App() {
   const birthdays: BirthdayItem[] = useApi ? data.aniversariantes.map(aniversarianteToBirthday) : MOCK_BIRTHDAYS;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ fontFamily: "var(--font-family-sans)", backgroundColor: "var(--background)" }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ fontFamily: "var(--font-family-sans)", backgroundColor: "#f8fafc" }}>
 
       {/* ── HEADER ── */}
-      <header className="h-14 bg-[var(--card)] flex items-center px-5 gap-4 z-30 flex-shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+      <header className="h-14 bg-white flex items-center px-5 gap-4 z-30 flex-shrink-0" style={{ borderBottom: "1px solid #e2e8f0" }}>
         <div className="flex flex-col w-52 flex-shrink-0 justify-center">
           <img src={decoLogo} alt="Decós Hospital" className="h-8 w-auto object-contain object-left" />
-          <div className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)", marginTop: 1 }}>Intranet Corporativa</div>
+          <div className="text-[10px] font-medium" style={{ color: "#94a3b8", marginTop: 1 }}>Intranet Corporativa</div>
         </div>
 
         <div className={`flex-1 max-w-xl relative transition-all ${searchFocused ? "max-w-2xl" : ""}`}>
-          <Icon path={ICONS.search} size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
+          <Icon path={ICONS.search} size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#94a3b8" }} />
           <input type="text" placeholder="Buscar comunicados, documentos, eventos..."
             onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg focus:outline-none transition-all placeholder:text-[var(--muted-foreground)]"
-            style={{ backgroundColor: "var(--secondary)", border: "1px solid transparent", color: "var(--foreground)" }} />
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg focus:outline-none transition-all placeholder:text-[#94a3b8]"
+            style={{ backgroundColor: "#f1f5f9", border: "1px solid transparent", color: "#334155" }} />
         </div>
 
         <div className="flex-1" />
 
-        <button onClick={toggleTheme} title={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
-          className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--secondary)] transition-colors" style={{ color: "var(--muted-foreground)" }}>
-          <Icon path={theme === "dark" ? ICONS.sun : ICONS.moon} size={18} />
-        </button>
-
         <div className="relative">
           <button onClick={() => setNotifOpen(v => !v)}
-            className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--secondary)] transition-colors" style={{ color: "var(--muted-foreground)" }}>
+            className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors" style={{ color: "#94a3b8" }}>
             <Icon path={ICONS.bell} size={20} />
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ backgroundColor: "var(--alert-text)" }}>5</span>
+            <span className="absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ backgroundColor: "#ef4444" }}>5</span>
           </button>
           {notifOpen && (
-            <div className="absolute right-0 top-11 w-80 bg-[var(--card)] rounded-xl z-50 overflow-hidden" style={{ boxShadow: "0 8px 32px rgba(0,0,0,.12)", border: "1px solid var(--border)" }}>
-              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
-                <span className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>Notificações</span>
-                <button className="text-xs font-medium hover:underline" style={{ color: "var(--primary)" }}>Marcar como lidas</button>
+            <div className="absolute right-0 top-11 w-80 bg-white rounded-xl z-50 overflow-hidden" style={{ boxShadow: "0 8px 32px rgba(0,0,0,.12)", border: "1px solid #e2e8f0" }}>
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid #e2e8f0" }}>
+                <span className="font-semibold text-sm" style={{ color: "#334155" }}>Notificações</span>
+                <button className="text-xs font-medium hover:underline" style={{ color: "#800020" }}>Marcar como lidas</button>
               </div>
               {["Dr. Carlos Mendes comentou no comunicado de acreditação", "Você recebeu um reconhecimento de Ana Beatriz Costa", "Novo evento: Confraternização Dia do Médico publicado", "Check-up anual 2026 — inscrições encerram em 7 dias", "Protocolo BLS/ACLS atualizado por CCIH."].map((t, i) => (
-                <div key={i} className="px-4 py-3 text-sm flex gap-3 items-start cursor-pointer hover:bg-[var(--surface-hover)] transition-colors" style={{ backgroundColor: i < 3 ? "var(--alert-bg)" : undefined }}>
-                  <span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: i < 3 ? "var(--primary)" : "transparent" }} />
-                  <div style={{ color: "var(--foreground)" }}>{t}</div>
+                <div key={i} className="px-4 py-3 text-sm flex gap-3 items-start cursor-pointer hover:bg-[#fdf8f9] transition-colors" style={{ backgroundColor: i < 3 ? "#fff5f5" : undefined }}>
+                  <span className="mt-1.5 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: i < 3 ? "#800020" : "transparent" }} />
+                  <div style={{ color: "#334155" }}>{t}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 pl-3" style={{ borderLeft: "1px solid var(--border)" }}>
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--secondary)] ring-2 ring-[var(--card)]" style={{ boxShadow: "0 0 0 2px rgba(128,0,32,0.12)" }}>
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=face&auto=format" alt="perfil" className="w-full h-full object-cover" />
+        <div className="flex items-center gap-2.5 pl-3" style={{ borderLeft: "1px solid #e2e8f0" }}>
+          <div aria-hidden="true" className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold bg-[#fff5f5] text-[#800020]">
+            {data.usuarioLogado?.nome.split(" ").filter(Boolean).slice(0, 2).map(n => n[0]).join("")}
           </div>
           <div className="hidden xl:block text-right">
-            <div className="text-sm font-semibold leading-none" style={{ color: "var(--foreground)" }}>{data.usuarioLogado?.nome ?? "Visitante (modo demonstração)"}</div>
-            <div className="text-[11px] mt-0.5" style={{ color: "var(--primary)" }}> {data.usuarioLogado?.cargo ?? data.usuarioLogado?.perfil ?? "—"}</div>
+            <div className="text-sm font-semibold leading-none" style={{ color: "#334155" }}>{data.usuarioLogado?.nome ?? "Colaborador"}</div>
+            <div className="text-[11px] mt-0.5" style={{ color: "#800020" }}> {data.usuarioLogado?.cargo ?? "Colaborador"}</div>
           </div>
         </div>
       </header>
@@ -1534,21 +1222,21 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── SIDEBAR ── */}
-        <aside className="w-52 bg-[var(--card)] flex flex-col flex-shrink-0 overflow-y-auto py-4" style={{ borderRight: "1px solid var(--border)" }}>
+        <aside className="w-52 bg-white flex flex-col flex-shrink-0 overflow-y-auto py-4" style={{ borderRight: "1px solid #e2e8f0" }}>
           <nav className="flex-1 px-3 space-y-0.5">
-            {navItems.map(item => {
+            {NAV_ITEMS.map(item => {
               const active = activeNav === item.key;
               return (
                 <button key={item.key} onClick={() => setActiveNav(item.key as NavKey)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                  style={{ backgroundColor: active ? "var(--primary)" : "transparent", color: active ? "var(--primary-foreground)" : "var(--muted-foreground)", boxShadow: active ? "0 2px 8px rgba(128,0,32,.25)" : undefined }}
-                  onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.backgroundColor = "var(--background)"; (e.currentTarget as HTMLElement).style.color = "var(--foreground)"; } }}
-                  onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--muted-foreground)"; } }}>
+                  style={{ backgroundColor: active ? "#800020" : "transparent", color: active ? "#ffffff" : "#94a3b8", boxShadow: active ? "0 2px 8px rgba(128,0,32,.25)" : undefined }}
+                  onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.backgroundColor = "#f8fafc"; (e.currentTarget as HTMLElement).style.color = "#334155"; } }}
+                  onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; (e.currentTarget as HTMLElement).style.color = "#94a3b8"; } }}>
                   <Icon path={ICONS[item.icon as keyof typeof ICONS]} size={18} className="flex-shrink-0" />
                   <span className="flex-1 text-left">{item.label}</span>
                   {item.badge && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-                      style={{ backgroundColor: active ? "rgba(255,255,255,.25)" : "var(--primary)", color: "var(--primary-foreground)" }}>
+                      style={{ backgroundColor: active ? "rgba(255,255,255,.25)" : "#800020", color: "#fff" }}>
                       {item.badge}
                     </span>
                   )}
@@ -1560,10 +1248,10 @@ function App() {
           {/** Setores expandidos quando Diretório ativo */}
           {activeNav === 'diretorio' && (
             <div className="px-3 mt-3">
-              <div className="text-xs font-semibold mb-2" style={{ color: 'var(--muted-foreground)' }}>Setores do Hospital</div>
+              <div className="text-xs font-semibold mb-2" style={{ color: '#94a3b8' }}>Setores do Hospital</div>
               <div className="grid gap-1">
                 {(useApi ? data.setores.map(s => s.nome) : MOCK_HOSPITAL_SECTORS).map(s => (
-                  <button key={s} className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium" style={{ color: 'var(--text-secondary)' }} onClick={() => setActiveNav('diretorio')}>
+                  <button key={s} className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium" style={{ color: '#64748b' }} onClick={() => setActiveNav('diretorio')}>
                     {s}
                   </button>
                 ))}
@@ -1571,11 +1259,10 @@ function App() {
             </div>
           )}
 
-          <div className="px-3 pt-3 mt-auto" style={{ borderTop: "1px solid var(--border)" }}>
-            <button onClick={data.logout} disabled={!data.token}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50" style={{ color: "var(--muted-foreground)" }}
-              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "var(--alert-bg)"; el.style.color = "var(--alert-text)"; }}
-              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "transparent"; el.style.color = "var(--muted-foreground)"; }}>
+          <div className="px-3 pt-3 mt-auto" style={{ borderTop: "1px solid #e2e8f0" }}>
+            <button onClick={() => signOut()} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ color: "#94a3b8" }}
+              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "#fff5f5"; el.style.color = "#ef4444"; }}
+              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.backgroundColor = "transparent"; el.style.color = "#94a3b8"; }}>
               <Icon path={ICONS.logout} size={18} />Sair
             </button>
           </div>
@@ -1589,7 +1276,6 @@ function App() {
           {activeNav === "reconhecimentos" && <RecognitionsView />}
           {activeNav === "documentos"      && <DocumentsView />}
           {activeNav === "faq"             && <FAQView />}
-          {activeNav === "usuarios" && canManageUsers && <CreateUserView />}
 
           {activeNav === "home" && (
             <div className="p-5 space-y-5 max-w-[1400px]">
@@ -1600,14 +1286,14 @@ function App() {
                   <div key={alert.id} onClick={() => setActiveAlert(i)}
                     className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all text-sm font-medium"
                     style={{
-                      backgroundColor: activeAlert === i ? (alert.type === "urgent" ? "var(--primary)" : "var(--primary-hover)") : "var(--secondary)",
-                      color: activeAlert === i ? "var(--primary-foreground)" : "var(--text-secondary)",
+                      backgroundColor: activeAlert === i ? (alert.type === "urgent" ? "#800020" : "#3b000e") : "#f1f5f9",
+                      color: activeAlert === i ? "#ffffff" : "#64748b",
                       borderBottom: i < ALERTS.length - 1 ? "1px solid rgba(255,255,255,.1)" : undefined,
                     }}>
                     <span className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded"
                       style={{
-                        backgroundColor: activeAlert === i ? "rgba(255,255,255,.2)" : (alert.type === "urgent" ? "var(--alert-bg)" : "#e0e7ff"),
-                        color: activeAlert === i ? "var(--primary-foreground)" : (alert.type === "urgent" ? "var(--alert-text)" : "#4338ca"),
+                        backgroundColor: activeAlert === i ? "rgba(255,255,255,.2)" : (alert.type === "urgent" ? "#fff5f5" : "#e0e7ff"),
+                        color: activeAlert === i ? "#ffffff" : (alert.type === "urgent" ? "#ef4444" : "#4338ca"),
                       }}>
                       {alert.type === "urgent" ? "⚠ URGENTE" : "ℹ INFO"}
                     </span>
@@ -1622,31 +1308,29 @@ function App() {
                 {/* LEFT */}
                 <div className="space-y-5">
                   {/* Featured */}
-                  {featured && (
-                    <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
-                      <img src={`https://images.unsplash.com/photo-${featured.image}?w=900&h=400&fit=crop&auto=format`}
-                        alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                      <div className="absolute top-4 left-4">
-                        <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: "var(--primary)" }}>★ Destaque</span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CategoryPill label={featured.category} />
-                          <span className="text-white/60 text-xs">{featured.date} · {featured.readTime} de leitura</span>
-                        </div>
-                        <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
-                        <p className="text-white/70 text-sm mt-1 line-clamp-2">{featured.excerpt}</p>
-                      </div>
+                  {featured ? (<div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
+                    <img src={`https://images.unsplash.com/photo-${featured.image}?w=900&h=400&fit=crop&auto=format`}
+                      alt={featured.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                    <div className="absolute top-4 left-4">
+                      <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#800020" }}>★ Destaque</span>
                     </div>
-                  )}
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CategoryPill label={featured.category} />
+                        <span className="text-white/60 text-xs">{featured.date} · {featured.readTime} de leitura</span>
+                      </div>
+                      <h2 className="text-white font-bold text-lg leading-snug">{featured.title}</h2>
+                      <p className="text-white/70 text-sm mt-1 line-clamp-2">{featured.excerpt}</p>
+                    </div>
+                  </div>) : <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Nenhum comunicado publicado ainda.</p>}
 
                   {/* Tabs */}
-                  <div className="flex items-center gap-1 bg-[var(--card)] rounded-xl p-1 w-fit" style={{ border: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-1 bg-white rounded-xl p-1 w-fit" style={{ border: "1px solid #e2e8f0" }}>
                     {(["noticias", "reconhecimentos"] as const).map(tab => (
                       <button key={tab} onClick={() => setActiveTab(tab)}
                         className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                        style={activeTab === tab ? { backgroundColor: "var(--primary)", color: "var(--primary-foreground)", boxShadow: "0 1px 4px rgba(128,0,32,.2)" } : { color: "var(--muted-foreground)" }}>
+                        style={activeTab === tab ? { backgroundColor: "#800020", color: "#ffffff", boxShadow: "0 1px 4px rgba(128,0,32,.2)" } : { color: "#94a3b8" }}>
                         {tab === "noticias" ? "Notícias & Comunicados" : "Reconhecimentos"}
                       </button>
                     ))}
@@ -1657,25 +1341,25 @@ function App() {
                     <div className="space-y-3">
                       {newsList.slice(1, 5).map(news => (
                         <article key={news.id}
-                          className="bg-[var(--card)] rounded-xl border overflow-hidden flex group cursor-pointer transition-all hover:shadow-md"
-                          style={{ borderColor: "var(--border)" }}>
-                          <div className="w-44 flex-shrink-0 overflow-hidden bg-[var(--secondary)]">
+                          className="bg-white rounded-xl border overflow-hidden flex group cursor-pointer transition-all hover:shadow-md"
+                          style={{ borderColor: "#e2e8f0" }}>
+                          <div className="w-44 flex-shrink-0 overflow-hidden bg-gray-100">
                             <img src={`https://images.unsplash.com/photo-${news.image}?w=240&h=160&fit=crop&auto=format`}
                               alt={news.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           </div>
                           <div className="flex-1 p-4">
                             <div className="flex items-center gap-2 mb-1.5">
                               <CategoryPill label={news.category} />
-                              <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>{news.date} · {news.readTime}</span>
+                              <span className="text-[11px]" style={{ color: "#94a3b8" }}>{news.date} · {news.readTime}</span>
                             </div>
-                            <h3 className="font-semibold text-sm leading-snug line-clamp-2 transition-colors group-hover:text-[var(--primary)]" style={{ color: "var(--foreground)" }}>{news.title}</h3>
-                            <p className="text-xs mt-1.5 line-clamp-2" style={{ color: "var(--muted-foreground)" }}>{news.excerpt}</p>
+                            <h3 className="font-semibold text-sm leading-snug line-clamp-2 transition-colors group-hover:text-[#800020]" style={{ color: "#334155" }}>{news.title}</h3>
+                            <p className="text-xs mt-1.5 line-clamp-2" style={{ color: "#94a3b8" }}>{news.excerpt}</p>
                             <div className="flex items-center gap-3 mt-3">
-                              <span className="text-xs font-medium flex-1" style={{ color: "var(--muted-foreground)" }}>{news.author}</span>
-                              <button className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><Icon path={ICONS.eye} size={12} />{news.views}</button>
+                              <span className="text-xs font-medium flex-1" style={{ color: "#94a3b8" }}>{news.author}</span>
+                              <button className="flex items-center gap-1 text-xs" style={{ color: "#94a3b8" }}><Icon path={ICONS.eye} size={12} />{news.views}</button>
                               <button onClick={e => { e.stopPropagation(); toggleLike(news.id); }}
                                 className="flex items-center gap-1 text-xs transition-colors"
-                                style={{ color: likedPosts.has(news.id) ? "var(--primary)" : "var(--muted-foreground)" }}>
+                                style={{ color: likedPosts.has(news.id) ? "#800020" : "#94a3b8" }}>
                                 <Icon path={ICONS.heart} size={12} />{news.likes + (likedPosts.has(news.id) ? 1 : 0)}
                               </button>
                             </div>
@@ -1683,8 +1367,8 @@ function App() {
                         </article>
                       ))}
                       <button onClick={() => setActiveNav("noticias")}
-                        className="w-full py-2.5 text-sm font-semibold rounded-xl border transition-colors hover:bg-[var(--alert-bg)]"
-                        style={{ borderColor: "var(--border)", color: "var(--primary)" }}>
+                        className="w-full py-2.5 text-sm font-semibold rounded-xl border transition-colors hover:bg-[#fff5f5]"
+                        style={{ borderColor: "#e2e8f0", color: "#800020" }}>
                         Ver todas as notícias →
                       </button>
                     </div>
@@ -1694,27 +1378,27 @@ function App() {
                   {activeTab === "reconhecimentos" && (
                     <div className="space-y-3">
                       {ALL_RECOGNITIONS.slice(0, 2).map(rec => (
-                        <div key={rec.id} className="bg-[var(--card)] rounded-xl border p-4 hover:shadow-sm transition-shadow" style={{ borderColor: "var(--border)" }}>
+                        <div key={rec.id} className="bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow" style={{ borderColor: "#e2e8f0" }}>
                           <div className="flex gap-3">
                             <Avatar id={rec.fromAvatar} size={40} />
                             <div className="flex-1">
                               <div className="flex items-baseline gap-1.5 flex-wrap">
-                                <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>{rec.fromName}</span>
-                                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>reconheceu</span>
-                                <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{rec.honoree}</span>
+                                <span className="text-sm font-semibold" style={{ color: "#334155" }}>{rec.fromName}</span>
+                                <span className="text-xs" style={{ color: "#94a3b8" }}>reconheceu</span>
+                                <span className="text-sm font-semibold" style={{ color: "#800020" }}>{rec.honoree}</span>
                               </div>
-                              <p className="text-sm mt-1.5 leading-relaxed pl-3 line-clamp-2" style={{ color: "var(--text-secondary)", borderLeft: "2px solid var(--primary-soft)" }}>{rec.message}</p>
+                              <p className="text-sm mt-1.5 leading-relaxed pl-3 line-clamp-2" style={{ color: "#64748b", borderLeft: "2px solid #b33951" }}>{rec.message}</p>
                               <div className="flex items-center gap-4 mt-2.5">
-                                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{rec.time}</span>
-                                <button className="ml-auto flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><Icon path={ICONS.heart} size={13} />{rec.likes}</button>
+                                <span className="text-xs" style={{ color: "#94a3b8" }}>{rec.time}</span>
+                                <button className="ml-auto flex items-center gap-1 text-xs" style={{ color: "#94a3b8" }}><Icon path={ICONS.heart} size={13} />{rec.likes}</button>
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
                       <button onClick={() => setActiveNav("reconhecimentos")}
-                        className="w-full py-2.5 text-sm font-semibold rounded-xl border transition-colors hover:bg-[var(--alert-bg)]"
-                        style={{ borderColor: "var(--border)", color: "var(--primary)" }}>
+                        className="w-full py-2.5 text-sm font-semibold rounded-xl border transition-colors hover:bg-[#fff5f5]"
+                        style={{ borderColor: "#e2e8f0", color: "#800020" }}>
                         Ver mural completo →
                       </button>
                     </div>
@@ -1723,66 +1407,16 @@ function App() {
 
                 {/* RIGHT PANEL */}
                 <div className="space-y-4">
-                  {/* Quick access */}
-                  <div className="bg-[var(--card)] rounded-xl p-4" style={{ border: "1px solid var(--border)" }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Acesso Rápido</span>
-                      
-                    </div>
-                   
-                    <div className="grid grid-cols-3 gap-2">
-                      {quickLinks.map(link => (
-                        <div key={link.id} className="relative group/link">
-                          <button className="w-full flex flex-col items-center gap-1.5 p-2.5 rounded-xl text-xs font-medium transition-all hover:scale-105 hover:shadow-sm"
-                            style={{ backgroundColor: "var(--alert-bg)", color: "var(--primary)" }}>
-                            <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={20} />
-                            <span className="text-center leading-tight text-[11px]">{link.label}</span>
-                          </button>
-                          <button onClick={() => removeLink(link.id)} title="Remover"
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center opacity-0 group-hover/link:opacity-100 transition-all"
-                            style={{ backgroundColor: "var(--muted-foreground)" }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "var(--alert-text)"; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = "var(--muted-foreground)"; }}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Birthdays */}
-                  <div className="bg-[var(--card)] rounded-xl p-4" style={{ border: "1px solid var(--border)" }}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--alert-bg)" }}>
-                        <Icon path={ICONS.gift} size={14} style={{ color: "var(--primary)" }} />
-                      </div>
-                      <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Aniversários</span>
-                    </div>
-                    <div className="space-y-2.5">
-                      {birthdays.length === 0 && (
-                        <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>Nenhum aniversariante este mês.</p>
-                      )}
-                      {birthdays.map((b, i) => (
-                        <div key={i} className="flex items-center gap-2.5">
-                          <div className="relative"><Avatar id={b.avatar} size={36} />{b.today && <span className="absolute -top-1 -right-1 text-sm">🎂</span>}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>{b.name}</div>
-                            <div className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{b.role}</div>
-                          </div>
-                          {b.today && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "var(--alert-bg)", color: "var(--primary)" }}>hoje</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Events */}
-                  <div className="bg-[var(--card)] rounded-xl p-4" style={{ border: "1px solid var(--border)" }}>
+                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--alert-bg)" }}>
-                          <Icon path={ICONS.calendar} size={14} style={{ color: "var(--primary)" }} />
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
+                          <Icon path={ICONS.calendar} size={14} style={{ color: "#800020" }} />
                         </div>
-                        <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Próximos eventos</span>
+                        <span className="text-sm font-semibold" style={{ color: "#334155" }}>Próximos eventos</span>
                       </div>
-                      <button className="text-xs font-medium hover:underline" style={{ color: "var(--primary)" }}
+                      <button className="text-xs font-medium hover:underline" style={{ color: "#800020" }}
                         onClick={() => setActiveNav("eventos")}>Ver agenda</button>
                     </div>
 
@@ -1794,23 +1428,48 @@ function App() {
                         return (
                           <div key={ev.id} className="flex gap-3 items-start cursor-pointer group" onClick={() => setActiveNav("eventos")}>
                             <div className="w-10 text-center flex-shrink-0">
-                              <div className="text-lg font-black leading-none" style={{ color: "var(--primary)" }}>
+                              <div className="text-lg font-black leading-none" style={{ color: "#800020" }}>
                                 {new Date(ev.date + "T12:00:00").getDate()}
                               </div>
-                              <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--muted-foreground)" }}>
+                              <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "#94a3b8" }}>
                                 {MONTH_NAMES[new Date(ev.date + "T12:00:00").getMonth()].slice(0, 3).toUpperCase()}
                               </div>
                             </div>
-                            <div className="flex-1 min-w-0 pb-2.5" style={{ borderBottom: "1px solid var(--secondary)" }}>
-                              <div className="text-xs font-semibold leading-snug group-hover:text-[var(--primary)] transition-colors" style={{ color: "var(--foreground)" }}>{ev.title}</div>
+                            <div className="flex-1 min-w-0 pb-2.5" style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <div className="text-xs font-semibold leading-snug group-hover:text-[#800020] transition-colors" style={{ color: "#334155" }}>{ev.title}</div>
                               <div className="flex items-center gap-1.5 mt-1">
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border" style={{ backgroundColor: s.bg, color: s.text, borderColor: s.border }}>{s.label}</span>
-                                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{timeLabel(ev.startHour, ev.startMin)}</span>
+                                <span className="text-[10px]" style={{ color: "#94a3b8" }}>{timeLabel(ev.startHour, ev.startMin)}</span>
                               </div>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Birthdays */}
+                  <div className="bg-white rounded-xl p-4" style={{ border: "1px solid #e2e8f0" }}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#fff5f5" }}>
+                        <Icon path={ICONS.gift} size={14} style={{ color: "#800020" }} />
+                      </div>
+                      <span className="text-sm font-semibold" style={{ color: "#334155" }}>Aniversários</span>
+                    </div>
+                    <div className="space-y-2.5">
+                      {birthdays.length === 0 && (
+                        <p className="text-xs" style={{ color: "#94a3b8" }}>Nenhum aniversariante este mês.</p>
+                      )}
+                      {birthdays.map((b, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="relative"><Avatar id={b.avatar} size={36} />{b.today && <span className="absolute -top-1 -right-1 text-sm">🎂</span>}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate" style={{ color: "#334155" }}>{b.name}</div>
+                            <div className="text-xs truncate" style={{ color: "#94a3b8" }}>{b.role}</div>
+                          </div>
+                          {b.today && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#fff5f5", color: "#800020" }}>hoje</span>}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1819,10 +1478,44 @@ function App() {
           )}
         </main>
       </div>
+      <button type="button" popoverTarget="quick-access-dialog" popoverTargetAction="toggle"
+        aria-label="Acesso Rápido" title="Acesso Rápido"
+        aria-haspopup="dialog" aria-controls="quick-access-dialog" aria-expanded={quickAccessOpen}
+        onClick={() => setQuickAccessNotice("")}
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#800020] text-white shadow-[0_5px_24px_rgba(128,0,32,0.3)] transition-colors hover:bg-[#630019] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#800020]">
+        <Icon path={quickAccessOpen ? "M6 6l12 12 M18 6L6 18" : ICONS.chat} size={20} />
+      </button>
+      <div ref={quickAccessDialog} id="quick-access-dialog" popover="auto" role="dialog"
+        aria-labelledby="quick-access-title" aria-describedby="quick-access-description"
+        onToggle={event => setQuickAccessOpen(event.newState === "open")}
+        className="fixed inset-auto bottom-20 right-5 m-0 w-[min(360px,calc(100vw-40px))] overflow-visible rounded-2xl border border-[#ead4dc] bg-white p-0 text-[#334155] shadow-[0_8px_40px_rgba(51,65,85,0.18)] after:absolute after:-bottom-2 after:right-4 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-[#ead4dc] after:bg-white">
+        <div className="max-h-[calc(100dvh-120px)] overflow-y-auto rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="quick-access-title" className="text-lg font-bold text-[#800020]">Acesso Rápido</h2>
+              <p id="quick-access-description" className="mt-1 text-sm text-slate-500">Escolha o serviço que deseja acessar.</p>
+            </div>
+            <button type="button" autoFocus aria-label="Fechar acesso rápido" onClick={() => quickAccessDialog.current?.hidePopover()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-[#800020]">
+              <Icon path="M6 6l12 12 M18 6L6 18" size={20} />
+            </button>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {DEFAULT_QUICK_LINKS.map(link => (
+              <button type="button" key={link.id} onClick={() => selectQuickLink(link)}
+                className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-[#f3dfe5] bg-[#fff5f5] p-4 text-center text-sm font-medium text-[#800020] transition-colors hover:border-[#b33951] hover:bg-[#fce8ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#800020]">
+                <Icon path={ICONS[link.icon as keyof typeof ICONS] ?? ICONS.pin} size={24} />
+                {link.label}
+              </button>
+            ))}
+          </div>
+          {quickAccessNotice && <p role="status" className="mt-4 rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-600">{quickAccessNotice}</p>}
+        </div>
+      </div>
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddModal(false)} />
-          <div className="relative bg-[var(--card)] rounded-xl shadow-xl w-[min(720px,96%)] p-6">
+          <div className="relative bg-white rounded-xl shadow-xl w-[min(720px,96%)] p-6">
             <h3 className="text-lg font-bold mb-3">Adicionar novo {addType === 'noticia' ? 'comunicado' : addType === 'evento' ? 'evento' : 'aniversariante'}</h3>
             <div className="space-y-3">
               <div>
@@ -1865,7 +1558,7 @@ function App() {
 
               <div className="flex items-center justify-end gap-3 mt-4">
                 <button className="px-4 py-2 rounded" onClick={() => setShowAddModal(false)}>Cancelar</button>
-                <button className="px-4 py-2 rounded bg-[var(--primary)] text-white" onClick={handleCreateFromModal}>Criar</button>
+                <button className="px-4 py-2 rounded bg-[#800020] text-white" onClick={handleCreateFromModal}>Criar</button>
               </div>
             </div>
           </div>
@@ -1875,10 +1568,13 @@ function App() {
   );
 }
 
+function AuthenticatedApp() {
+  const { user, restoring } = useAuth();
+  if (restoring) return <main className="min-h-dvh flex items-center justify-center bg-white text-[#800020]" role="status">Validando seu acesso…</main>;
+  if (!user) return <Login />;
+  return <DataProvider><App /></DataProvider>;
+}
+
 export default function Root() {
-  return (
-    <DataProvider>
-      <App />
-    </DataProvider>
-  );
+  return <AuthProvider><AuthenticatedApp /></AuthProvider>;
 }

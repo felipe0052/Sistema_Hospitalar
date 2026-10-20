@@ -18,3 +18,8 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Testes de navegador
+playwright-report/
+test-results/
+!.env.example
