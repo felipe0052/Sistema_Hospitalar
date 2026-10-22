@@ -1,0 +1,19 @@
+from app.models.aviso import Aviso
+from app.models.documento import Documento
+from app.models.evento import Evento
+from app.models.faq import Faq
+from app.models.historico_acesso import HistoricoAcesso
+from app.models.ramal import Ramal
+from app.models.setor import Setor
+from app.models.usuario import Usuario
+
+__all__ = [
+    "Setor",
+    "Ramal",
+    "Usuario",
+    "HistoricoAcesso",
+    "Aviso",
+    "Evento",
+    "Documento",
+    "Faq",
+]

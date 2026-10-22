@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2.0
+oracledb
+pydantic>=2
+pydantic-settings
+email-validator
+bcrypt
+pyjwt
+python-multipart
+pytest
+httpx
+# Semanas 5-6:
+pypdf
+python-docx
+google-genai

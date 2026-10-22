@@ -1,0 +1,16 @@
+.ui-skeleton {
+  display: block;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: ui-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ui-skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
