@@ -1,0 +1,92 @@
+:root {
+  /* Paleta Institucional Decós Hospital (WCAG AA) */
+  --color-primary: #800020;
+  --color-primary-hover: #630019;
+  --color-primary-active: #3b000e;
+  --color-primary-soft: #b33951;
+  --color-primary-light: #fff5f5;
+  --color-primary-border: #f3dfe5;
+
+  /* Superfícies e Fundos */
+  --color-bg-app: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #f1f5f9;
+  --color-bg-hover: #fdf8f9;
+
+  /* Textos (Contraste >= 4.5:1 sobre branco/cinza claro) */
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  --color-text-light: #94a3b8;
+  --color-text-inverse: #ffffff;
+
+  /* Estados Semânticos */
+  --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-success-border: #86efac;
+
+  --color-warning: #b45309;
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #fcd34d;
+
+  --color-danger: #b4233e;
+  --color-danger-hover: #991b34;
+  --color-danger-bg: #fff3f4;
+  --color-danger-border: #f1c5cf;
+
+  --color-info: #1d4ed8;
+  --color-info-bg: #dbeafe;
+  --color-info-border: #93c5fd;
+
+  /* Bordas e Sombras */
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.14);
+  --focus-ring: 0 0 0 3px rgba(128, 0, 32, 0.22);
+
+  /* Raios de Borda */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  /* Tipografia */
+  --font-family-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+
+  /* Espaçamentos */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* Aliases legados do protótipo */
+  --background: var(--color-bg-app);
+  --foreground: var(--color-text-secondary);
+  --card: var(--color-bg-card);
+  --card-foreground: var(--color-text-secondary);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-soft: var(--color-primary-soft);
+  --primary-foreground: var(--color-text-inverse);
+  --secondary: var(--color-bg-subtle);
+  --secondary-foreground: var(--color-text-secondary);
+  --muted: var(--color-bg-subtle);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-primary-soft);
+  --accent-foreground: var(--color-text-inverse);
+  --border: var(--color-border);
+  --ring: var(--color-primary);
+  --radius: var(--radius-md);
+}
