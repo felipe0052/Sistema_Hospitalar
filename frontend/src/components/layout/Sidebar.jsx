@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 const ICONS = {
@@ -13,6 +13,7 @@ const ICONS = {
   shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   building: "M3 21h18 M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16 M9 9h2 M13 9h2 M9 13h2 M13 13h2",
   logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9",
+  login: "M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3",
 };
 
 function NavIcon({ path }) {
@@ -45,9 +46,9 @@ const MENU_PRINCIPAL = [
 ];
 
 export function Sidebar() {
-  const { temPerfil, sair } = useAuth();
-  const podeGerirUsuarios = temPerfil("ADMIN", "RH");
-  const podeGerirSetores = temPerfil("ADMIN");
+  const { autenticado, temPerfil, sair } = useAuth();
+  const podeGerirUsuarios = autenticado && temPerfil("ADMIN", "RH");
+  const podeGerirSetores = autenticado && temPerfil("ADMIN");
 
   return (
     <aside
@@ -66,8 +67,8 @@ export function Sidebar() {
             end={item.end}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
             style={({ isActive }) => ({
-              backgroundColor: isActive ? "var(--color-primary)" : "transparent",
-              color: isActive ? "#ffffff" : "#64748b",
+              background: isActive ? "var(--bordeaux-gradient)" : "transparent",
+              color: isActive ? "var(--white)" : "var(--gray-500)",
               boxShadow: isActive ? "0 2px 8px rgba(128, 0, 32, 0.25)" : undefined,
             })}
           >
@@ -79,7 +80,7 @@ export function Sidebar() {
                   <span
                     className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
                     style={{
-                      backgroundColor: isActive ? "rgba(255,255,255,0.25)" : "var(--color-primary)",
+                      backgroundColor: isActive ? "rgba(255,255,255,0.25)" : "var(--bordeaux)",
                       color: "#fff",
                     }}
                   >
@@ -92,8 +93,11 @@ export function Sidebar() {
         ))}
 
         {(podeGerirUsuarios || podeGerirSetores) && (
-          <div className="pt-4 mt-4" style={{ borderTop: "1px solid #f1f5f9" }}>
-            <div className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-[#800020]">
+          <div className="pt-4 mt-4" style={{ borderTop: "1px solid var(--gray-100)" }}>
+            <div
+              className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider"
+              style={{ color: "var(--bordeaux)" }}
+            >
               Administração
             </div>
             {podeGerirUsuarios && (
@@ -101,8 +105,8 @@ export function Sidebar() {
                 to="/admin/usuarios"
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
                 style={({ isActive }) => ({
-                  backgroundColor: isActive ? "var(--color-primary)" : "transparent",
-                  color: isActive ? "#ffffff" : "#64748b",
+                  background: isActive ? "var(--bordeaux-gradient)" : "transparent",
+                  color: isActive ? "var(--white)" : "var(--gray-500)",
                   boxShadow: isActive ? "0 2px 8px rgba(128, 0, 32, 0.25)" : undefined,
                 })}
               >
@@ -115,8 +119,8 @@ export function Sidebar() {
                 to="/admin/setores"
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
                 style={({ isActive }) => ({
-                  backgroundColor: isActive ? "var(--color-primary)" : "transparent",
-                  color: isActive ? "#ffffff" : "#64748b",
+                  background: isActive ? "var(--bordeaux-gradient)" : "transparent",
+                  color: isActive ? "var(--white)" : "var(--gray-500)",
                   boxShadow: isActive ? "0 2px 8px rgba(128, 0, 32, 0.25)" : undefined,
                 })}
               >
@@ -129,14 +133,24 @@ export function Sidebar() {
       </nav>
 
       <div className="px-3 pt-3 mt-auto" style={{ borderTop: "1px solid var(--color-border)" }}>
-        <button
-          type="button"
-          onClick={() => sair()}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#64748b] hover:bg-[#fff5f5] hover:text-[#b4233e] transition-all cursor-pointer"
-        >
-          <NavIcon path={ICONS.logout} />
-          <span>Sair</span>
-        </button>
+        {autenticado ? (
+          <button
+            type="button"
+            onClick={() => sair()}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#64748b] hover:bg-[#fff5f5] hover:text-[#dc2626] transition-all cursor-pointer"
+          >
+            <NavIcon path={ICONS.logout} />
+            <span>Sair</span>
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#800020] bg-[#fff5f5] hover:bg-[#f3dfe5] transition-all no-underline"
+          >
+            <NavIcon path={ICONS.login} />
+            <span>Entrar / Login</span>
+          </Link>
+        )}
       </div>
     </aside>
   );

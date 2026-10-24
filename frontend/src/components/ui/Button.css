@@ -40,50 +40,57 @@
 /* Variantes: primário, secundário, perigo, link */
 .ui-btn--primary,
 .ui-btn--primario {
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  box-shadow: 0 2px 6px rgba(128, 0, 32, 0.18);
+  background-color: var(--bordeaux);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(128, 0, 32, 0.22);
 }
 
 .ui-btn--primary:hover:not(:disabled),
 .ui-btn--primario:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background-color: var(--bordeaux-dark);
+  box-shadow: 0 4px 12px rgba(59, 0, 14, 0.3);
+}
+
+.ui-btn--primary:active:not(:disabled),
+.ui-btn--primario:active:not(:disabled) {
+  background-color: var(--bordeaux-dark);
 }
 
 .ui-btn--secondary,
 .ui-btn--secundario {
-  background-color: var(--color-bg-card);
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
+  background-color: var(--white);
+  color: var(--gray-700);
+  border-color: var(--gray-200);
 }
 
 .ui-btn--secondary:hover:not(:disabled),
 .ui-btn--secundario:hover:not(:disabled) {
-  background-color: var(--color-bg-subtle);
-  border-color: var(--color-border-strong);
+  background-color: var(--gray-100);
+  border-color: var(--gray-300);
 }
 
 .ui-btn--danger,
 .ui-btn--perigo {
-  background-color: var(--color-danger);
-  color: var(--color-text-inverse);
+  background-color: var(--red-500);
+  color: var(--white);
 }
 
 .ui-btn--danger:hover:not(:disabled),
 .ui-btn--perigo:hover:not(:disabled) {
-  background-color: var(--color-danger-hover);
+  background-color: var(--red-600);
 }
 
 .ui-btn--link {
   background-color: transparent;
-  color: var(--color-primary);
+  color: var(--bordeaux);
   padding: 0.25rem 0.5rem;
   box-shadow: none;
 }
 
 .ui-btn--link:hover:not(:disabled) {
   text-decoration: underline;
-  background-color: var(--color-primary-light);
+  background-color: var(--red-50);
+  color: var(--bordeaux-dark);
 }
 
 .ui-btn__spinner {

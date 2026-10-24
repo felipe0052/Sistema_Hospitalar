@@ -4,8 +4,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { MOCK_EVENTOS } from "../../mocks/portal";
 
 export default function Eventos() {
-  const { temPerfil } = useAuth();
-  const podeGerir = temPerfil("ADMIN", "MARKETING");
+  const { autenticado, temPerfil } = useAuth();
+  const podeGerir = autenticado && temPerfil("ADMIN", "MARKETING");
 
   return (
     <div className="p-6 space-y-5 max-w-[1400px] mx-auto">

@@ -34,9 +34,9 @@
 
 .ui-badge--admin,
 .ui-badge--primary {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
-  border-color: var(--color-primary-border);
+  background-color: var(--red-50);
+  color: var(--bordeaux);
+  border-color: var(--bordeaux-light);
 }
 
 .ui-badge--rh {
@@ -55,4 +55,10 @@
   background-color: var(--color-info-bg);
   color: var(--color-info);
   border-color: var(--color-info-border);
+}
+
+.ui-badge--leitura {
+  background-color: var(--red-50);
+  color: var(--bordeaux-dark);
+  border-color: var(--bordeaux-light);
 }

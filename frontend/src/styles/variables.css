@@ -1,24 +1,48 @@
 :root {
-  /* Paleta Institucional Decós Hospital (WCAG AA) */
-  --color-primary: #800020;
-  --color-primary-hover: #630019;
-  --color-primary-active: #3b000e;
-  --color-primary-soft: #b33951;
-  --color-primary-light: #fff5f5;
+  /* 1. Identidade Principal Decós Hospital (Bordeaux — Design System v2) */
+  --bordeaux: #800020;
+  --bordeaux-dark: #3b000e;
+  --bordeaux-light: #b33951;
+  --bordeaux-gradient: linear-gradient(135deg, #800020 0%, #3b000e 100%);
+
+  /* 2. Neutros e Escala de Cinza (Slate — Design System v2) */
+  --white: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+
+  /* 3. Cores Semânticas (Vermelho / Alertas — Design System v2) */
+  --red-50: #fff5f5;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+
+  /* Mapeamento Semântico da Aplicação (WCAG AA) */
+  --color-primary: var(--bordeaux);
+  --color-primary-hover: var(--bordeaux-dark);
+  --color-primary-active: var(--bordeaux-dark);
+  --color-primary-soft: var(--bordeaux-light);
+  --color-primary-light: var(--red-50);
   --color-primary-border: #f3dfe5;
+  --color-primary-gradient: var(--bordeaux-gradient);
 
   /* Superfícies e Fundos */
-  --color-bg-app: #f8fafc;
-  --color-bg-card: #ffffff;
-  --color-bg-subtle: #f1f5f9;
+  --color-bg-app: var(--gray-50);
+  --color-bg-card: var(--white);
+  --color-bg-subtle: var(--gray-100);
   --color-bg-hover: #fdf8f9;
 
   /* Textos (Contraste >= 4.5:1 sobre branco/cinza claro) */
-  --color-text-primary: #1e293b;
-  --color-text-secondary: #334155;
-  --color-text-muted: #64748b;
-  --color-text-light: #94a3b8;
-  --color-text-inverse: #ffffff;
+  --color-text-primary: var(--gray-800);
+  --color-text-secondary: var(--gray-700);
+  --color-text-muted: var(--gray-500);
+  --color-text-light: var(--gray-400);
+  --color-text-inverse: var(--white);
 
   /* Estados Semânticos */
   --color-success: #15803d;
@@ -29,21 +53,22 @@
   --color-warning-bg: #fef3c7;
   --color-warning-border: #fcd34d;
 
-  --color-danger: #b4233e;
-  --color-danger-hover: #991b34;
-  --color-danger-bg: #fff3f4;
-  --color-danger-border: #f1c5cf;
+  --color-danger: var(--red-500);
+  --color-danger-hover: var(--red-600);
+  --color-danger-bg: var(--red-50);
+  --color-danger-border: #fecaca;
 
   --color-info: #1d4ed8;
   --color-info-bg: #dbeafe;
   --color-info-border: #93c5fd;
 
   /* Bordas e Sombras */
-  --color-border: #e2e8f0;
-  --color-border-strong: #cbd5e1;
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-300);
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.14);
+  --shadow-bordeaux: 0 8px 24px rgba(128, 0, 32, 0.28);
   --focus-ring: 0 0 0 3px rgba(128, 0, 32, 0.22);
 
   /* Raios de Borda */
@@ -76,17 +101,17 @@
   --foreground: var(--color-text-secondary);
   --card: var(--color-bg-card);
   --card-foreground: var(--color-text-secondary);
-  --primary: var(--color-primary);
-  --primary-hover: var(--color-primary-hover);
-  --primary-soft: var(--color-primary-soft);
-  --primary-foreground: var(--color-text-inverse);
+  --primary: var(--bordeaux);
+  --primary-hover: var(--bordeaux-dark);
+  --primary-soft: var(--bordeaux-light);
+  --primary-foreground: var(--white);
   --secondary: var(--color-bg-subtle);
   --secondary-foreground: var(--color-text-secondary);
   --muted: var(--color-bg-subtle);
   --muted-foreground: var(--color-text-muted);
-  --accent: var(--color-primary-soft);
-  --accent-foreground: var(--color-text-inverse);
+  --accent: var(--bordeaux-light);
+  --accent-foreground: var(--white);
   --border: var(--color-border);
-  --ring: var(--color-primary);
+  --ring: var(--bordeaux);
   --radius: var(--radius-md);
 }

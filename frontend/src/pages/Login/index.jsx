@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import logo from "../../imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import symbol from "../../imports/Decos_Hospital_Simbolo_Transparente_v2.png";
@@ -165,10 +165,18 @@ export default function Login() {
       </section>
 
       <section className="login-panel" aria-label="Acesso à intranet">
-        <header className="login-brand">
-          <img src={logo} alt="Decós Hospital" />
-          <span>Intranet Corporativa</span>
-        </header>
+        <div className="flex items-center justify-between gap-4 w-full">
+          <header className="login-brand">
+            <img src={logo} alt="Decós Hospital" />
+            <span>Intranet Corporativa</span>
+          </header>
+          <Link
+            to="/"
+            className="text-xs font-semibold text-[#800020] hover:underline px-3 py-1.5 rounded-lg bg-[#fff5f5] border border-[#f3dfe5] no-underline"
+          >
+            ← Voltar à visualização (Modo Leitura)
+          </Link>
+        </div>
         <div className="login-content">
           <span className="login-tag">
             <Glyph name="shield" /> PORTAL DO COLABORADOR

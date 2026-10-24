@@ -2,7 +2,7 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-export function PrivateRoute({ children }) {
+export function PrivateRoute({ children, requireAuth = false }) {
   const { usuario, carregando } = useAuth();
 
   if (carregando) {
@@ -16,7 +16,7 @@ export function PrivateRoute({ children }) {
     );
   }
 
-  if (!usuario) {
+  if (requireAuth && !usuario) {
     return <Navigate to="/login" replace />;
   }
 

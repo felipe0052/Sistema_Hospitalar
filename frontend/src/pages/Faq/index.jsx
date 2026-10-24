@@ -4,9 +4,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { MOCK_FAQS } from "../../mocks/portal";
 
 export default function Faq() {
-  const { temPerfil } = useAuth();
+  const { autenticado, temPerfil } = useAuth();
   const [busca, setBusca] = useState("");
-  const podeGerir = temPerfil("ADMIN", "RH");
+  const podeGerir = autenticado && temPerfil("ADMIN", "RH");
 
   const gruposFiltrados = MOCK_FAQS.map((g) => ({
     ...g,

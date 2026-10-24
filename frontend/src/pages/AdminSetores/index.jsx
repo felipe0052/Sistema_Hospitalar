@@ -1,8 +1,12 @@
 import React from "react";
 import { Badge, Button, Table } from "../../components/ui";
+import { useAuth } from "../../contexts/AuthContext";
 import { SETORES_MOCK } from "../../mocks/setores";
 
 export default function AdminSetores() {
+  const { autenticado, isAdmin } = useAuth();
+  const podeGerir = autenticado && isAdmin;
+
   const colunas = [
     {
       key: "nome",
@@ -43,9 +47,13 @@ export default function AdminSetores() {
             Estrutura hospitalar cadastrada no banco de dados (Edição completa prevista na Semana 3 — UC08)
           </p>
         </div>
-        <Button variant="primary" disabled>
-          + Novo setor
-        </Button>
+        {podeGerir ? (
+          <Button variant="primary" disabled>
+            + Novo setor
+          </Button>
+        ) : (
+          <Badge variant="leitura">Modo Somente Visualização</Badge>
+        )}
       </div>
       <Table columns={colunas} data={SETORES_MOCK} rowKey="id_setor" />
     </div>

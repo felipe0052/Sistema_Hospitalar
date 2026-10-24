@@ -119,6 +119,9 @@ export function AuthProvider({ children }) {
     return resposta.usuario;
   }, []);
 
+  const autenticado = Boolean(usuario);
+  const modoLeitura = !autenticado;
+  const perfilEfetivo = usuario?.perfil || "COLABORADOR";
   const isAdmin = Boolean(usuario && usuario.perfil === "ADMIN");
 
   const temPerfil = useCallback(
@@ -134,6 +137,11 @@ export function AuthProvider({ children }) {
     usuario,
     user: usuario,
     token,
+    autenticado,
+    isAuthenticated: autenticado,
+    modoLeitura,
+    isReadOnly: modoLeitura,
+    perfilEfetivo,
     carregando,
     restoring: carregando,
     aviso,

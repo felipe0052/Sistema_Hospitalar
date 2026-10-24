@@ -4,8 +4,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { MOCK_DOCUMENTOS } from "../../mocks/portal";
 
 export default function Documentos() {
-  const { isAdmin } = useAuth();
+  const { autenticado, isAdmin } = useAuth();
   const [busca, setBusca] = useState("");
+  const podeAdicionar = autenticado && isAdmin;
 
   const filtrados = MOCK_DOCUMENTOS.filter(
     (d) =>
@@ -24,7 +25,7 @@ export default function Documentos() {
             Repositório central de Procedimentos Operacionais Padrão e normas institucionais
           </p>
         </div>
-        {isAdmin && <Button variant="primary">+ Adicionar Novo</Button>}
+        {podeAdicionar && <Button variant="primary">+ Adicionar Novo</Button>}
       </div>
 
       <div className="max-w-md">

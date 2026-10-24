@@ -11,9 +11,9 @@ const CATEGORIA_LABELS = {
 };
 
 export default function Avisos() {
-  const { temPerfil } = useAuth();
+  const { autenticado, temPerfil } = useAuth();
   const [busca, setBusca] = useState("");
-  const podePublicar = temPerfil("ADMIN", "RH", "MARKETING");
+  const podePublicar = autenticado && temPerfil("ADMIN", "RH", "MARKETING");
 
   const filtrados = MOCK_AVISOS.filter(
     (a) =>

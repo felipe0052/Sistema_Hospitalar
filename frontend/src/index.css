@@ -4,6 +4,9 @@
 @import './styles/global.css';
 
 @theme inline {
+  --color-bordeaux: var(--bordeaux);
+  --color-bordeaux-dark: var(--bordeaux-dark);
+  --color-bordeaux-light: var(--bordeaux-light);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

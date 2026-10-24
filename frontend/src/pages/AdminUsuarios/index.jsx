@@ -62,7 +62,8 @@ function validarSenhaForte(senha) {
 }
 
 export default function AdminUsuarios() {
-  const { usuario: usuarioLogado, isAdmin } = useAuth();
+  const { usuario: usuarioLogado, autenticado, isAdmin, temPerfil } = useAuth();
+  const podeEditarModulo = autenticado && temPerfil("ADMIN", "RH");
   const { sucesso, erro: toastErro } = useToast();
 
   // Filtros e paginação
@@ -392,44 +393,48 @@ export default function AdminUsuarios() {
       header: "Status",
       render: (u) => <Badge tipo="status" valor={u.status} />,
     },
-    {
-      key: "acoes",
-      header: "Ações",
-      render: (u) => {
-        const podeEditarLinha = isAdmin || u.perfil !== "ADMIN";
-        return (
-          <div className="flex items-center gap-2">
-            {podeEditarLinha && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => abrirModalEditar(u)}
-              >
-                Editar
-              </Button>
-            )}
-            {isAdmin && (
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => abrirModalAcesso(u)}
-                >
-                  Acesso
-                </Button>
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={() => abrirModalSenha(u)}
-                >
-                  Redefinir senha
-                </Button>
-              </>
-            )}
-          </div>
-        );
-      },
-    },
+    ...(podeEditarModulo
+      ? [
+          {
+            key: "acoes",
+            header: "Ações",
+            render: (u) => {
+              const podeEditarLinha = isAdmin || u.perfil !== "ADMIN";
+              return (
+                <div className="flex items-center gap-2">
+                  {podeEditarLinha && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => abrirModalEditar(u)}
+                    >
+                      Editar
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => abrirModalAcesso(u)}
+                      >
+                        Acesso
+                      </Button>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => abrirModalSenha(u)}
+                      >
+                        Redefinir senha
+                      </Button>
+                    </>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   const colunasHistorico = [
@@ -469,9 +474,13 @@ export default function AdminUsuarios() {
             Gerenciamento de colaboradores, perfis de acesso e status da conta (UC02, UC03)
           </p>
         </div>
-        <Button variant="primary" onClick={abrirModalNovo}>
-          + Novo usuário
-        </Button>
+        {podeEditarModulo ? (
+          <Button variant="primary" onClick={abrirModalNovo}>
+            + Novo usuário
+          </Button>
+        ) : (
+          <Badge variant="leitura">Modo Somente Visualização</Badge>
+        )}
       </div>
 
       {/* Filtros */}

@@ -12,7 +12,7 @@ const CATEGORIA_LABELS = {
 };
 
 export default function Dashboard() {
-  const { usuario, temPerfil } = useAuth();
+  const { usuario, autenticado, temPerfil } = useAuth();
   const destaque = MOCK_AVISOS.find((a) => a.destaque) || MOCK_AVISOS[0];
   const ultimosAvisos = MOCK_AVISOS.slice(0, 4);
   const proximosEventos = MOCK_EVENTOS.slice(0, 4);
@@ -29,7 +29,7 @@ export default function Dashboard() {
             Bem-vindo à Intranet Corporativa do Hospital Decós
           </p>
         </div>
-        {temPerfil("ADMIN", "RH") && (
+        {autenticado && temPerfil("ADMIN", "RH") && (
           <Link to="/admin/usuarios">
             <Button variant="primary">Gerenciar Usuários e Acesso</Button>
           </Link>
@@ -40,7 +40,10 @@ export default function Dashboard() {
         {/* Coluna Esquerda: Destaque + Últimos Avisos */}
         <div className="space-y-5">
           {destaque && (
-            <Card className="bg-[#800020] text-white border-[#800020]">
+            <Card
+              className="text-white border-[#800020]"
+              style={{ background: "var(--bordeaux-gradient)" }}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white">
                   ★ Destaque Institucional
