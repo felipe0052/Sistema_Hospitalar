@@ -45,6 +45,16 @@ def get_current_user(
     return usuario
 
 
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> Usuario | None:
+    """Retorna o usuário autenticado se houver token no header, ou None no Modo Leitura (colaborador sem login)."""
+    if credentials is None or not credentials.credentials:
+        return None
+    return get_current_user(credentials=credentials, db=db)
+
+
 def require_roles(*perfis: str):
     """Dependência que devolve 403 'Permissão insuficiente.' se o perfil não estiver na lista (§5)."""
 

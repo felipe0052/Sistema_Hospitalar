@@ -14,6 +14,13 @@ from app.models.ramal import Ramal
 from app.models.setor import Setor
 from app.models.usuario import Usuario
 
+# Hashes pré-computados uma única vez por execução de suíte para acelerar os testes
+_HASH_ADMIN = gerar_hash_senha("Admin@123")
+_HASH_COLAB = gerar_hash_senha("Colab@123")
+_HASH_RH = gerar_hash_senha("Rh@12345")
+_HASH_MKT = gerar_hash_senha("Mkt@12345")
+_HASH_INATIVO = gerar_hash_senha("Inativo@123")
+
 
 def _sem_acentos(texto: str | None) -> str:
     if not texto:
@@ -60,7 +67,7 @@ def db_session() -> Session:
         Usuario(
             nome="André Luiz",
             email="admin@decos.com.br",
-            senha_hash=gerar_hash_senha("Admin@123"),
+            senha_hash=_HASH_ADMIN,
             id_setor=setor_ti.id_setor,
             cargo="Administrador de Sistemas",
             data_nascimento=date(1988, 3, 14),
@@ -71,7 +78,7 @@ def db_session() -> Session:
         Usuario(
             nome="Carlos Menezes",
             email="colaborador@decos.com.br",
-            senha_hash=gerar_hash_senha("Colab@123"),
+            senha_hash=_HASH_COLAB,
             id_setor=setor_uti.id_setor,
             cargo="Técnico de Enfermagem",
             data_nascimento=date(1997, 10, 21),
@@ -82,7 +89,7 @@ def db_session() -> Session:
         Usuario(
             nome="Patrícia Nunes",
             email="rh@decos.com.br",
-            senha_hash=gerar_hash_senha("Rh@12345"),
+            senha_hash=_HASH_RH,
             id_setor=setor_rh.id_setor,
             cargo="Analista de RH",
             data_nascimento=date(1982, 5, 19),
@@ -93,7 +100,7 @@ def db_session() -> Session:
         Usuario(
             nome="Maria Silva",
             email="marketing@decos.com.br",
-            senha_hash=gerar_hash_senha("Mkt@12345"),
+            senha_hash=_HASH_MKT,
             id_setor=setor_rh.id_setor,
             cargo="Analista de Marketing",
             data_nascimento=date(1999, 8, 9),
@@ -104,7 +111,7 @@ def db_session() -> Session:
         Usuario(
             nome="Roberto Inativo",
             email="inativo@decos.com.br",
-            senha_hash=gerar_hash_senha("Inativo@123"),
+            senha_hash=_HASH_INATIVO,
             id_setor=setor_uti.id_setor,
             cargo="Auxiliar",
             data_nascimento=date(1991, 1, 30),
