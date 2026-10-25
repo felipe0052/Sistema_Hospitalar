@@ -39,7 +39,7 @@ registrar_exception_handlers(app)
 @app.get("/api/v1/health", tags=["Saúde"])
 def health_check(db: Session = Depends(get_db)) -> dict[str, str]:
     """Verifica a saúde da API e a conectividade com o banco de dados (§7.11)."""
-    sql = "SELECT 1" if settings.DATABASE_URL.startswith("sqlite") else "SELECT 1 FROM DUAL"
+    sql = "SELECT 1" if db.get_bind().dialect.name == "sqlite" else "SELECT 1 FROM DUAL"
     db.execute(text(sql))
     return {"status": "ok", "banco": "ok"}
 
