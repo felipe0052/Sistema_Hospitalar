@@ -61,68 +61,68 @@ INSERT INTO RAMAIS (NUMERO, DESCRICAO, ID_SETOR) VALUES ('4201', 'Service Desk /
 INSERT INTO RAMAIS (NUMERO, DESCRICAO, ID_SETOR) VALUES ('4202', 'Infraestrutura e Sistemas', (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Tecnologia'));
 
 -- =====================================================================
--- 3. AVISOS (8 avisos: 2 de cada categoria, 2 com DESTAQUE='S', 1 expirado)
+-- 3. AVISOS (10 avisos cobrindo as 4 categorias, destaques e expirados — S1-T2 / S2-T4)
 -- =====================================================================
 -- 1. NOTICIA (DESTAQUE = 'S', vigente)
 INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
 VALUES (
     'Hospital Decós conquista certificação ONA Nível III em Gestão da Qualidade',
-    'Após auditoria realizada no último ciclo avaliativo, o Hospital Decós conquistou a certificação ONA Nível III (Acreditado com Excelência), reafirmando o compromisso de todas as equipes assistenciais e administrativas com a segurança do paciente e a melhoria contínua dos processos hospitalares.',
+    '<p>Após auditoria realizada no último ciclo avaliativo, o <strong>Hospital Decós</strong> conquistou a certificação <strong>ONA Nível III (Acreditado com Excelência)</strong>, reafirmando o compromisso de todas as equipes assistenciais e administrativas com a segurança do paciente e a melhoria contínua dos processos hospitalares.</p><p>Agradecemos a dedicação de cada colaborador em manter nossos protocolos assistenciais e operacionais em conformidade com os mais altos padrões nacionais.</p>',
     'NOTICIA',
     'S',
     CURRENT_TIMESTAMP - INTERVAL '1' DAY,
     NULL
 );
 
--- 2. NOTICIA (DESTAQUE = 'N', vigente)
-INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
-VALUES (
-    'Inauguração do novo Centro de Simulação Clínica para treinamentos internos',
-    'O novo espaço de capacitação assistencial conta com manequins de alta fidelidade e sala de debriefing para treinamentos de suporte básico e avançado de vida e procedimentos de enfermagem.',
-    'NOTICIA',
-    'N',
-    CURRENT_TIMESTAMP - INTERVAL '3' DAY,
-    NULL
-);
-
--- 3. COMUNICADO (DESTAQUE = 'S', vigente)
+-- 2. COMUNICADO (DESTAQUE = 'S', vigente)
 INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
 VALUES (
     'Atualização obrigatória do protocolo de higienização das mãos e controle de infecção',
-    'A Comissão de Controle de Infecção Hospitalar (CCIH) informa que a revisão anual do protocolo de higienização das mãos e precauções de contato já está em vigor em todas as unidades assistenciais. Consulte o POP atualizado na Central de Documentos.',
+    '<p>A <strong>Comissão de Controle de Infecção Hospitalar (CCIH)</strong> informa que a revisão anual do protocolo de higienização das mãos e precauções de contato já está em vigor em todas as unidades assistenciais.</p><ul><li>Reforçar os 5 momentos para a higienização das mãos;</li><li>Conferir a disponibilidade de dispensadores de solução alcoólica nos postos;</li><li>Consultar o POP atualizado na Central de Documentos.</li></ul>',
     'COMUNICADO',
     'S',
     CURRENT_TIMESTAMP - INTERVAL '2' DAY,
     TRUNC(SYSDATE) + 60
 );
 
--- 4. COMUNICADO (DESTAQUE = 'N', EXPIRADO para testar filtro de vigência)
-INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
-VALUES (
-    'Manutenção preventiva concluída nos elevadores do Bloco A',
-    'Informamos que a manutenção preventiva programada nos elevadores do Bloco A foi realizada no último mês sem intercorrências. Este aviso já teve sua vigência encerrada.',
-    'COMUNICADO',
-    'N',
-    CURRENT_TIMESTAMP - INTERVAL '15' DAY,
-    TRUNC(SYSDATE) - 5
-);
-
--- 5. PROMOCAO (DESTAQUE = 'N', vigente)
+-- 3. PROMOCAO (DESTAQUE = 'S', vigente)
 INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
 VALUES (
     'Parabéns aos colaboradores promovidos no ciclo de avaliação semestral',
-    'O setor de Recursos Humanos parabeniza os profissionais promovidos neste semestre nos setores de Enfermagem, Farmácia e Administração. Agradecemos a dedicação ao cuidado hospitalar.',
+    '<p>O setor de <strong>Recursos Humanos</strong> parabeniza os profissionais promovidos neste semestre nos setores de Enfermagem, Farmácia, Recepção e Administração.</p><p>O reconhecimento reflete a excelência técnica, a empatia no acolhimento e a dedicação diária ao cuidado hospitalar.</p>',
     'PROMOCAO',
+    'S',
+    CURRENT_TIMESTAMP - INTERVAL '3' DAY,
+    TRUNC(SYSDATE) + 30
+);
+
+-- 4. NOTICIA (DESTAQUE = 'N', vigente)
+INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
+VALUES (
+    'Inauguração do novo Centro de Simulação Clínica para treinamentos internos',
+    '<p>O novo espaço de capacitação assistencial no 2º andar conta com manequins de alta fidelidade e sala de debriefing para treinamentos de suporte básico e avançado de vida e procedimentos de enfermagem.</p>',
+    'NOTICIA',
     'N',
     CURRENT_TIMESTAMP - INTERVAL '4' DAY,
-    TRUNC(SYSDATE) + 30
+    NULL
+);
+
+-- 5. MUDANCA_SETOR (DESTAQUE = 'N', vigente)
+INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
+VALUES (
+    'Transferência do atendimento presencial do RH para o 4º andar',
+    '<p>Informamos que a sala de atendimento ao colaborador do setor de <strong>Recursos Humanos e Departamento Pessoal</strong> passa a atender exclusivamente no 4º andar (ramais 4101 e 4102), de segunda a sexta-feira, das 08h às 17h30.</p>',
+    'MUDANCA_SETOR',
+    'N',
+    CURRENT_TIMESTAMP - INTERVAL '5' DAY,
+    TRUNC(SYSDATE) + 45
 );
 
 -- 6. PROMOCAO (DESTAQUE = 'N', vigente)
 INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
 VALUES (
     'Nova coordenação de Enfermagem da Unidade de Terapia Intensiva',
-    'Comunicamos a promoção da enfermeira sênior Ana Beatriz Costa ao cargo de Coordenadora de Enfermagem da UTI, desejando sucesso na condução da equipe assistencial.',
+    '<p>Comunicamos a promoção da enfermeira sênior <strong>Ana Beatriz Costa</strong> ao cargo de Coordenadora de Enfermagem da UTI, desejando sucesso na condução da equipe assistencial do 2º andar.</p>',
     'PROMOCAO',
     'N',
     CURRENT_TIMESTAMP - INTERVAL '6' DAY,
@@ -132,27 +132,49 @@ VALUES (
 -- 7. MUDANCA_SETOR (DESTAQUE = 'N', vigente)
 INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
 VALUES (
-    'Transferência do atendimento presencial do RH para o 4º andar',
-    'Informamos que a sala de atendimento ao colaborador do setor de Recursos Humanos e Departamento Pessoal passa a atender exclusivamente no 4º andar (ramais 4101 e 4102).',
-    'MUDANCA_SETOR',
-    'N',
-    CURRENT_TIMESTAMP - INTERVAL '5' DAY,
-    TRUNC(SYSDATE) + 45
-);
-
--- 8. MUDANCA_SETOR (DESTAQUE = 'N', vigente)
-INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
-VALUES (
     'Reorganização física da Central de Coleta do Laboratório no 1º andar',
-    'A recepção interna de amostras biológicas do Laboratório foi unificada na ala norte do 1º andar para agilizar o fluxo de exames de urgência do Pronto-Socorro e UTI.',
+    '<p>A recepção interna de amostras biológicas do Laboratório foi unificada na ala norte do 1º andar (ramais 1301 e 1302) para agilizar o fluxo de exames de urgência do Pronto-Socorro e UTI.</p>',
     'MUDANCA_SETOR',
     'N',
     CURRENT_TIMESTAMP - INTERVAL '7' DAY,
     NULL
 );
 
+-- 8. COMUNICADO (DESTAQUE = 'N', vigente)
+INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
+VALUES (
+    'Cronograma de inventário mensal da Farmácia Central',
+    '<p>A Farmácia Hospitalar informa que o inventário mensal de medicamentos e correlatos ocorrerá na última sexta-feira do mês, das 20h às 23h. Requisições de rotina devem ser antecipadas até as 18h.</p>',
+    'COMUNICADO',
+    'N',
+    CURRENT_TIMESTAMP - INTERVAL '8' DAY,
+    TRUNC(SYSDATE) + 20
+);
+
+-- 9. COMUNICADO (DESTAQUE = 'N', EXPIRADO para testar filtro de vigência)
+INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
+VALUES (
+    'Manutenção preventiva concluída nos elevadores do Bloco A',
+    '<p>Informamos que a manutenção preventiva programada nos elevadores do Bloco A foi realizada no último mês sem intercorrências. Este aviso já teve sua vigência encerrada.</p>',
+    'COMUNICADO',
+    'N',
+    CURRENT_TIMESTAMP - INTERVAL '15' DAY,
+    TRUNC(SYSDATE) - 5
+);
+
+-- 10. MUDANCA_SETOR (DESTAQUE = 'N', EXPIRADO para testar gestão de expirados)
+INSERT INTO AVISOS (TITULO, CONTEUDO, CATEGORIA, DESTAQUE, DATA_PUBLICACAO, DATA_EXPIRACAO)
+VALUES (
+    'Interdição temporária do corredor de serviço do Térreo (Encerrada)',
+    '<p>O serviço de pintura e adequação de piso do corredor técnico do Térreo foi finalizado e o fluxo normal já foi restabelecido.</p>',
+    'MUDANCA_SETOR',
+    'N',
+    CURRENT_TIMESTAMP - INTERVAL '20' DAY,
+    TRUNC(SYSDATE) - 2
+);
+
 -- =====================================================================
--- 4. EVENTOS (6 eventos: 4 futuros e 2 passados, categorias variadas)
+-- 4. EVENTOS (9 eventos: 2 passados e 7 distribuídos nos próximos 30 dias — S2-T4)
 -- =====================================================================
 -- Passado 1
 INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
@@ -178,52 +200,88 @@ VALUES (
     (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Farmácia')
 );
 
--- Futuro 1
+-- Futuro 1 (+2 dias)
+INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
+VALUES (
+    'Campanha Interna de Vacinação contra Influenza e Hepatite B',
+    'Imunização anual destinada a todos os colaboradores assistenciais e administrativos. Apresentar crachá funcional e carteira de vacinação.',
+    'ACAO_INTERNA',
+    CURRENT_TIMESTAMP + INTERVAL '2' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '2' DAY + INTERVAL '6' HOUR,
+    'Sala de Medicina do Trabalho — 1º andar',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'RH')
+);
+
+-- Futuro 2 (+5 dias)
 INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
 VALUES (
     'Treinamento Prático de Suporte Básico de Vida (BLS) para Equipes Assistenciais',
     'Capacitação prática obrigatória para técnicos de enfermagem e enfermeiros da UTI, Pronto-Socorro e Centro Cirúrgico.',
     'TREINAMENTO',
-    CURRENT_TIMESTAMP + INTERVAL '3' DAY,
-    CURRENT_TIMESTAMP + INTERVAL '3' DAY + INTERVAL '4' HOUR,
+    CURRENT_TIMESTAMP + INTERVAL '5' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '5' DAY + INTERVAL '4' HOUR,
     'Centro de Simulação Clínica — 2º andar',
     (SELECT ID_SETOR FROM SETORES WHERE NOME = 'UTI')
 );
 
--- Futuro 2
+-- Futuro 3 (+9 dias)
 INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
 VALUES (
-    'Campanha Interna de Saúde Mental e Qualidade de Vida no Plantão',
-    'Rodas de conversa, orientações ergonômicas e ações de acolhimento para colaboradores de todos os turnos.',
-    'ACAO_INTERNA',
-    CURRENT_TIMESTAMP + INTERVAL '7' DAY,
-    CURRENT_TIMESTAMP + INTERVAL '7' DAY + INTERVAL '6' HOUR,
-    'Espaço Convivência — Térreo',
-    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'RH')
-);
-
--- Futuro 3
-INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
-VALUES (
-    'Apresentação de Indicadores de Qualidade e Segurança do Paciente',
-    'Reunião institucional aberta às lideranças e equipes administrativas sobre metas de qualidade e protocolos ONA.',
+    'Reunião Geral de Lideranças e Apresentação de Indicadores ONA',
+    'Encontro institucional com coordenações e supervisões para análise dos indicadores mensais de segurança do paciente e metas de qualidade.',
     'INSTITUCIONAL',
-    CURRENT_TIMESTAMP + INTERVAL '12' DAY,
-    CURRENT_TIMESTAMP + INTERVAL '12' DAY + INTERVAL '2' HOUR,
+    CURRENT_TIMESTAMP + INTERVAL '9' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '9' DAY + INTERVAL '2' HOUR,
     'Auditório Principal — 4º andar',
     (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Administração')
 );
 
--- Futuro 4
+-- Futuro 4 (+14 dias)
+INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
+VALUES (
+    'Ação Interna de Saúde Mental e Qualidade de Vida no Plantão',
+    'Rodas de conversa, orientações ergonômicas e ações de acolhimento para colaboradores dos turnos diurno e noturno.',
+    'ACAO_INTERNA',
+    CURRENT_TIMESTAMP + INTERVAL '14' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '14' DAY + INTERVAL '5' HOUR,
+    'Espaço Convivência — Térreo',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'RH')
+);
+
+-- Futuro 5 (+19 dias)
 INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
 VALUES (
     'Workshop de Segurança da Informação e Boas Práticas na Intranet',
-    'Orientações rápidas sobre proteção de credenciais, privacidade de dados hospitalares e uso do novo portal interno.',
+    'Orientações práticas sobre proteção de credenciais, privacidade de dados hospitalares (LGPD) e utilização dos módulos da Intranet Decós.',
     'OUTRO',
-    CURRENT_TIMESTAMP + INTERVAL '18' DAY,
-    CURRENT_TIMESTAMP + INTERVAL '18' DAY + INTERVAL '2' HOUR,
+    CURRENT_TIMESTAMP + INTERVAL '19' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '19' DAY + INTERVAL '2' HOUR,
     'Sala de Treinamento TI — 4º andar',
     (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Tecnologia')
+);
+
+-- Futuro 6 (+24 dias)
+INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
+VALUES (
+    'Capacitação em Protocolo de Sepse e Atendimento de Emergência',
+    'Revisão sistematizada dos critérios de triagem, coleta precoce de exames laboratoriais e administração antimicrobiana na primeira hora.',
+    'TREINAMENTO',
+    CURRENT_TIMESTAMP + INTERVAL '24' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '24' DAY + INTERVAL '3' HOUR,
+    'Auditório Principal — 4º andar',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Pronto-Socorro')
+);
+
+-- Futuro 7 (+28 dias)
+INSERT INTO EVENTOS (TITULO, DESCRICAO, CATEGORIA, DATA_INICIO, DATA_FIM, LOCAL, ID_SETOR)
+VALUES (
+    'Simulado Semestral da Brigada de Incêndio e Evacuação Segura',
+    'Treinamento prático com a equipe de brigadistas de todos os andares para revisão de rotas de fuga e protocolos de contingência.',
+    'TREINAMENTO',
+    CURRENT_TIMESTAMP + INTERVAL '28' DAY,
+    CURRENT_TIMESTAMP + INTERVAL '28' DAY + INTERVAL '3' HOUR,
+    'Pátio Externo e Escadas de Emergência',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Administração')
 );
 
 -- =====================================================================
