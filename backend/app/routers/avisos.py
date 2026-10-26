@@ -20,7 +20,7 @@ def listar_avisos(
     busca: str | None = Query(default=None, description="Busca por título ou conteúdo"),
     categoria: str | None = Query(
         default=None,
-        description="Filtro por categoria (NOTICIA, COMUNICADO, PROMOCAO, MUDANCA_SETOR)",
+        description="Filtro por categoria (NOTICIA, COMUNICADO, PROMOCAO, MUDANCA_SETOR, DESTAQUE_CORPORATIVO)",
     ),
     destaque: bool | None = Query(default=None, description="Filtro por destaque (true/false)"),
     pagina: int = Query(default=1, ge=1, description="Número da página"),
@@ -44,7 +44,7 @@ def listar_avisos_gestao(
     busca: str | None = Query(default=None, description="Busca por título ou conteúdo"),
     categoria: str | None = Query(
         default=None,
-        description="Filtro por categoria (NOTICIA, COMUNICADO, PROMOCAO, MUDANCA_SETOR)",
+        description="Filtro por categoria (NOTICIA, COMUNICADO, PROMOCAO, MUDANCA_SETOR, DESTAQUE_CORPORATIVO)",
     ),
     destaque: bool | None = Query(default=None, description="Filtro por destaque (true/false)"),
     incluir_expirados: bool = Query(

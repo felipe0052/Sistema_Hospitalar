@@ -25,7 +25,7 @@ function NavIcon({ path }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       className="flex-shrink-0"
@@ -53,7 +53,7 @@ export function Sidebar() {
   return (
     <aside
       aria-label="Menu lateral de navegação"
-      className="w-60 bg-white flex flex-col flex-shrink-0 overflow-y-auto py-4"
+      className="w-60 bg-white flex flex-col flex-shrink-0 overflow-y-auto py-4 min-h-full"
       style={{ borderRight: "1px solid var(--color-border)" }}
     >
       <nav className="flex-1 px-3 space-y-1">
@@ -65,28 +65,13 @@ export function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.end}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-            style={({ isActive }) => ({
-              background: isActive ? "var(--bordeaux-gradient)" : "transparent",
-              color: isActive ? "var(--white)" : "var(--gray-500)",
-              boxShadow: isActive ? "0 2px 8px rgba(128, 0, 32, 0.25)" : undefined,
-            })}
+            className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
           >
-            {({ isActive }) => (
+            {() => (
               <>
                 <NavIcon path={item.icon} />
                 <span className="flex-1 text-left truncate">{item.label}</span>
-                {item.badge && (
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-                    style={{
-                      backgroundColor: isActive ? "rgba(255,255,255,0.25)" : "var(--bordeaux)",
-                      color: "#fff",
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
+                {item.badge && <span className="nav-badge">{item.badge}</span>}
               </>
             )}
           </NavLink>
@@ -95,20 +80,14 @@ export function Sidebar() {
         {(podeGerirUsuarios || podeGerirSetores) && (
           <div className="pt-4 mt-4" style={{ borderTop: "1px solid var(--gray-100)" }}>
             <div
-              className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider"
-              style={{ color: "var(--bordeaux)" }}
+              className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-[#800020]"
             >
               Administração
             </div>
             {podeGerirUsuarios && (
               <NavLink
                 to="/admin/usuarios"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                style={({ isActive }) => ({
-                  background: isActive ? "var(--bordeaux-gradient)" : "transparent",
-                  color: isActive ? "var(--white)" : "var(--gray-500)",
-                  boxShadow: isActive ? "0 2px 8px rgba(128, 0, 32, 0.25)" : undefined,
-                })}
+                className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
               >
                 <NavIcon path={ICONS.shield} />
                 <span className="flex-1 text-left truncate">Usuários e Acesso</span>
@@ -117,12 +96,7 @@ export function Sidebar() {
             {podeGerirSetores && (
               <NavLink
                 to="/admin/setores"
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                style={({ isActive }) => ({
-                  background: isActive ? "var(--bordeaux-gradient)" : "transparent",
-                  color: isActive ? "var(--white)" : "var(--gray-500)",
-                  boxShadow: isActive ? "0 2px 8px rgba(128, 0, 32, 0.25)" : undefined,
-                })}
+                className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
               >
                 <NavIcon path={ICONS.building} />
                 <span className="flex-1 text-left truncate">Setores e Ramais</span>

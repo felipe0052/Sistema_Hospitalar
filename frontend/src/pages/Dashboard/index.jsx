@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { listarAniversariantesMes } from "../../api/aniversariantes";
+import { listarEventos } from "../../api/eventos";
 import { obterDashboard } from "../../api/dashboard";
 import {
   Badge,
@@ -7,6 +9,7 @@ import {
   Card,
   EmptyState,
   ErrorBanner,
+  MiniCalendario,
   Skeleton,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
@@ -16,6 +19,7 @@ const CATEGORIA_AVISO_LABELS = {
   COMUNICADO: "Comunicado",
   PROMOCAO: "Promoção",
   MUDANCA_SETOR: "Mudança de Setor",
+  DESTAQUE_CORPORATIVO: "Destaque Corporativo",
 };
 
 const CATEGORIA_AVISO_BADGE_VARIANT = {
@@ -23,6 +27,7 @@ const CATEGORIA_AVISO_BADGE_VARIANT = {
   COMUNICADO: "info",
   PROMOCAO: "ativo",
   MUDANCA_SETOR: "warning",
+  DESTAQUE_CORPORATIVO: "primary",
 };
 
 const CATEGORIA_EVENTO_LABELS = {
@@ -52,12 +57,41 @@ function formatarDataExtenso(data = new Date()) {
   }
 }
 
+function useAniversariantesMes() {
+  const hoje = new Date();
+  const [lista, setLista] = useState([]);
+  useEffect(() => {
+    listarAniversariantesMes(hoje.getMonth() + 1)
+      .then((l) => setLista(l || []))
+      .catch(() => setLista([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return lista;
+}
+
 export default function Dashboard() {
   const { usuario, autenticado, temPerfil } = useAuth();
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [indiceDestaque, setIndiceDestaque] = useState(0);
+  const aniversariantesMes = useAniversariantesMes();
+  const [diaAniv, setDiaAniv] = useState(null);
+  const hojeCal = new Date();
+  const diasComAniv = useMemo(() => new Set(aniversariantesMes.map((a) => a.dia)), [aniversariantesMes]);
+  const aniversariantesDoDiaSel = aniversariantesMes.filter((a) => a.dia === diaAniv);
+  const [eventosMes, setEventosMes] = useState([]);
+  useEffect(() => {
+    listarEventos({ mes: hojeCal.getMonth() + 1, ano: hojeCal.getFullYear() })
+      .then((l) => setEventosMes(l || []))
+      .catch(() => setEventosMes([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const diasComEvento = useMemo(
+    () => new Set(eventosMes.map((ev) => new Date(ev.data_inicio).getDate())),
+    [eventosMes],
+  );
+  const eventosDoDiaSel = eventosMes.filter((ev) => new Date(ev.data_inicio).getDate() === diaAniv);
 
   const carregarDashboard = useCallback(async () => {
     setCarregando(true);
@@ -140,16 +174,13 @@ export default function Dashboard() {
                 <Skeleton width="100%" height="3rem" />
               </Card>
             ) : destaqueAtual ? (
-              <Card
-                className="text-white border-[#800020] space-y-3"
-                style={{ background: "var(--bordeaux-gradient)" }}
-              >
+              <Card className="destaque-banner space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/20 text-white">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full destaque-banner__pill">
                       ★ Destaque Corporativo
                     </span>
-                    <span className="text-xs text-white/85 font-medium">
+                    <span className="text-xs text-[#64748b] font-medium">
                       {CATEGORIA_AVISO_LABELS[destaqueAtual.categoria] || destaqueAtual.categoria}
                     </span>
                   </div>
@@ -162,7 +193,7 @@ export default function Dashboard() {
                           onClick={() => setIndiceDestaque(idx)}
                           aria-label={`Ver destaque ${idx + 1}`}
                           className={`w-2.5 h-2.5 rounded-full transition-all ${
-                            idx === indiceDestaque ? "bg-white scale-110" : "bg-white/40"
+                            idx === indiceDestaque ? "bg-[#800020] scale-110" : "bg-[#800020]/25"
                           }`}
                         />
                       ))}
@@ -170,22 +201,22 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <h2 className="text-lg font-bold text-white leading-snug">
+                <h2 className="text-lg font-bold text-[#1e293b] leading-snug">
                   <Link
                     to={`/avisos/${destaqueAtual.id_aviso}`}
-                    className="hover:underline text-white"
+                    className="hover:underline text-[#1e293b]"
                   >
                     {destaqueAtual.titulo}
                   </Link>
                 </h2>
 
-                <p className="text-sm text-white/90 leading-relaxed">{destaqueAtual.resumo}</p>
+                <p className="text-sm text-[#475569] leading-relaxed">{destaqueAtual.resumo}</p>
 
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-white/80">
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748b]">
                   <span>Por {destaqueAtual.autor?.nome || "Comunicação Institucional"}</span>
                   <Link
                     to={`/avisos/${destaqueAtual.id_aviso}`}
-                    className="inline-flex items-center gap-1 font-bold text-white bg-white/15 hover:bg-white/25 px-3 py-1 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-1 destaque-banner__cta"
                   >
                     Ler comunicado completo →
                   </Link>
@@ -373,6 +404,33 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <MiniCalendario
+                ano={hojeCal.getFullYear()}
+                mes={hojeCal.getMonth() + 1}
+                marcados={diasComAniv}
+                marcadosEventos={diasComEvento}
+                diaSelecionado={diaAniv}
+                onSelecionarDia={setDiaAniv}
+              />
+              {diaAniv && (
+                <ul className="text-xs text-[#475569] space-y-1">
+                  {eventosDoDiaSel.map((ev) => (
+                    <li key={`ev-${ev.id_evento}`}>
+                      📅 <strong>{ev.titulo}</strong>
+                      {ev.local ? ` · ${ev.local}` : ""} ·{" "}
+                      {new Date(ev.data_inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </li>
+                  ))}
+                  {aniversariantesDoDiaSel.map((a) => (
+                    <li key={a.id_usuario}>
+                      🎂 <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Card>
         </div>
       </div>

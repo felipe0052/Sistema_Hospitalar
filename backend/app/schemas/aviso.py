@@ -4,9 +4,9 @@ from html.parser import HTMLParser
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-CategoriaAvisoLiteral = Literal["NOTICIA", "COMUNICADO", "PROMOCAO", "MUDANCA_SETOR"]
+CategoriaAvisoLiteral = Literal["NOTICIA", "COMUNICADO", "PROMOCAO", "MUDANCA_SETOR", "DESTAQUE_CORPORATIVO"]
 
 TAGS_PERMITIDAS = {"p", "br", "b", "strong", "i", "em", "ul", "ol", "li", "a"}
 TAGS_IGNORAR_CONTEUDO = {"script", "style", "iframe", "object", "embed"}
@@ -137,6 +137,13 @@ class AvisoIn(BaseModel):
     categoria: CategoriaAvisoLiteral = "COMUNICADO"
     destaque: bool = False
     data_expiracao: date | None = None
+
+    @model_validator(mode="after")
+    def _destaque_corporativo_implica_destaque(self):
+        # A categoria "Destaque Corporativo" publica o aviso no banner do Dashboard e no mural
+        if self.categoria == "DESTAQUE_CORPORATIVO":
+            self.destaque = True
+        return self
 
     @field_validator("titulo", mode="before")
     @classmethod

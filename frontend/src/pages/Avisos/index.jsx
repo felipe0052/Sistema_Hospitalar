@@ -32,6 +32,7 @@ const CATEGORIAS_CHIPS = [
   { value: "COMUNICADO", label: "Comunicados" },
   { value: "PROMOCAO", label: "Promoções" },
   { value: "MUDANCA_SETOR", label: "Mudanças de Setor" },
+  { value: "DESTAQUE_CORPORATIVO", label: "Destaque Corporativo" },
 ];
 
 const OPCOES_CATEGORIA_SELECT = [
@@ -39,6 +40,7 @@ const OPCOES_CATEGORIA_SELECT = [
   { value: "NOTICIA", label: "Notícia" },
   { value: "PROMOCAO", label: "Promoção" },
   { value: "MUDANCA_SETOR", label: "Mudança de Setor" },
+  { value: "DESTAQUE_CORPORATIVO", label: "★ Destaque Corporativo" },
 ];
 
 const CATEGORIA_LABELS = {
@@ -46,6 +48,7 @@ const CATEGORIA_LABELS = {
   COMUNICADO: "Comunicado",
   PROMOCAO: "Promoção",
   MUDANCA_SETOR: "Mudança de Setor",
+  DESTAQUE_CORPORATIVO: "Destaque Corporativo",
 };
 
 const CATEGORIA_BADGE_VARIANT = {
@@ -53,6 +56,7 @@ const CATEGORIA_BADGE_VARIANT = {
   COMUNICADO: "info",
   PROMOCAO: "ativo",
   MUDANCA_SETOR: "warning",
+  DESTAQUE_CORPORATIVO: "primary",
 };
 
 export function formatarDataHoraAviso(iso) {
@@ -483,7 +487,11 @@ export default function Avisos() {
                 error={errosForm.categoria}
                 options={OPCOES_CATEGORIA_SELECT}
                 onChange={(e) =>
-                  setFormDados((prev) => ({ ...prev, categoria: e.target.value }))
+                  setFormDados((prev) => ({
+                    ...prev,
+                    categoria: e.target.value,
+                    destaque: e.target.value === "DESTAQUE_CORPORATIVO" ? true : prev.destaque,
+                  }))
                 }
               />
 
@@ -564,7 +572,8 @@ export default function Avisos() {
             <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
               <input
                 type="checkbox"
-                checked={formDados.destaque}
+                checked={formDados.destaque || formDados.categoria === "DESTAQUE_CORPORATIVO"}
+                disabled={formDados.categoria === "DESTAQUE_CORPORATIVO"}
                 onChange={(e) =>
                   setFormDados((prev) => ({ ...prev, destaque: e.target.checked }))
                 }
@@ -621,7 +630,7 @@ export default function Avisos() {
             {destaques.slice(0, 3).map((dest) => (
               <Card
                 key={`dest-${dest.id_aviso}`}
-                className="border-2 border-[#800020]/30 bg-gradient-to-br from-[#fff5f6] to-white flex flex-col justify-between space-y-3"
+                className="destaque-banner flex flex-col justify-between space-y-3"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
@@ -637,7 +646,7 @@ export default function Avisos() {
                   </div>
                   <Link
                     to={`/avisos/${dest.id_aviso}`}
-                    className="block text-base font-bold text-[#800020] hover:underline leading-snug"
+                    className="destaque-banner__title block text-base font-bold hover:underline leading-snug"
                   >
                     {dest.titulo}
                   </Link>
@@ -645,11 +654,11 @@ export default function Avisos() {
                     {dest.resumo}
                   </p>
                 </div>
-                <div className="pt-2 border-t border-[#f1c5cf]/50 flex items-center justify-between text-xs text-[#64748b]">
+                <div className="destaque-banner__footer pt-2 flex items-center justify-between text-xs text-[#64748b]">
                   <span>Por {dest.autor?.nome || "Administração"}</span>
                   <Link
                     to={`/avisos/${dest.id_aviso}`}
-                    className="font-semibold text-[#800020] hover:underline"
+                    className="destaque-banner__cta"
                   >
                     Ler completo →
                   </Link>

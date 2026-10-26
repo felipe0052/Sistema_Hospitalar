@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import decoLogo from "../../imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
+import { useTheme } from "../../hooks/useTheme";
 import { Badge } from "../ui/Badge";
 
-export function Header() {
+export function Header({ menuAberto = true, onAlternarMenu }) {
   const { usuario, autenticado, sair } = useAuth();
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
+  const { escuro, alternar } = useTheme();
 
   const iniciais = (usuario?.nome || "Colaborador")
     .split(" ")
@@ -24,6 +26,29 @@ export function Header() {
         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
       }}
     >
+      <button
+        type="button"
+        onClick={onAlternarMenu}
+        aria-label={menuAberto ? "Ocultar menu de navegação" : "Mostrar menu de navegação"}
+        aria-expanded={menuAberto}
+        aria-controls="menu-lateral"
+        title={menuAberto ? "Ocultar menu" : "Mostrar menu"}
+        className="w-9 h-9 -ml-2 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-[#64748b] cursor-pointer flex-shrink-0"
+      >
+        <svg
+          aria-hidden="true"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
       <Link
         to="/"
         className="flex items-center gap-3 flex-shrink-0 no-underline group"
@@ -45,6 +70,34 @@ export function Header() {
       </Link>
 
       <div className="flex items-center gap-4 ml-auto">
+        <button
+          type="button"
+          onClick={alternar}
+          aria-label={escuro ? "Ativar modo claro" : "Ativar modo escuro"}
+          title={escuro ? "Modo claro" : "Modo escuro"}
+          className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-[#64748b] cursor-pointer"
+        >
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {escuro ? (
+              <>
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </>
+            ) : (
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            )}
+          </svg>
+        </button>
         <div className="relative">
           <button
             type="button"
