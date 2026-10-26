@@ -6,6 +6,13 @@ import {
   listarEventos,
 } from "../../api/eventos";
 import { listarAniversariantesMes } from "../../api/aniversariantes";
+import GoogleAgendaModal from "./GoogleAgendaModal";
+import {
+  adicionarEventoGoogle,
+  definirReceberTodosGoogle,
+  obterStatusGoogle,
+  removerEventoGoogle,
+} from "../../api/googleAgenda";
 import { listarSetores } from "../../api/setores";
 import {
   Badge,
@@ -149,6 +156,72 @@ export default function Eventos() {
 
   // Modal de Detalhe do Evento
   const [eventoDetalhe, setEventoDetalhe] = useState(null);
+  const [googleInfoAberto, setGoogleInfoAberto] = useState(false);
+  const [googleStatus, setGoogleStatus] = useState(null);
+  const [googleOcupado, setGoogleOcupado] = useState(false);
+
+  const carregarGoogleStatus = useCallback(async () => {
+    if (!autenticado) return setGoogleStatus(null);
+    try {
+      setGoogleStatus(await obterStatusGoogle());
+    } catch {
+      setGoogleStatus(null);
+    }
+  }, [autenticado]);
+
+  useEffect(() => {
+    carregarGoogleStatus();
+  }, [carregarGoogleStatus]);
+
+  // Retorno do OAuth do Google: /eventos?google=conectado|negado|erro
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resultado = params.get("google");
+    if (!resultado) return;
+    setAbaAtiva("calendario");
+    if (resultado === "conectado") sucesso("Google Agenda conectado com sucesso.");
+    else if (resultado === "negado") toastErro("Conexão com o Google cancelada.");
+    else toastErro("Não foi possível conectar ao Google. Tente novamente.");
+    window.history.replaceState({}, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function alternarReceberTodos(ativo) {
+    setGoogleOcupado(true);
+    try {
+      const r = await definirReceberTodosGoogle(ativo);
+      sucesso(
+        ativo
+          ? `Pronto! ${r.adicionados} evento(s) enviados agora; os novos entrarão automaticamente.`
+          : "Os novos eventos não serão mais enviados automaticamente.",
+      );
+    } catch (err) {
+      toastErro(err?.mensagem || "Não foi possível alterar a preferência.");
+    } finally {
+      await carregarGoogleStatus();
+      setGoogleOcupado(false);
+    }
+  }
+
+  async function alternarEventoNoGoogle(ev) {
+    const jaAdicionado = googleStatus?.eventos_adicionados?.includes(ev.id_evento);
+    setGoogleOcupado(true);
+    try {
+      if (jaAdicionado) {
+        await removerEventoGoogle(ev.id_evento);
+        sucesso("Evento removido da sua agenda.");
+      } else {
+        await adicionarEventoGoogle(ev.id_evento);
+        sucesso("Evento adicionado ao seu Google Agenda.");
+      }
+      await carregarGoogleStatus();
+    } catch (err) {
+      toastErro(err?.mensagem || "Não foi possível atualizar o Google Agenda.");
+      await carregarGoogleStatus();
+    } finally {
+      setGoogleOcupado(false);
+    }
+  }
 
   // Modal de Cadastro / Edição
   const [modalFormOpen, setModalFormOpen] = useState(false);
@@ -535,6 +608,29 @@ export default function Eventos() {
             </button>
           </div>
 
+          {abaAtiva === "calendario" && (
+            <>
+              {googleStatus?.conectado && (
+                <label
+                  className="inline-flex items-center gap-2 text-xs font-medium text-[#475569] cursor-pointer select-none"
+                  title="Envia para o seu Google Agenda todos os eventos futuros e os que forem criados depois"
+                >
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-[#800020]"
+                    checked={Boolean(googleStatus.receber_todos)}
+                    disabled={googleOcupado}
+                    onChange={(e) => alternarReceberTodos(e.target.checked)}
+                  />
+                  Receber todos os eventos
+                </label>
+              )}
+            <Button variant="secondary" onClick={() => setGoogleInfoAberto(true)}>
+              📅 {googleStatus?.conectado ? "Google Agenda conectado" : "Integrar com Google Agenda"}
+            </Button>
+            </>
+          )}
+
           {podeGerir && (
             <Button variant="primary" onClick={abrirModalNovo}>
               + Adicionar Novo
@@ -796,6 +892,14 @@ export default function Eventos() {
         </div>
       )}
 
+      <GoogleAgendaModal
+        open={googleInfoAberto}
+        onClose={() => setGoogleInfoAberto(false)}
+        autenticado={autenticado}
+        status={googleStatus}
+        onAlterado={carregarGoogleStatus}
+      />
+
       {/* ── MODAL DE DETALHES DO EVENTO ── */}
       <Modal
         open={Boolean(eventoDetalhe)}
@@ -823,9 +927,23 @@ export default function Eventos() {
                 </div>
               )}
             </div>
-            <Button variant="primary" onClick={() => setEventoDetalhe(null)}>
-              Fechar
-            </Button>
+            <div className="flex items-center gap-2">
+              {googleStatus?.conectado && eventoDetalhe && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={googleOcupado}
+                  onClick={() => alternarEventoNoGoogle(eventoDetalhe)}
+                >
+                  {googleStatus.eventos_adicionados.includes(eventoDetalhe.id_evento)
+                    ? "Remover da minha agenda"
+                    : "Adicionar à minha agenda"}
+                </Button>
+              )}
+              <Button variant="primary" onClick={() => setEventoDetalhe(null)}>
+                Fechar
+              </Button>
+            </div>
           </div>
         }
       >
