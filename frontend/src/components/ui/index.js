@@ -13,3 +13,4 @@ export { Skeleton } from "./Skeleton";
 export { EmptyState } from "./EmptyState";
 export { ErrorBanner } from "./ErrorBanner";
 export { ToastProvider, useToast } from "./Toast";
+export { MiniCalendario } from "./MiniCalendario";

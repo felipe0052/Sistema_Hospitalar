@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173"
     UPLOAD_DIR: str = "./uploads"
     UPLOAD_MAX_MB: int = 20
+    DOCUMENTOS_MAX_MB: int = 10
     STORAGE_BACKEND: str = "local"
 
     # Object Storage S3 / OCI (Semana 3/4)

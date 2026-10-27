@@ -22,6 +22,10 @@
 .story-features small { display: block; font-size: 11px; color: #d8acb7; margin-top: 5px; }
 .story-bottom { display: flex; justify-content: space-between; gap: 16px; padding-top: 22px; border-top: 1px solid #ffffff26; color: #d8acb7; font-size: 10px; }
 .login-panel { display: flex; flex-direction: column; padding: 40px clamp(28px, 5.5vw, 90px) 28px; }
+.login-theme-toggle { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #dce2e9; background: #ffffff; color: #64748b; cursor: pointer; transition: all .15s ease; flex-shrink: 0; }
+.login-theme-toggle:hover { background: #f8fafc; color: #800020; border-color: #f1c5cf; }
+.login-back-link { font-size: 11px; font-weight: 600; color: #800020; text-decoration: none; padding: 7px 12px; border-radius: 8px; background: #fff5f5; border: 1px solid #f3dfe5; transition: all .15s ease; white-space: nowrap; }
+.login-back-link:hover { background: #fbebee; text-decoration: underline; }
 .login-brand { display: flex; flex-direction: column; align-self: flex-start; gap: 7px; }
 .login-brand img { width: 145px; height: auto; }
 .login-brand > span { font-size: 10px; color: #64748b; letter-spacing: .6px; }

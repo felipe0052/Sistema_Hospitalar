@@ -13,7 +13,7 @@ def normalizar_palavras_chave_lista(valor: str | list[str] | None) -> list[str]:
     if isinstance(valor, list):
         brutos = [str(item).strip() for item in valor]
     else:
-        brutos = [parte.strip() for parte in str(valor).split(",")]
+        brutos = [parte.strip() for parte in str(valor).replace(";", ",").split(",")]
 
     resultado: list[str] = []
     vistos: set[str] = set()
@@ -56,7 +56,7 @@ class DocumentoMetadadosIn(BaseModel):
     @classmethod
     def _limpar_titulo(cls, v: str) -> str:
         if isinstance(v, str):
-            return v.strip()
+            return " ".join(v.split())
         return v
 
     @field_validator("tipo", mode="before")
@@ -94,11 +94,13 @@ class DocumentoOut(BaseModel):
     nome_arquivo: str
     mime_type: str
     tamanho_bytes: int
+    versao: int = 1
+    ativo: bool = True
+    autor: AutorDocumentoOut | None = None
     data_upload: datetime
     data_atualizacao: datetime | None = None
-    autor: AutorDocumentoOut | None = None
-    url_visualizar: str
-    url_download: str
+    url_visualizar: str | None = None
+    url_download: str | None = None
 
 
 class PaginadoDocumentosOut(BaseModel):

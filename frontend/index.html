@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/src/imports/Decos_Hospital_Simbolo_Transparente_v2.png" />
+    <script>
+      // Aplica o tema antes da primeira pintura para evitar flash.
+      // Padrão obrigatório: Light Mode quando não houver preferência salva.
+      try {
+        var t = localStorage.getItem("decos.theme");
+        if (t !== "dark" && t !== "light") t = "light";
+        document.documentElement.dataset.theme = t;
+        if (t === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      } catch (e) {}
+    </script>
     <title>Decós Hospital — Intranet Corporativa</title>
     <meta
       name="description"

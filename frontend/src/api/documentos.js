@@ -1,6 +1,9 @@
 import apiClient, { lerUsuarioSalvo } from "./client";
 import { DOCUMENTOS_MOCK_INICIAL } from "../mocks/documentos";
 
+export const DOCUMENTO_MAX_MB = 20;
+export const EXTENSOES_DOCUMENTO = [".pdf", ".docx"];
+
 const useMocks = String(import.meta.env?.VITE_USE_MOCKS).toLowerCase() === "true";
 
 let documentosMemoria = [...DOCUMENTOS_MOCK_INICIAL];
@@ -20,6 +23,7 @@ function normalizarPalavrasChave(valor) {
     return valor.map((v) => String(v).trim()).filter(Boolean);
   }
   return String(valor)
+    .replace(/;/g, ",")
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
@@ -57,6 +61,10 @@ export async function listarDocumentos(filtros = {}) {
   if (useMocks) {
     let lista = [...documentosMemoria];
 
+    if (!filtros.incluir_inativas) {
+      lista = lista.filter((d) => d.ativo !== false);
+    }
+
     if (filtros.tipo) {
       lista = lista.filter((d) => d.tipo === String(filtros.tipo).toUpperCase());
     }
@@ -64,6 +72,13 @@ export async function listarDocumentos(filtros = {}) {
     if (filtros.categoria) {
       const catNorm = semAcentos(filtros.categoria);
       lista = lista.filter((d) => semAcentos(d.categoria) === catNorm);
+    }
+
+    if (filtros.palavra_chave) {
+      const pNorm = semAcentos(filtros.palavra_chave);
+      lista = lista.filter((d) =>
+        (d.palavras_chave || []).some((kw) => semAcentos(kw).includes(pNorm)),
+      );
     }
 
     if (filtros.busca && String(filtros.busca).trim()) {
@@ -113,6 +128,8 @@ export async function listarCategoriasDocumentos() {
   return data;
 }
 
+export const listarCategorias = listarCategoriasDocumentos;
+
 export async function obterDocumento(id) {
   if (useMocks) {
     const doc = documentosMemoria.find((d) => Number(d.id_doc) === Number(id));
@@ -126,6 +143,19 @@ export async function obterDocumento(id) {
   }
 
   const { data } = await apiClient.get(`/documentos/${id}`);
+  return data;
+}
+
+export async function listarVersoesDocumento(id) {
+  if (useMocks) {
+    const doc = documentosMemoria.find((d) => Number(d.id_doc) === Number(id));
+    if (!doc) return [];
+    return documentosMemoria
+      .filter((d) => d.tipo === doc.tipo && semAcentos(d.titulo) === semAcentos(doc.titulo))
+      .sort((a, b) => (b.versao || 1) - (a.versao || 1));
+  }
+
+  const { data } = await apiClient.get(`/documentos/${id}/versoes`);
   return data;
 }
 
@@ -152,11 +182,29 @@ export async function obterBlobArquivoDocumento(id, { download = false } = {}) {
   const response = await apiClient.get(`/documentos/${id}/arquivo`, {
     params: download ? { download: true } : {},
     responseType: "blob",
+    timeout: 60000,
   });
   return {
     blob: response.data,
     mimeType: response.headers["content-type"] || "application/octet-stream",
+    nomeArquivo: doc?.nome_arquivo || "documento",
   };
+}
+
+export async function baixarDocumento(doc) {
+  const { data } = await apiClient.get(`/documentos/${doc.id_doc}/arquivo`, {
+    params: { download: true },
+    responseType: "blob",
+    timeout: 60000,
+  });
+  const url = URL.createObjectURL(new Blob([data], { type: doc.mime_type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = doc.nome_arquivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 export async function criarDocumento(formData, onUploadProgress) {
@@ -195,6 +243,8 @@ export async function criarDocumento(formData, onUploadProgress) {
       nome_arquivo: nomeArquivo,
       mime_type: mimeType,
       tamanho_bytes: tamanhoBytes,
+      versao: 1,
+      ativo: true,
       data_upload: new Date().toISOString(),
       data_atualizacao: null,
       autor: usuario
@@ -208,10 +258,23 @@ export async function criarDocumento(formData, onUploadProgress) {
   }
 
   const { data } = await apiClient.post("/documentos", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": null },
     onUploadProgress,
+    timeout: 60000,
   });
   return data;
+}
+
+export async function enviarDocumento({ arquivo, titulo, tipo, categoria, descricao, palavras_chave }) {
+  const form = new FormData();
+  if (arquivo) form.append("arquivo", arquivo);
+  if (titulo) form.append("titulo", titulo);
+  if (tipo) form.append("tipo", tipo);
+  if (categoria) form.append("categoria", categoria);
+  if (descricao) form.append("descricao", descricao);
+  if (palavras_chave) form.append("palavras_chave", palavras_chave);
+
+  return criarDocumento(form);
 }
 
 export async function atualizarDocumento(id, formData, onUploadProgress) {
@@ -262,8 +325,9 @@ export async function atualizarDocumento(id, formData, onUploadProgress) {
   }
 
   const { data } = await apiClient.put(`/documentos/${id}`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": null },
     onUploadProgress,
+    timeout: 60000,
   });
   return data;
 }

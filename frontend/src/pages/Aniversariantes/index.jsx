@@ -1,10 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { listarAniversariantesMes } from "../../api/aniversariantes";
 import { Badge, Card, EmptyState, SearchInput } from "../../components/ui";
-import { MOCK_ANIVERSARIANTES } from "../../mocks/portal";
 
 export default function Aniversariantes() {
   const [busca, setBusca] = useState("");
-  const filtrados = MOCK_ANIVERSARIANTES.filter(
+  const [lista, setLista] = useState([]);
+  useEffect(() => {
+    listarAniversariantesMes(new Date().getMonth() + 1)
+      .then(setLista)
+      .catch(() => setLista([]));
+  }, []);
+  const filtrados = lista.filter(
     (a) =>
       !busca ||
       a.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -45,8 +51,8 @@ export default function Aniversariantes() {
               <div className="text-right">
                 <Badge variant={aniv.aniversario_hoje ? "primary" : "default"}>
                   {aniv.aniversario_hoje
-                    ? `🎂 Hoje (${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")})`
-                    : `${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")}`}
+                    ? `🎂 Hoje (${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")}/${new Date().getFullYear()})`
+                    : `${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")}/${new Date().getFullYear()}`}
                 </Badge>
               </div>
             </Card>

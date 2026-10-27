@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  DOCUMENTO_MAX_MB,
   atualizarDocumento,
   criarDocumento,
   excluirDocumento,
   listarCategoriasDocumentos,
   listarDocumentos,
+  listarVersoesDocumento,
   obterBlobArquivoDocumento,
 } from "../../api/documentos";
 import {
@@ -24,6 +26,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarData } from "../../utils/date";
 
 const CHIPS_TIPO = [
   { value: "", label: "Todos" },
@@ -58,18 +61,7 @@ function formatarTamanhoBytes(bytes) {
 }
 
 function formatarDataDocumento(iso) {
-  if (!iso) return "—";
-  try {
-    const dt = new Date(iso);
-    if (Number.isNaN(dt.getTime())) return String(iso);
-    return dt.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  } catch {
-    return String(iso);
-  }
+  return formatarData(iso);
 }
 
 function ehArquivoPdf(doc) {
@@ -80,14 +72,15 @@ function ehArquivoPdf(doc) {
 }
 
 export default function Documentos() {
-  const { autenticado, isAdmin } = useAuth();
-  const podeGerir = autenticado && isAdmin;
+  const { autenticado, isAdmin, usuario } = useAuth();
+  const podeGerir = autenticado && (isAdmin || usuario?.perfil === "RH");
   const { sucesso, erro: toastErro, info: toastInfo } = useToast();
 
   // Filtros e paginação
   const [busca, setBusca] = useState("");
   const [tipoAtivo, setTipoAtivo] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("");
+  const [verInativas, setVerInativas] = useState(false);
   const [pagina, setPagina] = useState(1);
   const tamanho = 12;
 
@@ -104,7 +97,12 @@ export default function Documentos() {
   const [carregandoVisualizador, setCarregandoVisualizador] = useState(false);
   const [baixandoId, setBaixandoId] = useState(null);
 
-  // Modal de Cadastro / Edição (UC06)
+  // Modal de Histórico de Versões
+  const [versoesDoc, setVersoesDoc] = useState(null);
+  const [versoes, setVersoes] = useState([]);
+  const [carregandoVersoes, setCarregandoVersoes] = useState(false);
+
+  // Modal de Cadastro / Edição
   const [modalFormOpen, setModalFormOpen] = useState(false);
   const [docEditando, setDocEditando] = useState(null);
   const [formTitulo, setFormTitulo] = useState("");
@@ -130,7 +128,7 @@ export default function Documentos() {
       const lista = await listarCategoriasDocumentos();
       setCategorias(Array.isArray(lista) ? lista : []);
     } catch {
-      /* Mantém categorias anteriores em caso de falha silenciosa */
+      // Falha silenciosa no filtro
     }
   }, []);
 
@@ -138,21 +136,24 @@ export default function Documentos() {
     setCarregando(true);
     setErroLista("");
     try {
-      const resp = await listarDocumentos({
+      const res = await listarDocumentos({
         busca: busca.trim() || undefined,
         tipo: tipoAtivo || undefined,
         categoria: categoriaAtiva || undefined,
+        incluir_inativas: verInativas || undefined,
         pagina,
         tamanho,
       });
-      setDocumentos(resp?.itens || []);
-      setTotal(resp?.total || 0);
+      setDocumentos(res?.itens || []);
+      setTotal(res?.total || 0);
     } catch (err) {
-      setErroLista(err?.mensagem || "Não foi possível carregar os documentos e POPs.");
+      setErroLista(err?.mensagem || "Não foi possível carregar os documentos.");
+      setDocumentos([]);
+      setTotal(0);
     } finally {
       setCarregando(false);
     }
-  }, [busca, tipoAtivo, categoriaAtiva, pagina, tamanho]);
+  }, [busca, tipoAtivo, categoriaAtiva, verInativas, pagina]);
 
   useEffect(() => {
     carregarCategorias();
@@ -229,6 +230,20 @@ export default function Documentos() {
     }
   }
 
+  async function abrirVersoes(doc) {
+    setVersoesDoc(doc);
+    setVersoes([]);
+    setCarregandoVersoes(true);
+    try {
+      const dados = await listarVersoesDocumento(doc.id_doc);
+      setVersoes(Array.isArray(dados) ? dados : []);
+    } catch (err) {
+      toastErro(err?.mensagem || "Não foi possível carregar o histórico de versões.");
+    } finally {
+      setCarregandoVersoes(false);
+    }
+  }
+
   function abrirModalNovo() {
     setDocEditando(null);
     setFormTitulo("");
@@ -259,6 +274,7 @@ export default function Documentos() {
 
   function adicionarTagInput(valorBruto) {
     const partes = String(valorBruto || "")
+      .replace(/;/g, ",")
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
@@ -301,11 +317,11 @@ export default function Documentos() {
       }));
       return;
     }
-    const maxBytes = 20 * 1024 * 1024;
+    const maxBytes = DOCUMENTO_MAX_MB * 1024 * 1024;
     if (file.size > maxBytes) {
       setErrosForm((prev) => ({
         ...prev,
-        arquivo: "O arquivo excede o tamanho máximo permitido de 20 MB.",
+        arquivo: `O arquivo excede o tamanho máximo permitido de ${DOCUMENTO_MAX_MB} MB.`,
       }));
       return;
     }
@@ -342,6 +358,7 @@ export default function Documentos() {
     const tagsFinais = [...formTags];
     if (tagDigitando.trim()) {
       tagDigitando
+        .replace(/;/g, ",")
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean)
@@ -372,8 +389,12 @@ export default function Documentos() {
         await atualizarDocumento(docEditando.id_doc, formData, callbackProgresso);
         sucesso("Documento atualizado com sucesso.");
       } else {
-        await criarDocumento(formData, callbackProgresso);
-        sucesso("Documento cadastrado e disponibilizado na central.");
+        const criado = await criarDocumento(formData, callbackProgresso);
+        sucesso(
+          criado?.versao > 1
+            ? `Nova versão (v${criado.versao}) publicada. A anterior foi arquivada.`
+            : "Documento cadastrado e disponibilizado na central.",
+        );
       }
       setProgressoUpload(100);
       setModalFormOpen(false);
@@ -393,7 +414,6 @@ export default function Documentos() {
     e.preventDefault();
     if (!validarFormulario()) return;
 
-    // Na edição, se o administrador selecionou um novo arquivo, pede confirmação da substituição
     if (docEditando && formArquivo) {
       setConfirmSubstituirOpen(true);
       return;
@@ -407,8 +427,13 @@ export default function Documentos() {
     setExcluindo(true);
     try {
       await excluirDocumento(docExcluindo.id_doc);
-      sucesso("Documento excluído com sucesso.");
+      sucesso(
+        docExcluindo.ativo !== false
+          ? "Versão excluída. A versão anterior voltou a ser a vigente."
+          : "Versão arquivada excluída com sucesso.",
+      );
       setDocExcluindo(null);
+      setVersoesDoc(null);
       await Promise.all([carregarDocumentos(), carregarCategorias()]);
     } catch (err) {
       toastErro(err?.mensagem || "Não foi possível excluir o documento.");
@@ -417,7 +442,7 @@ export default function Documentos() {
     }
   }
 
-  const temFiltroAtivo = Boolean(busca.trim() || tipoAtivo || categoriaAtiva);
+  const temFiltroAtivo = Boolean(busca.trim() || tipoAtivo || categoriaAtiva || verInativas);
   const sugestoesCategorias = Array.from(
     new Set([...CATEGORIAS_SUGERIDAS_PADRAO, ...categorias]),
   ).sort((a, b) => a.localeCompare(b));
@@ -439,7 +464,7 @@ export default function Documentos() {
         )}
       </div>
 
-      {/* Barra de Busca e Filtros Combinados (UC07) */}
+      {/* Barra de Busca e Filtros Combinados */}
       <Card className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex-1 min-w-[260px]">
@@ -450,103 +475,91 @@ export default function Documentos() {
                 setPagina(1);
               }}
               placeholder="Pesquisar por título, descrição ou palavra-chave (ex.: curativo, cateter, portaria 344)..."
-              ariaLabel="Pesquisar POPs e documentos"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar por tipo">
-            {CHIPS_TIPO.map((chip) => {
-              const ativo = tipoAtivo === chip.value;
-              return (
-                <button
-                  key={chip.value || "todos"}
-                  type="button"
-                  onClick={() => {
-                    setTipoAtivo(chip.value);
-                    setPagina(1);
-                  }}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
-                    ativo
-                      ? "bg-[#800020] text-white shadow-xs"
-                      : "bg-slate-100 text-[#475569] hover:bg-slate-200"
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              );
-            })}
+          <div className="w-56">
+            <Select
+              aria-label="Filtrar por categoria"
+              value={categoriaAtiva}
+              onChange={(e) => {
+                setCategoriaAtiva(e.target.value);
+                setPagina(1);
+              }}
+              options={[
+                { value: "", label: "Todas as categorias" },
+                ...sugestoesCategorias.map((c) => ({ value: c, label: c })),
+              ]}
+            />
           </div>
+
+          {podeGerir && (
+            <label className="flex items-center gap-2 text-xs font-medium text-[#475569] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={verInativas}
+                onChange={(e) => {
+                  setVerInativas(e.target.checked);
+                  setPagina(1);
+                }}
+                className="rounded border-slate-300 text-[#800020] focus:ring-[#800020]"
+              />
+              Exibir versões arquivadas
+            </label>
+          )}
         </div>
 
-        {/* Chips de Categorias carregadas dinamicamente */}
-        {categorias.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-            <span className="text-xs font-semibold text-[#64748b] mr-1">Categoria:</span>
+        {/* Chips de Tipo (Todos, POPs, Documentos) */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+          <span className="text-xs font-semibold text-[#64748b] mr-1">Tipo:</span>
+          {CHIPS_TIPO.map((chip) => {
+            const ativo = tipoAtivo === chip.value;
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => {
+                  setTipoAtivo(chip.value);
+                  setPagina(1);
+                }}
+                className={`px-3 py-1 text-xs font-semibold rounded-full border transition cursor-pointer ${
+                  ativo
+                    ? "bg-[#800020] text-white border-[#800020] shadow-sm"
+                    : "bg-white text-[#475569] border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+
+          {temFiltroAtivo && (
             <button
               type="button"
               onClick={() => {
+                setBusca("");
+                setTipoAtivo("");
                 setCategoriaAtiva("");
+                setVerInativas(false);
                 setPagina(1);
               }}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer ${
-                !categoriaAtiva
-                  ? "bg-slate-800 text-white"
-                  : "bg-slate-100 text-[#475569] hover:bg-slate-200"
-              }`}
+              className="ml-auto text-xs text-[#800020] hover:underline font-semibold cursor-pointer"
             >
-              Todas ({categorias.length})
+              Limpar filtros
             </button>
-            {categorias.map((cat) => {
-              const ativa = categoriaAtiva === cat;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setCategoriaAtiva(ativa ? "" : cat);
-                    setPagina(1);
-                  }}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer ${
-                    ativa
-                      ? "bg-[#800020] text-white"
-                      : "bg-slate-100 text-[#475569] hover:bg-slate-200"
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-
-            {temFiltroAtivo && (
-              <button
-                type="button"
-                onClick={() => {
-                  setBusca("");
-                  setTipoAtivo("");
-                  setCategoriaAtiva("");
-                  setPagina(1);
-                }}
-                className="ml-auto text-xs font-semibold text-[#800020] hover:underline cursor-pointer"
-              >
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </Card>
 
-      {/* Estados da listagem: Erro, Carregando, Vazio ou Grid de Documentos */}
-      {erroLista ? (
-        <ErrorBanner message={erroLista} onRetry={carregarDocumentos} />
-      ) : carregando ? (
-        <div className="space-y-3" aria-busy="true">
-          {[1, 2, 3, 4].map((n) => (
-            <Card key={n} className="space-y-3">
-              <Skeleton height="18px" width="35%" />
-              <Skeleton height="14px" width="80%" />
-              <Skeleton height="14px" width="55%" />
-            </Card>
-          ))}
+      {/* Mensagem de Erro da Listagem */}
+      {erroLista && <ErrorBanner message={erroLista} onRetry={carregarDocumentos} />}
+
+      {/* Listagem de Documentos */}
+      {carregando ? (
+        <div className="space-y-3">
+          <Skeleton height="88px" className="rounded-xl" />
+          <Skeleton height="88px" className="rounded-xl" />
+          <Skeleton height="88px" className="rounded-xl" />
         </div>
       ) : documentos.length === 0 ? (
         <Card>
@@ -574,7 +587,6 @@ export default function Documentos() {
                 className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-slate-300 transition"
               >
                 <div className="flex items-start gap-4 flex-1 min-w-0">
-                  {/* Ícone do formato (PDF / DOCX) */}
                   <div
                     className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold text-xs border ${
                       isPdf
@@ -592,6 +604,10 @@ export default function Documentos() {
                         {doc.tipo}
                       </Badge>
                       {doc.categoria && <Badge variant="default">{doc.categoria}</Badge>}
+                      <Badge variant={doc.ativo !== false ? "ativo" : "warning"}>
+                        v{doc.versao || 1}
+                        {doc.ativo === false ? " • arquivada" : " • vigente"}
+                      </Badge>
                       <span className="text-xs text-[#64748b]">
                         Atualizado em {formatarDataDocumento(dataRef)} ·{" "}
                         {formatarTamanhoBytes(doc.tamanho_bytes)}
@@ -608,7 +624,6 @@ export default function Documentos() {
                       </p>
                     )}
 
-                    {/* Palavras-chave (chips clicáveis) */}
                     {Array.isArray(doc.palavras_chave) && doc.palavras_chave.length > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5 pt-1">
                         {doc.palavras_chave.map((kw) => (
@@ -630,7 +645,6 @@ export default function Documentos() {
                   </div>
                 </div>
 
-                {/* Ações: Visualizar, Baixar e Gestão Admin */}
                 <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                   <Button
                     variant="secondary"
@@ -650,10 +664,16 @@ export default function Documentos() {
                   {podeGerir && (
                     <>
                       <Button
-                        variant="ghost"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => abrirVersoes(doc)}
+                      >
+                        Versões
+                      </Button>
+                      <Button
+                        variant="secondary"
                         size="sm"
                         onClick={() => abrirModalEditar(doc)}
-                        aria-label={`Editar ${doc.titulo}`}
                       >
                         Editar
                       </Button>
@@ -661,7 +681,6 @@ export default function Documentos() {
                         variant="danger"
                         size="sm"
                         onClick={() => setDocExcluindo(doc)}
-                        aria-label={`Excluir ${doc.titulo}`}
                       >
                         Excluir
                       </Button>
@@ -671,7 +690,12 @@ export default function Documentos() {
               </Card>
             );
           })}
+        </div>
+      )}
 
+      {/* Paginação */}
+      {total > tamanho && (
+        <div className="pt-2 flex justify-center">
           <Pagination
             page={pagina}
             pageSize={tamanho}
@@ -681,7 +705,7 @@ export default function Documentos() {
         </div>
       )}
 
-      {/* Visualizador Embutido de PDF em Tela Cheia (S3-T4) */}
+      {/* Visualizador Embutido de PDF */}
       <Modal
         open={Boolean(docVisualizando)}
         onClose={fecharVisualizador}
@@ -720,7 +744,55 @@ export default function Documentos() {
         ) : null}
       </Modal>
 
-      {/* Modal Administrativo: Novo / Editar Documento (UC06) */}
+      {/* Modal Histórico de Versões */}
+      <Modal
+        open={Boolean(versoesDoc)}
+        onClose={() => setVersoesDoc(null)}
+        title={versoesDoc ? `Histórico de Versões — ${versoesDoc.titulo}` : "Histórico de Versões"}
+        size="md"
+        footer={
+          <Button variant="secondary" onClick={() => setVersoesDoc(null)}>
+            Fechar
+          </Button>
+        }
+      >
+        {carregandoVersoes ? (
+          <div className="space-y-2 py-4">
+            <Skeleton height="48px" />
+            <Skeleton height="48px" />
+          </div>
+        ) : versoes.length === 0 ? (
+          <p className="text-sm text-[#64748b] py-4 text-center">Nenhuma versão registrada.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100 space-y-2">
+            {versoes.map((v) => (
+              <li key={v.id_doc} className="flex flex-wrap items-center justify-between gap-3 pt-2 text-sm">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={v.ativo ? "ativo" : "warning"}>
+                      v{v.versao} {v.ativo ? "• Vigente" : "• Arquivada"}
+                    </Badge>
+                    <span className="font-semibold text-[#1e293b]">{v.nome_arquivo}</span>
+                  </div>
+                  <p className="text-xs text-[#64748b] mt-0.5">
+                    {formatarDataDocumento(v.data_upload)} · {v.autor?.nome || "Sistema"} · {formatarTamanhoBytes(v.tamanho_bytes)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => acionarDownloadArquivo(v, false)}>
+                    Baixar
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => setDocExcluindo(v)}>
+                    Excluir
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+
+      {/* Modal Administrativo: Novo / Editar Documento */}
       <Modal
         open={modalFormOpen}
         onClose={salvandoForm ? undefined : () => setModalFormOpen(false)}
@@ -755,29 +827,37 @@ export default function Documentos() {
               if (errosForm.titulo) setErrosForm((p) => ({ ...p, titulo: "" }));
             }}
             placeholder="Ex.: POP-ENF-002 — Curativo em Acesso Venoso Central"
+            helperText="Reenviar com o mesmo título e tipo gera uma nova versão automaticamente."
             error={errosForm.titulo}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
-              label="Tipo"
+              label="Tipo de Publicação"
               required
               value={formTipo}
-              onChange={(e) => setFormTipo(e.target.value)}
+              onChange={(e) => {
+                setFormTipo(e.target.value);
+                if (errosForm.tipo) setErrosForm((p) => ({ ...p, tipo: "" }));
+              }}
               options={OPCOES_TIPO_SELECT}
               error={errosForm.tipo}
             />
 
-            <div className="space-y-1">
+            <div>
               <Input
-                label="Categoria"
-                list="datalist-categorias-documentos"
+                label="Categoria Institucional"
+                list="datalist-categorias-docs"
                 value={formCategoria}
-                onChange={(e) => setFormCategoria(e.target.value)}
-                placeholder="Ex.: Enfermagem, Farmácia, Administrativo"
+                onChange={(e) => {
+                  setFormCategoria(e.target.value);
+                  if (errosForm.categoria) setErrosForm((p) => ({ ...p, categoria: "" }));
+                }}
+                placeholder="Ex.: Enfermagem, Farmácia..."
+                helperText="Se em branco, será sugerida pelas palavras-chave."
                 error={errosForm.categoria}
               />
-              <datalist id="datalist-categorias-documentos">
+              <datalist id="datalist-categorias-docs">
                 {sugestoesCategorias.map((cat) => (
                   <option key={cat} value={cat} />
                 ))}
@@ -786,31 +866,34 @@ export default function Documentos() {
           </div>
 
           <Textarea
-            label="Descrição"
+            label="Descrição / Objetivo do Documento"
             rows={3}
             value={formDescricao}
-            onChange={(e) => setFormDescricao(e.target.value)}
-            placeholder="Resumo objetivo do procedimento operacional padrão ou norma institucional..."
+            onChange={(e) => {
+              setFormDescricao(e.target.value);
+              if (errosForm.descricao) setErrosForm((p) => ({ ...p, descricao: "" }));
+            }}
+            placeholder="Resumo das diretrizes clínicas, fluxo ou objetivo geral..."
             error={errosForm.descricao}
           />
 
-          {/* Palavras-chave com chips dinâmicos (Enter) */}
+          {/* Palavras-chave */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-[#334155]">
-              Palavras-chave (pressione Enter ou vírgula para adicionar)
+            <label className="block text-xs font-semibold text-[#1e293b]">
+              Palavras-chave (Tags)
             </label>
-            <div className="p-2.5 rounded-xl border border-slate-300 bg-white focus-within:border-[#800020] flex flex-wrap items-center gap-1.5">
+            <div className="p-2 border border-slate-200 rounded-lg flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#800020]/20 focus-within:border-[#800020] bg-white">
               {formTags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#800020]/10 text-[#800020]"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#800020]/10 text-[#800020]"
                 >
                   #{tag}
                   <button
                     type="button"
                     onClick={() => removerTag(tag)}
-                    aria-label={`Remover palavra-chave ${tag}`}
-                    className="hover:text-red-700 font-bold cursor-pointer"
+                    className="hover:text-red-700 ml-0.5 text-xs font-bold cursor-pointer"
+                    aria-label={`Remover tag ${tag}`}
                   >
                     ×
                   </button>
@@ -824,22 +907,20 @@ export default function Documentos() {
                 onBlur={() => adicionarTagInput(tagDigitando)}
                 placeholder={
                   formTags.length === 0
-                    ? "Ex.: curativo, cateter, uti..."
-                    : "Adicionar outra tag..."
+                    ? "Digite as palavras-chave separadas por vírgula ou Enter (ex.: curativo, uti)"
+                    : "Adicionar mais tags..."
                 }
-                className="flex-1 min-w-[160px] text-sm outline-none bg-transparent text-[#1e293b]"
+                className="flex-1 min-w-[200px] border-none outline-none text-xs bg-transparent py-1"
               />
             </div>
-            {errosForm.palavras_chave && (
-              <p className="text-xs text-red-600 font-medium">{errosForm.palavras_chave}</p>
-            )}
           </div>
 
-          {/* Área de Upload Drag & Drop (.pdf / .docx) */}
+          {/* Upload com Drag and Drop */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-[#334155]">
-              Arquivo do Documento {docEditando ? "(opcional para substituir o atual)" : "*"}
+            <label className="block text-xs font-semibold text-[#1e293b]">
+              Arquivo Digital (PDF ou DOCX) {!docEditando && <span className="text-red-500">*</span>}
             </label>
+
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -850,15 +931,15 @@ export default function Documentos() {
                 e.preventDefault();
                 setArrastandoArquivo(false);
                 const file = e.dataTransfer?.files?.[0];
-                if (file) validarESelecionarArquivo(file);
+                validarESelecionarArquivo(file);
               }}
               onClick={() => inputFileRef.current?.click()}
-              className={`p-5 rounded-xl border-2 border-dashed text-center cursor-pointer transition ${
+              className={`p-6 border-2 border-dashed rounded-xl text-center cursor-pointer transition ${
                 arrastandoArquivo
                   ? "border-[#800020] bg-[#800020]/5"
                   : errosForm.arquivo
-                    ? "border-red-400 bg-red-50/40"
-                    : "border-slate-300 hover:border-[#800020] bg-slate-50"
+                    ? "border-red-400 bg-red-50/30"
+                    : "border-slate-300 hover:border-slate-400 bg-slate-50/50"
               }`}
             >
               <input
@@ -868,13 +949,14 @@ export default function Documentos() {
                 onChange={(e) => validarESelecionarArquivo(e.target.files?.[0])}
                 className="hidden"
               />
+
               {formArquivo ? (
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-[#1e293b]">
-                    Arquivo selecionado: {formArquivo.name}
+                  <p className="text-sm font-bold text-[#1e293b]">
+                    📄 {formArquivo.name}
                   </p>
                   <p className="text-xs text-[#64748b]">
-                    Tamanho: {formatarTamanhoBytes(formArquivo.size)} · Clique para trocar
+                    {formatarTamanhoBytes(formArquivo.size)} · Clique ou arraste para substituir
                   </p>
                 </div>
               ) : (
@@ -883,7 +965,7 @@ export default function Documentos() {
                     Arraste e solte o arquivo aqui ou <span className="text-[#800020] font-semibold underline">clique para selecionar</span>
                   </p>
                   <p className="text-xs text-[#64748b]">
-                    Formatos aceitos: PDF e DOCX (tamanho máximo de 20 MB)
+                    Formatos aceitos: PDF e DOCX (tamanho máximo de {DOCUMENTO_MAX_MB} MB)
                   </p>
                   {docEditando && (
                     <p className="text-xs text-[#475569] pt-1">
@@ -918,7 +1000,7 @@ export default function Documentos() {
         </form>
       </Modal>
 
-      {/* Confirmação de substituição de arquivo na edição */}
+      {/* Confirmação de substituição de arquivo */}
       <ConfirmDialog
         open={confirmSubstituirOpen}
         title="Substituir arquivo existente?"
@@ -933,9 +1015,13 @@ export default function Documentos() {
       {/* Confirmação de exclusão de documento */}
       <ConfirmDialog
         open={Boolean(docExcluindo)}
-        title="Excluir Documento / POP"
-        message={`Tem certeza que deseja excluir permanentemente "${docExcluindo?.titulo}" e remover o arquivo do servidor?`}
-        confirmLabel="Excluir Documento"
+        title="Excluir Versão / Documento"
+        message={
+          docExcluindo?.ativo !== false
+            ? `Tem certeza que deseja excluir a versão vigente (v${docExcluindo?.versao || 1}) de "${docExcluindo?.titulo}"? A versão anterior voltará a ser a vigente.`
+            : `Tem certeza que deseja excluir permanentemente a versão v${docExcluindo?.versao || 1} de "${docExcluindo?.titulo}"?`
+        }
+        confirmLabel="Excluir"
         variant="danger"
         loading={excluindo}
         onConfirm={handleConfirmarExclusao}

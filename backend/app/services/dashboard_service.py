@@ -8,6 +8,37 @@ from app.schemas.dashboard import AniversarianteResumoOut, DashboardOut, SetorAn
 from app.services import aviso_service, evento_service
 
 
+def listar_aniversariantes_mes(
+    db: Session,
+    mes: int,
+    referencia: date | None = None,
+) -> list[AniversarianteResumoOut]:
+    hoje = referencia or date.today()
+    usuarios = (
+        db.query(Usuario)
+        .options(joinedload(Usuario.setor))
+        .filter(
+            Usuario.status == "ATIVO",
+            Usuario.data_nascimento.is_not(None),
+            extract("month", Usuario.data_nascimento) == mes,
+        )
+        .all()
+    )
+    usuarios.sort(key=lambda u: (u.data_nascimento.day, u.nome.lower()))
+    return [
+        AniversarianteResumoOut(
+            id_usuario=u.id_usuario,
+            nome=u.nome,
+            cargo=u.cargo,
+            setor=SetorAniversarianteOut(id_setor=u.setor.id_setor, nome=u.setor.nome) if u.setor else None,
+            dia=u.data_nascimento.day,
+            mes=u.data_nascimento.month,
+            aniversario_hoje=(u.data_nascimento.day == hoje.day and u.data_nascimento.month == hoje.month),
+        )
+        for u in usuarios
+    ]
+
+
 def obter_resumo_aniversariantes_dashboard(
     db: Session,
     referencia: date | None = None,

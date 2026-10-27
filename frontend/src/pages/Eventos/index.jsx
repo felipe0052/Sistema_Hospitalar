@@ -5,6 +5,7 @@ import {
   excluirEvento,
   listarEventos,
 } from "../../api/eventos";
+import { listarAniversariantesMes } from "../../api/aniversariantes";
 import { listarSetores } from "../../api/setores";
 import {
   Badge,
@@ -22,6 +23,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarData } from "../../utils/date";
 
 const CATEGORIAS_EVENTO_CHIPS = [
   { value: "", label: "Todas" },
@@ -90,17 +92,7 @@ function formatarHorarioIntervalo(inicioIso, fimIso) {
 }
 
 function formatarDataCompleta(iso) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return String(iso);
-  }
+  return formatarData(iso);
 }
 
 function paraInputDateTimeLocal(iso) {
@@ -200,6 +192,19 @@ export default function Eventos() {
     carregarEventos();
   }, [carregarEventos]);
 
+  // Aniversariantes do mês exibido no calendário
+  const [aniversariantes, setAniversariantes] = useState([]);
+  useEffect(() => {
+    if (abaAtiva !== "calendario") return;
+    let cancelado = false;
+    listarAniversariantesMes(mesCalendario)
+      .then((l) => !cancelado && setAniversariantes(l || []))
+      .catch(() => !cancelado && setAniversariantes([]));
+    return () => {
+      cancelado = true;
+    };
+  }, [abaAtiva, mesCalendario]);
+
   const handleBusca = useCallback((termo) => {
     setBusca(termo);
   }, []);
@@ -230,15 +235,22 @@ export default function Eventos() {
         dia,
         chave,
         eventos: eventosPorDia[chave] || [],
+        aniversariantes: aniversariantes.filter((a) => a.dia === dia),
       });
     }
     return celulas;
-  }, [anoCalendario, mesCalendario, eventosPorDia]);
+  }, [anoCalendario, mesCalendario, eventosPorDia, aniversariantes]);
 
   const eventosLateralCalendario = useMemo(() => {
     if (!diaSelecionado) return eventos;
     return eventosPorDia[diaSelecionado] || [];
   }, [diaSelecionado, eventos, eventosPorDia]);
+
+  const aniversariantesLateral = useMemo(() => {
+    if (!diaSelecionado) return aniversariantes;
+    const dia = Number(diaSelecionado.slice(8, 10));
+    return aniversariantes.filter((a) => a.dia === dia);
+  }, [aniversariantes, diaSelecionado]);
 
   function irParaMesAnterior() {
     setDiaSelecionado(null);
@@ -408,7 +420,7 @@ export default function Eventos() {
                 {CATEGORIA_EVENTO_LABELS[ev.categoria] || ev.categoria}
               </Badge>
               <span className="text-xs font-semibold text-[#64748b]">
-                {formatarHorarioIntervalo(ev.data_inicio, ev.data_fim)}
+                {formatarData(ev.data_inicio)} · {formatarHorarioIntervalo(ev.data_inicio, ev.data_fim)}
               </span>
             </div>
 
@@ -657,6 +669,7 @@ export default function Eventos() {
                 }
                 const selecionado = diaSelecionado === celula.chave;
                 const temEventos = celula.eventos.length > 0;
+                const temAniv = celula.aniversariantes.length > 0;
                 const ehHoje = celula.chave === chaveDataLocal(hoje);
 
                 return (
@@ -668,11 +681,11 @@ export default function Eventos() {
                         atual === celula.chave ? null : celula.chave,
                       )
                     }
-                    aria-label={`Dia ${celula.dia}, ${celula.eventos.length} evento(s)`}
+                    aria-label={`Dia ${celula.dia}, ${celula.eventos.length} evento(s), ${celula.aniversariantes.length} aniversariante(s)`}
                     className={`h-20 p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
                       selecionado
                         ? "border-[#800020] bg-[#fff5f6] ring-2 ring-[#800020]/20"
-                        : temEventos
+                        : temEventos || temAniv
                           ? "border-[#f1c5cf] bg-white hover:border-[#800020]"
                           : "border-slate-200/80 bg-white hover:bg-slate-50"
                     }`}
@@ -694,9 +707,16 @@ export default function Eventos() {
                       )}
                     </div>
 
+                    {temAniv && (
+                      <div className="text-[10px] font-semibold truncate px-1 rounded bg-amber-50 text-amber-700">
+                        🎂 {celula.aniversariantes.length === 1
+                          ? celula.aniversariantes[0].nome.split(" ")[0]
+                          : `${celula.aniversariantes.length} aniversários`}
+                      </div>
+                    )}
                     {temEventos && (
                       <div className="space-y-0.5 overflow-hidden w-full">
-                        {celula.eventos.slice(0, 2).map((ev) => (
+                        {celula.eventos.slice(0, temAniv ? 1 : 2).map((ev) => (
                           <div
                             key={ev.id_evento}
                             className="text-[10px] font-semibold truncate px-1 rounded bg-[#fff5f6] text-[#800020]"
@@ -717,7 +737,7 @@ export default function Eventos() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#1e293b]">
                 {diaSelecionado
-                  ? `Eventos em ${new Date(`${diaSelecionado}T00:00:00`).toLocaleDateString("pt-BR")}`
+                  ? `Eventos em ${formatarData(diaSelecionado)}`
                   : `Eventos do mês (${eventos.length})`}
               </h3>
               {diaSelecionado && (
@@ -730,6 +750,22 @@ export default function Eventos() {
                 </button>
               )}
             </div>
+
+            {aniversariantesLateral.length > 0 && (
+              <Card className="space-y-2">
+                <h4 className="text-xs font-bold text-amber-700">
+                  🎂 Aniversariantes {diaSelecionado ? "do dia" : `de ${NOMES_MESES[mesCalendario - 1]}`}
+                </h4>
+                <ul className="text-xs text-[#475569] space-y-1">
+                  {aniversariantesLateral.map((a) => (
+                    <li key={a.id_usuario}>
+                      <strong>{String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}/{anoCalendario}</strong>{" "}
+                      {a.nome} · {a.setor?.nome || "Setor não informado"}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
 
             {eventosLateralCalendario.length === 0 ? (
               <Card>

@@ -298,10 +298,10 @@ export default function Faq() {
           <button
             type="button"
             onClick={() => setCategoriaAtiva("")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
+            className={`faq-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
               !categoriaAtiva
-                ? "bg-[#800020] text-white"
-                : "bg-slate-100 text-[#475569] hover:bg-slate-200"
+                ? "faq-chip--active bg-[#800020] text-white shadow-xs"
+                : "faq-chip--inactive bg-slate-100 text-[#475569] hover:bg-slate-200"
             }`}
           >
             Todas
@@ -313,10 +313,10 @@ export default function Faq() {
                 key={cat}
                 type="button"
                 onClick={() => setCategoriaAtiva(ativa ? "" : cat)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
+                className={`faq-chip px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
                   ativa
-                    ? "bg-[#800020] text-white"
-                    : "bg-slate-100 text-[#475569] hover:bg-slate-200"
+                    ? "faq-chip--active bg-[#800020] text-white shadow-xs"
+                    : "faq-chip--inactive bg-slate-100 text-[#475569] hover:bg-slate-200"
                 }`}
               >
                 {cat}
@@ -386,10 +386,10 @@ export default function Faq() {
                   return (
                     <div
                       key={item.id_faq}
-                      className={`rounded-xl border transition ${
+                      className={`faq-item rounded-xl border transition ${
                         expandido
-                          ? "bg-white border-[#800020]/30 shadow-xs"
-                          : "bg-slate-50/80 border-slate-200 hover:border-slate-300"
+                          ? "faq-item--expanded bg-white border-[#800020]/30 shadow-xs"
+                          : "faq-item--collapsed bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2 p-3.5">
@@ -399,12 +399,14 @@ export default function Faq() {
                           aria-expanded={expandido}
                           aria-controls={painelId}
                           onClick={() => alternarAcordeao(item.id_faq)}
-                          className="flex-1 flex items-center justify-between gap-3 text-left text-sm font-semibold text-[#1e293b] cursor-pointer focus:outline-none"
+                          className="faq-item__trigger flex-1 flex items-center justify-between gap-3 text-left text-sm font-semibold text-[#1e293b] cursor-pointer focus:outline-none"
                         >
-                          <span>{destacarTermoTexto(item.pergunta, busca)}</span>
+                          <span className="faq-item__question">
+                            {destacarTermoTexto(item.pergunta, busca)}
+                          </span>
                           <span
                             aria-hidden="true"
-                            className={`text-xs text-[#64748b] transition-transform duration-200 shrink-0 ${
+                            className={`faq-item__chevron text-xs text-[#64748b] transition-transform duration-200 shrink-0 ${
                               expandido ? "rotate-180 text-[#800020]" : ""
                             }`}
                           >
@@ -439,7 +441,7 @@ export default function Faq() {
                           id={painelId}
                           role="region"
                           aria-labelledby={botaoId}
-                          className="px-4 pb-4 pt-1 text-xs text-[#475569] leading-relaxed border-t border-slate-100 whitespace-pre-line"
+                          className="faq-item__body px-4 pb-4 pt-2.5 text-xs text-[#475569] leading-relaxed border-t border-slate-100 whitespace-pre-line"
                         >
                           {destacarTermoTexto(item.resposta, busca)}
                         </div>

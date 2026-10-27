@@ -23,6 +23,8 @@ class Documento(Base):
     nome_arquivo: Mapped[str] = mapped_column("NOME_ARQUIVO", String(255), nullable=False)
     mime_type: Mapped[str] = mapped_column("MIME_TYPE", String(100), nullable=False)
     tamanho_bytes: Mapped[int] = mapped_column("TAMANHO_BYTES", Integer, nullable=False)
+    versao: Mapped[int] = mapped_column("VERSAO", Integer, nullable=False, default=1, server_default="1")
+    ativo: Mapped[str] = mapped_column("ATIVO", String(1), nullable=False, default="S", server_default="S")
     id_autor: Mapped[int | None] = mapped_column("ID_AUTOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True)
     data_upload: Mapped[datetime] = mapped_column("DATA_UPLOAD", DateTime, server_default=func.now())
     data_atualizacao: Mapped[datetime | None] = mapped_column("DATA_ATUALIZACAO", DateTime, nullable=True)
