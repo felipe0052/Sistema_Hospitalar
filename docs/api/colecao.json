@@ -1,0 +1,317 @@
+{
+  "info": {
+    "_postman_id": "decos-intranet-hospitalar-mvp-v1",
+    "name": "Intranet Hospitalar Decós Corporativa — API v1 (Semanas 1 a 3)",
+    "description": "Coleção completa de endpoints da API REST da Intranet Hospitalar Decós Corporativa (Auth, Usuários, Setores e Ramais, Avisos, Eventos, Documentos/POPs, FAQ, Dashboard e Health).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01. Saúde & Autenticação (UC01)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "Login (Admin)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@decos.com.br\",\n  \"senha\": \"Admin@123\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        },
+        {
+          "name": "Obter Usuário Logado (/auth/me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Setores e Ramais (UC08 — S3-T2)",
+      "item": [
+        {
+          "name": "Listar Setores e Ramais",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/setores?busca=&andar="
+          }
+        },
+        {
+          "name": "Obter Setor por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/setores/1"
+          }
+        },
+        {
+          "name": "Criar Setor com Múltiplos Ramais (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Unidade Coronariana\",\n  \"andar\": \"2º andar\",\n  \"ramais\": [\n    { \"numero\": \"2201\", \"descricao\": \"Posto de Enfermagem UCO\" },\n    { \"numero\": \"2202\", \"descricao\": \"Coordenação UCO\" }\n  ]\n}"
+            },
+            "url": "{{base_url}}/setores"
+          }
+        },
+        {
+          "name": "Atualizar Setor e Substituir Ramais (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Unidade Coronariana (UCO)\",\n  \"andar\": \"2º andar\",\n  \"ramais\": [\n    { \"numero\": \"2201\", \"descricao\": \"Posto Principal UCO\" },\n    { \"numero\": \"2203\", \"descricao\": \"Prescrição Médica\" }\n  ]\n}"
+            },
+            "url": "{{base_url}}/setores/11"
+          }
+        },
+        {
+          "name": "Excluir Setor (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/setores/11"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Documentos e POPs (UC06, UC07 — S3-T1)",
+      "item": [
+        {
+          "name": "Listar e Pesquisar Documentos/POPs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/documentos?busca=curativo&tipo=POP&categoria=&pagina=1&tamanho=20"
+          }
+        },
+        {
+          "name": "Listar Categorias de Documentos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/documentos/categorias"
+          }
+        },
+        {
+          "name": "Obter Metadados do Documento por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/documentos/1"
+          }
+        },
+        {
+          "name": "Visualizar Arquivo Inline (PDF/DOCX)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/documentos/1/arquivo"
+          }
+        },
+        {
+          "name": "Baixar Arquivo (Attachment)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/documentos/1/arquivo?download=true"
+          }
+        },
+        {
+          "name": "Cadastrar Documento / Upload POP (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "titulo", "value": "POP — Higienização das Mãos", "type": "text" },
+                { "key": "tipo", "value": "POP", "type": "text" },
+                { "key": "categoria", "value": "Enfermagem", "type": "text" },
+                { "key": "descricao", "value": "Procedimento operacional padrão da CCIH.", "type": "text" },
+                { "key": "palavras_chave", "value": "higienização, mãos, ccih", "type": "text" },
+                { "key": "arquivo", "type": "file", "src": "docs/exemplos-pops/pop-001-higienizacao-maos.pdf" }
+              ]
+            },
+            "url": "{{base_url}}/documentos"
+          }
+        },
+        {
+          "name": "Atualizar Metadados / Substituir Arquivo do Documento (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "titulo", "value": "POP — Higienização das Mãos (Revisado)", "type": "text" },
+                { "key": "tipo", "value": "POP", "type": "text" },
+                { "key": "categoria", "value": "Enfermagem", "type": "text" },
+                { "key": "descricao", "value": "Versão revisada do protocolo da CCIH.", "type": "text" },
+                { "key": "palavras_chave", "value": "higienização, mãos, ccih, revisão", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/documentos/1"
+          }
+        },
+        {
+          "name": "Excluir Documento e Arquivo Físico (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/documentos/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. FAQ — Perguntas Frequentes (UC09 — S3-T2)",
+      "item": [
+        {
+          "name": "Listar FAQ Agrupado por Categoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/faq?busca=&categoria="
+          }
+        },
+        {
+          "name": "Listar Categorias de FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/faq/categorias"
+          }
+        },
+        {
+          "name": "Criar Pergunta Frequente (ADMIN / RH)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pergunta\": \"Como solicitar segunda via do crachá funcional?\",\n  \"resposta\": \"Compareça ao atendimento do RH no 4º andar (ramal 4101) para emissão da nova via.\",\n  \"categoria\": \"Normas Hospitalares\",\n  \"ordem\": 4\n}"
+            },
+            "url": "{{base_url}}/faq"
+          }
+        },
+        {
+          "name": "Atualizar Pergunta Frequente (ADMIN / RH)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pergunta\": \"Como solicitar segunda via do crachá de identificação?\",\n  \"resposta\": \"Compareça ao atendimento do RH no 4º andar (ramal 4101) de segunda a sexta-feira.\",\n  \"categoria\": \"Normas Hospitalares\",\n  \"ordem\": 4\n}"
+            },
+            "url": "{{base_url}}/faq/1"
+          }
+        },
+        {
+          "name": "Excluir Pergunta Frequente (ADMIN / RH)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/faq/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Usuários e Controle de Acesso (UC02, UC03)",
+      "item": [
+        {
+          "name": "Listar Usuários Paginado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/usuarios?pagina=1&tamanho=20"
+          }
+        },
+        {
+          "name": "Criar Usuário",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mariana Alves\",\n  \"email\": \"mariana.alves@decos.com.br\",\n  \"senha\": \"Colab@123\",\n  \"cargo\": \"Enfermeira\",\n  \"id_setor\": 1,\n  \"data_nascimento\": \"1993-04-15\"\n}"
+            },
+            "url": "{{base_url}}/usuarios"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Avisos, Eventos e Dashboard (UC04, UC05, UC12)",
+      "item": [
+        {
+          "name": "Obter Dashboard Consolidado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/dashboard"
+          }
+        },
+        {
+          "name": "Listar Avisos Vigentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/avisos?pagina=1&tamanho=12"
+          }
+        },
+        {
+          "name": "Listar Próximos Eventos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/eventos"
+          }
+        }
+      ]
+    }
+  ]
+}

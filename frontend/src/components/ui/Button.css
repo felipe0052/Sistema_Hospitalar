@@ -93,6 +93,18 @@
   color: var(--bordeaux-dark);
 }
 
+.ui-btn--ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ui-btn--ghost:hover:not(:disabled) {
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-primary);
+}
+
 .ui-btn__spinner {
   width: 1rem;
   height: 1rem;

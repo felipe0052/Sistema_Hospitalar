@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../hooks/useTheme";
 import logo from "../../imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import symbol from "../../imports/Decos_Hospital_Simbolo_Transparente_v2.png";
 import "../../login.css";
@@ -45,6 +46,7 @@ function Glyph({ name }) {
 export default function Login() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const { escuro, alternar } = useTheme();
   const [email, setEmail] = useState(lerEmailSalvo);
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(() => Boolean(lerEmailSalvo()));
@@ -170,12 +172,42 @@ export default function Login() {
             <img src={logo} alt="Decós Hospital" />
             <span>Intranet Corporativa</span>
           </header>
-          <Link
-            to="/"
-            className="text-xs font-semibold text-[#800020] hover:underline px-3 py-1.5 rounded-lg bg-[#fff5f5] border border-[#f3dfe5] no-underline"
-          >
-            ← Voltar à visualização (Modo Leitura)
-          </Link>
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={alternar}
+              aria-label={escuro ? "Ativar modo claro" : "Ativar modo escuro"}
+              title={escuro ? "Modo claro" : "Modo escuro"}
+              className="login-theme-toggle"
+            >
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {escuro ? (
+                  <>
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                  </>
+                ) : (
+                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                )}
+              </svg>
+            </button>
+            <Link
+              to="/"
+              className="login-back-link"
+            >
+              ← Voltar à visualização (Modo Leitura)
+            </Link>
+          </div>
         </div>
         <div className="login-content">
           <span className="login-tag">

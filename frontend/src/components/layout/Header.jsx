@@ -5,7 +5,7 @@ import decoLogo from "../../imports/Decos_Hospital_Logo_Horizontal_Transparente.
 import { useTheme } from "../../hooks/useTheme";
 import { Badge } from "../ui/Badge";
 
-export function Header({ menuAberto = true, onAlternarMenu }) {
+export function Header({ menuAberto = false, onAlternarMenu }) {
   const { usuario, autenticado, sair } = useAuth();
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
