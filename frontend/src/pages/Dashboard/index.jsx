@@ -13,6 +13,7 @@ import {
   Skeleton,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarData } from "../../utils/date";
 
 const CATEGORIA_AVISO_LABELS = {
   NOTICIA: "Notícia",
@@ -46,14 +47,10 @@ function obterSaudacaoHorario(data = new Date()) {
 
 function formatarDataExtenso(data = new Date()) {
   try {
-    return data.toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
+    const diaSemana = data.toLocaleDateString("pt-BR", { weekday: "long" });
+    return `${diaSemana}, ${formatarData(data)}`;
   } catch {
-    return "";
+    return formatarData(data);
   }
 }
 
@@ -268,7 +265,7 @@ export default function Dashboard() {
                         {aviso.destaque && <Badge variant="primary">Destaque</Badge>}
                       </div>
                       <span className="text-xs text-[#64748b]">
-                        {new Date(aviso.data_publicacao).toLocaleDateString("pt-BR")}
+                        {formatarData(aviso.data_publicacao)}
                       </span>
                     </div>
 
@@ -347,7 +344,7 @@ export default function Dashboard() {
                           {ev.titulo}
                         </Link>
                         <div className="text-[11px] text-[#64748b] mt-0.5">
-                          {ev.local || "Local a definir"}
+                          {formatarData(ev.data_inicio)} · {ev.local || "Local a definir"}
                         </div>
                       </div>
                     </div>
@@ -420,12 +417,12 @@ export default function Dashboard() {
                     <li key={`ev-${ev.id_evento}`}>
                       📅 <strong>{ev.titulo}</strong>
                       {ev.local ? ` · ${ev.local}` : ""} ·{" "}
-                      {new Date(ev.data_inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {formatarData(ev.data_inicio)} às {new Date(ev.data_inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                     </li>
                   ))}
                   {aniversariantesDoDiaSel.map((a) => (
                     <li key={a.id_usuario}>
-                      🎂 <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
+                      🎂 <strong>{String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}/{hojeCal.getFullYear()}</strong> · <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
                     </li>
                   ))}
                 </ul>

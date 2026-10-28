@@ -25,6 +25,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarData, formatarDataHora } from "../../utils/date";
 
 const CATEGORIAS_CHIPS = [
   { value: "", label: "Todas" },
@@ -60,23 +61,7 @@ const CATEGORIA_BADGE_VARIANT = {
 };
 
 export function formatarDataHoraAviso(iso) {
-  if (!iso) return "—";
-  try {
-    const dt = new Date(iso);
-    if (Number.isNaN(dt.getTime())) return String(iso);
-    const data = dt.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-    const hora = dt.toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return `${data} às ${hora}`;
-  } catch {
-    return String(iso);
-  }
+  return formatarDataHora(iso);
 }
 
 function sanitizarHtmlSeguroFront(html = "") {
@@ -403,12 +388,7 @@ export default function Avisos() {
                 </span>
                 {avisoDetalhe.data_expiracao && (
                   <span>
-                    Vigência até{" "}
-                    <strong>
-                      {new Date(`${avisoDetalhe.data_expiracao}T00:00:00`).toLocaleDateString(
-                        "pt-BR",
-                      )}
-                    </strong>
+                    Vigência até <strong>{formatarData(avisoDetalhe.data_expiracao)}</strong>
                   </span>
                 )}
               </div>

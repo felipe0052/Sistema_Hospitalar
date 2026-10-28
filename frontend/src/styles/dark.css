@@ -1,5 +1,6 @@
-/* Modo escuro: ativado por <html data-theme="dark"> (ver hooks/useTheme.js). */
-:root[data-theme="dark"] {
+/* Modo escuro: ativado por <html data-theme="dark"> e class="dark" (ver hooks/useTheme.js). */
+:root[data-theme="dark"],
+:root.dark {
   color-scheme: dark;
 
   /* Escala de cinzas invertida (textos usam 700/800, bordas 200/300) */
@@ -42,15 +43,21 @@
 /* ---- Utilitários Tailwind com cores fixas usados nas páginas ---- */
 :root[data-theme="dark"] .bg-white { background-color: var(--color-bg-card); }
 :root[data-theme="dark"] .bg-slate-50 { background-color: #101a2d; }
+:root[data-theme="dark"] .bg-slate-50\/80 { background-color: #0f182a; }
 :root[data-theme="dark"] .bg-slate-100,
 :root[data-theme="dark"] .hover\:bg-slate-100:hover,
 :root[data-theme="dark"] .hover\:bg-slate-50:hover { background-color: #1b2640; }
-:root[data-theme="dark"] .bg-slate-200 { background-color: #26334a; }
+:root[data-theme="dark"] .bg-slate-200,
+:root[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: #26334a; }
 :root[data-theme="dark"] .bg-slate-50\/50 { background-color: rgba(16, 26, 45, 0.6); }
 :root[data-theme="dark"] .border-slate-100,
 :root[data-theme="dark"] .border-slate-200,
 :root[data-theme="dark"] .border-slate-200\/80,
 :root[data-theme="dark"] .border-\[\#e2e8f0\] { border-color: var(--color-border); }
+:root[data-theme="dark"] .border-slate-300,
+:root[data-theme="dark"] .hover\:border-slate-300:hover { border-color: #34445f; }
+:root[data-theme="dark"] .border-\[\#800020\]\/30,
+:root[data-theme="dark"] .border-\[\#800020\]\/40 { border-color: rgba(240, 138, 160, 0.4); }
 
 :root[data-theme="dark"] .text-\[\#1e293b\] { color: #e2e8f0; }
 :root[data-theme="dark"] .text-\[\#334155\] { color: #cbd5e1; }
@@ -91,26 +98,119 @@
 :root[data-theme="dark"] .ui-modal-backdrop { background-color: rgba(0, 0, 0, 0.7); }
 
 /* ---- Tela de login ---- */
+:root[data-theme="dark"] .login-page,
+.dark .login-page {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+:root[data-theme="dark"] .login-panel,
+.dark .login-panel {
+  background-color: #0b1220;
+}
+:root[data-theme="dark"] .login-theme-toggle,
+.dark .login-theme-toggle {
+  background-color: #141d30;
+  border-color: #26334a;
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .login-theme-toggle:hover,
+.dark .login-theme-toggle:hover {
+  background-color: #1b2640;
+  color: #f08aa0;
+  border-color: #4a1c2b;
+}
+:root[data-theme="dark"] .login-back-link,
+.dark .login-back-link {
+  background-color: #2a0f18;
+  border-color: #4a1c2b;
+  color: #f08aa0;
+}
+:root[data-theme="dark"] .login-back-link:hover,
+.dark .login-back-link:hover {
+  background-color: #3a1522;
+  color: #ffb3c2;
+}
 :root[data-theme="dark"] .login-brand > span,
+.dark .login-brand > span,
 :root[data-theme="dark"] .login-intro,
+.dark .login-intro,
 :root[data-theme="dark"] .remember-email,
+.dark .remember-email,
 :root[data-theme="dark"] .login-restricted,
-:root[data-theme="dark"] .login-support { color: #94a3b8; }
-:root[data-theme="dark"] .login-content h2 { color: #e2e8f0; }
-:root[data-theme="dark"] .login-content form > label { color: #cbd5e1; }
-:root[data-theme="dark"] .login-input { background: #141d30; border-color: #34445f; }
-:root[data-theme="dark"] .login-input input { color: #e2e8f0; }
-:root[data-theme="dark"] .login-input input::placeholder { color: #7b8ba3; }
-:root[data-theme="dark"] .login-tag { background: #2a0f18; color: #f08aa0; }
+.dark .login-restricted,
+:root[data-theme="dark"] .login-support,
+.dark .login-support {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .login-content h2,
+.dark .login-content h2 {
+  color: #e2e8f0;
+}
+:root[data-theme="dark"] .login-content form > label,
+.dark .login-content form > label {
+  color: #cbd5e1;
+}
+:root[data-theme="dark"] .login-input,
+.dark .login-input {
+  background-color: #141d30;
+  border-color: #26334a;
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .login-input:focus-within,
+.dark .login-input:focus-within {
+  border-color: #f08aa0;
+  box-shadow: 0 0 0 3px rgba(240, 138, 160, 0.15);
+}
+:root[data-theme="dark"] .login-input input,
+.dark .login-input input {
+  color: #e2e8f0;
+}
+:root[data-theme="dark"] .login-input input::placeholder,
+.dark .login-input input::placeholder {
+  color: #64748b;
+}
+:root[data-theme="dark"] .password-toggle,
+.dark .password-toggle {
+  color: #94a3b8;
+}
+:root[data-theme="dark"] .password-toggle:hover,
+.dark .password-toggle:hover {
+  background-color: #2a0f18;
+  color: #f08aa0;
+}
+:root[data-theme="dark"] .login-tag,
+.dark .login-tag {
+  background-color: #2a0f18;
+  color: #f08aa0;
+}
 :root[data-theme="dark"] .login-link,
-:root[data-theme="dark"] .password-toggle:hover { color: #f08aa0; }
-:root[data-theme="dark"] .password-toggle:hover { background: #2a0f18; }
-:root[data-theme="dark"] .login-restricted { border-bottom-color: #26334a; }
+.dark .login-link {
+  color: #f08aa0;
+}
+:root[data-theme="dark"] .login-restricted,
+.dark .login-restricted {
+  border-bottom-color: #26334a;
+}
 :root[data-theme="dark"] .login-footer,
-:root[data-theme="dark"] .login-restricted p span { color: #7b8ba3; }
-:root[data-theme="dark"] .login-error { background: #3b1219; color: #fca5a5; border-color: #7f1d1d; }
+.dark .login-footer,
+:root[data-theme="dark"] .login-restricted p span,
+.dark .login-restricted p span {
+  color: #7b8ba3;
+}
+:root[data-theme="dark"] .login-error,
+.dark .login-error {
+  background-color: #3b1219;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
 :root[data-theme="dark"] .login-notice,
-:root[data-theme="dark"] .login-help { background: #1b2640; color: #b4c0d0; border-color: #26334a; }
+.dark .login-notice,
+:root[data-theme="dark"] .login-help,
+.dark .login-help {
+  background-color: #141d30;
+  color: #cbd5e1;
+  border-color: #26334a;
+}
 
 /* ---- Botões e badges que usam --white / bordô escuro ---- */
 :root[data-theme="dark"] .ui-btn--secondary,
@@ -126,6 +226,76 @@
 :root[data-theme="dark"] .ui-badge--inativo { background-color: #1b2640; color: #b4c0d0; border-color: #34445f; }
 :root[data-theme="dark"] .ui-badge--rh { background-color: #2e1a4d; color: #d8b4fe; border-color: #6b21a8; }
 
+:root[data-theme="dark"] .ui-btn--ghost { color: #94a3b8; }
+:root[data-theme="dark"] .ui-btn--ghost:hover:not(:disabled) { background-color: #1b2640; color: #e2e8f0; }
+
 /* Indicadores do carrossel de destaques */
 :root[data-theme="dark"] .bg-\[\#800020\]\/25 { background-color: rgba(240, 138, 160, 0.3); }
-:root[data-theme="dark"] button.bg-\[\#800020\] { background-color: #f08aa0; }
+:root[data-theme="dark"] button.bg-\[\#800020\].w-2\.5,
+:root[data-theme="dark"] button.bg-\[\#800020\].rounded-full:not(.px-3\.5) { background-color: #f08aa0; }
+:root[data-theme="dark"] button.bg-\[\#800020\].text-white { background-color: var(--bordeaux); color: #ffffff; }
+
+/* ---- FAQ (Central de Ajuda) ---- */
+:root[data-theme="dark"] .faq-item {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+:root[data-theme="dark"] .faq-item--collapsed {
+  background-color: #0f182a !important;
+  border-color: #233149 !important;
+}
+
+:root[data-theme="dark"] .faq-item--collapsed:hover {
+  background-color: #17243b !important;
+  border-color: #344766 !important;
+}
+
+:root[data-theme="dark"] .faq-item--expanded {
+  background-color: #172238 !important;
+  border-color: rgba(240, 138, 160, 0.45) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-theme="dark"] .faq-item__trigger {
+  color: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] .faq-item__trigger:hover {
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .faq-item__chevron {
+  color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .faq-item--expanded .faq-item__chevron {
+  color: #f08aa0 !important;
+}
+
+:root[data-theme="dark"] .faq-item__body {
+  color: #b4c0d0 !important;
+  border-top-color: #233149 !important;
+  background-color: rgba(11, 18, 32, 0.35);
+}
+
+:root[data-theme="dark"] .faq-chip--active {
+  background-color: #800020 !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(128, 0, 32, 0.4);
+}
+
+:root[data-theme="dark"] .faq-chip--inactive {
+  background-color: #1b2640 !important;
+  color: #b4c0d0 !important;
+}
+
+:root[data-theme="dark"] .faq-chip--inactive:hover {
+  background-color: #26334a !important;
+  color: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] mark,
+:root[data-theme="dark"] mark.text-\[\#1e293b\] {
+  background-color: rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+}

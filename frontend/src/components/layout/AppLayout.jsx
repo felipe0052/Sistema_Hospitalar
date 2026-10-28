@@ -7,9 +7,11 @@ const STORAGE_KEY = "decos.menu.aberto";
 
 function menuInicial() {
   try {
-    return localStorage.getItem(STORAGE_KEY) !== "0";
+    const salvo = localStorage.getItem(STORAGE_KEY);
+    // Inicia recolhido/minimizado por padrão para novos acessos
+    return salvo === "1";
   } catch {
-    return true;
+    return false;
   }
 }
 

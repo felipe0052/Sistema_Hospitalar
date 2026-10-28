@@ -36,6 +36,14 @@ class Conflito(AppError):
     status_code = status.HTTP_409_CONFLICT
 
 
+class ArquivoMuitoGrande(AppError):
+    status_code = status.HTTP_413_CONTENT_TOO_LARGE
+
+
+class TipoArquivoNaoAceito(AppError):
+    status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+
+
 def _traduzir_mensagem_validacao(err: dict) -> str:
     tipo = err.get("type", "")
     msg = str(err.get("msg", ""))

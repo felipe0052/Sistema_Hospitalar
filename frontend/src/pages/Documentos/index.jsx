@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   DOCUMENTO_MAX_MB,
-  baixarDocumento,
-  enviarDocumento,
+  atualizarDocumento,
+  criarDocumento,
   excluirDocumento,
   listarCategoriasDocumentos,
   listarDocumentos,
   listarVersoesDocumento,
+  obterBlobArquivoDocumento,
 } from "../../api/documentos";
 import {
   Badge,
@@ -25,426 +26,1006 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
-import useDebounce from "../../hooks/useDebounce";
+import { formatarData } from "../../utils/date";
 
-const TAMANHO_PAGINA = 100;
-const SEM_CATEGORIA = "Sem categoria";
-const FORM_VAZIO = {
-  titulo: "",
-  tipo: "POP",
-  categoria: "",
-  palavras_chave: "",
-  descricao: "",
-  arquivo: null,
-};
+const CHIPS_TIPO = [
+  { value: "", label: "Todos" },
+  { value: "POP", label: "POPs" },
+  { value: "DOCUMENTO", label: "Documentos" },
+];
 
-function formatarTamanho(bytes) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+const OPCOES_TIPO_SELECT = [
+  { value: "POP", label: "POP (Procedimento Operacional Padrão)" },
+  { value: "DOCUMENTO", label: "Documento Institucional" },
+];
+
+const CATEGORIAS_SUGERIDAS_PADRAO = [
+  "Enfermagem",
+  "Farmácia",
+  "Pronto-Socorro",
+  "UTI",
+  "Centro Cirúrgico",
+  "Laboratório",
+  "Administrativo",
+  "RH",
+  "Tecnologia",
+];
+
+function formatarTamanhoBytes(bytes) {
+  const num = Number(bytes) || 0;
+  if (num < 1024) return `${num} B`;
+  const kb = num / 1024;
+  if (kb < 1024) return `${kb.toFixed(1).replace(".", ",")} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(2).replace(".", ",")} MB`;
 }
 
-function formatarData(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR");
+function formatarDataDocumento(iso) {
+  return formatarData(iso);
 }
 
-function validarArquivo(arquivo) {
-  if (!arquivo) return "Selecione um arquivo PDF ou DOCX.";
-  if (!/\.(pdf|docx)$/i.test(arquivo.name)) return "Formato inválido. Envie um arquivo PDF ou DOCX.";
-  if (arquivo.size > DOCUMENTO_MAX_MB * 1024 * 1024)
-    return `O arquivo excede o limite de ${DOCUMENTO_MAX_MB} MB.`;
-  return "";
-}
-
-function agruparPorCategoria(itens) {
-  const grupos = new Map();
-  for (const doc of itens) {
-    const chave = doc.categoria || SEM_CATEGORIA;
-    if (!grupos.has(chave)) grupos.set(chave, []);
-    grupos.get(chave).push(doc);
-  }
-  return [...grupos.entries()].sort(([a], [b]) => {
-    if (a === SEM_CATEGORIA) return 1;
-    if (b === SEM_CATEGORIA) return -1;
-    return a.localeCompare(b, "pt-BR");
-  });
+function ehArquivoPdf(doc) {
+  if (!doc) return false;
+  const mime = String(doc.mime_type || "").toLowerCase();
+  const nome = String(doc.nome_arquivo || "").toLowerCase();
+  return mime.includes("pdf") || nome.endsWith(".pdf");
 }
 
 export default function Documentos() {
-  const { temPerfil } = useAuth();
-  const toast = useToast();
-  const podeGerir = temPerfil("ADMIN", "RH");
+  const { autenticado, isAdmin, usuario } = useAuth();
+  const podeGerir = autenticado && (isAdmin || usuario?.perfil === "RH");
+  const { sucesso, erro: toastErro, info: toastInfo } = useToast();
 
+  // Filtros e paginação
   const [busca, setBusca] = useState("");
-  const buscaDebounced = useDebounce(busca, 300);
-  const [categoria, setCategoria] = useState("");
-  const [pagina, setPagina] = useState(1);
+  const [tipoAtivo, setTipoAtivo] = useState("");
+  const [categoriaAtiva, setCategoriaAtiva] = useState("");
   const [verInativas, setVerInativas] = useState(false);
-  const [dados, setDados] = useState({ itens: [], total: 0 });
+  const [pagina, setPagina] = useState(1);
+  const tamanho = 12;
+
+  // Dados da listagem e categorias
+  const [documentos, setDocumentos] = useState([]);
+  const [total, setTotal] = useState(0);
   const [categorias, setCategorias] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState("");
+  const [erroLista, setErroLista] = useState("");
 
-  const [modalAberto, setModalAberto] = useState(false);
-  const [form, setForm] = useState(FORM_VAZIO);
-  const [errosForm, setErrosForm] = useState({});
-  const [enviando, setEnviando] = useState(false);
+  // Visualizador embutido em tela cheia (PDF) e controle de download
+  const [docVisualizando, setDocVisualizando] = useState(null);
+  const [blobUrlVisualizador, setBlobUrlVisualizador] = useState("");
+  const [carregandoVisualizador, setCarregandoVisualizador] = useState(false);
+  const [baixandoId, setBaixandoId] = useState(null);
 
+  // Modal de Histórico de Versões
   const [versoesDoc, setVersoesDoc] = useState(null);
   const [versoes, setVersoes] = useState([]);
-  const [excluir, setExcluir] = useState(null);
+  const [carregandoVersoes, setCarregandoVersoes] = useState(false);
+
+  // Modal de Cadastro / Edição
+  const [modalFormOpen, setModalFormOpen] = useState(false);
+  const [docEditando, setDocEditando] = useState(null);
+  const [formTitulo, setFormTitulo] = useState("");
+  const [formTipo, setFormTipo] = useState("POP");
+  const [formCategoria, setFormCategoria] = useState("");
+  const [formDescricao, setFormDescricao] = useState("");
+  const [formTags, setFormTags] = useState([]);
+  const [tagDigitando, setTagDigitando] = useState("");
+  const [formArquivo, setFormArquivo] = useState(null);
+  const [arrastandoArquivo, setArrastandoArquivo] = useState(false);
+  const [errosForm, setErrosForm] = useState({});
+  const [salvandoForm, setSalvandoForm] = useState(false);
+  const [progressoUpload, setProgressoUpload] = useState(0);
+  const [confirmSubstituirOpen, setConfirmSubstituirOpen] = useState(false);
+  const inputFileRef = useRef(null);
+
+  // Modal de Confirmação de Exclusão
+  const [docExcluindo, setDocExcluindo] = useState(null);
   const [excluindo, setExcluindo] = useState(false);
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
-    setErro("");
+  const carregarCategorias = useCallback(async () => {
     try {
-      const resp = await listarDocumentos({
-        busca: buscaDebounced,
-        categoria,
-        incluir_inativas: podeGerir && verInativas,
+      const lista = await listarCategoriasDocumentos();
+      setCategorias(Array.isArray(lista) ? lista : []);
+    } catch {
+      // Falha silenciosa no filtro
+    }
+  }, []);
+
+  const carregarDocumentos = useCallback(async () => {
+    setCarregando(true);
+    setErroLista("");
+    try {
+      const res = await listarDocumentos({
+        busca: busca.trim() || undefined,
+        tipo: tipoAtivo || undefined,
+        categoria: categoriaAtiva || undefined,
+        incluir_inativas: verInativas || undefined,
         pagina,
-        tamanho: TAMANHO_PAGINA,
+        tamanho,
       });
-      setDados(resp);
-    } catch (e) {
-      setErro(e.mensagem || "Não foi possível carregar os documentos.");
+      setDocumentos(res?.itens || []);
+      setTotal(res?.total || 0);
+    } catch (err) {
+      setErroLista(err?.mensagem || "Não foi possível carregar os documentos.");
+      setDocumentos([]);
+      setTotal(0);
     } finally {
       setCarregando(false);
     }
-  }, [buscaDebounced, categoria, pagina, podeGerir, verInativas]);
-
-  const carregarCategorias = useCallback(() => {
-    listarCategoriasDocumentos()
-      .then(setCategorias)
-      .catch(() => setCategorias([]));
-  }, []);
-
-  useEffect(() => {
-    carregar();
-  }, [carregar]);
+  }, [busca, tipoAtivo, categoriaAtiva, verInativas, pagina]);
 
   useEffect(() => {
     carregarCategorias();
   }, [carregarCategorias]);
 
-  function atualizarCampo(campo, valor) {
-    setForm((f) => ({ ...f, [campo]: valor }));
-    setErrosForm((e) => ({ ...e, [campo]: "" }));
+  useEffect(() => {
+    carregarDocumentos();
+  }, [carregarDocumentos]);
+
+  // Limpa ObjectURL ao fechar o visualizador
+  useEffect(() => {
+    return () => {
+      if (blobUrlVisualizador) {
+        URL.revokeObjectURL(blobUrlVisualizador);
+      }
+    };
+  }, [blobUrlVisualizador]);
+
+  function fecharVisualizador() {
+    if (blobUrlVisualizador) {
+      URL.revokeObjectURL(blobUrlVisualizador);
+    }
+    setBlobUrlVisualizador("");
+    setDocVisualizando(null);
+    setCarregandoVisualizador(false);
   }
 
-  function fecharModal() {
-    if (enviando) return;
-    setModalAberto(false);
-    setForm(FORM_VAZIO);
-    setErrosForm({});
+  async function acionarDownloadArquivo(doc, mostrarOrientacaoDocx = false) {
+    setBaixandoId(doc.id_doc);
+    try {
+      const { blob } = await obterBlobArquivoDocumento(doc.id_doc, { download: true });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.nome_arquivo || `${doc.titulo}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      if (mostrarOrientacaoDocx) {
+        toastInfo(
+          "Arquivos Word (DOCX) são baixados diretamente para abertura no editor de textos.",
+        );
+      } else {
+        sucesso(`Download de "${doc.nome_arquivo}" iniciado.`);
+      }
+    } catch (err) {
+      toastErro(err?.mensagem || "Não foi possível baixar o arquivo.");
+    } finally {
+      setBaixandoId(null);
+    }
   }
 
-  async function submeter(e) {
-    e.preventDefault();
-    const novosErros = {};
-    if (!form.titulo.trim()) novosErros.titulo = "Este campo é obrigatório.";
-    const erroArquivo = validarArquivo(form.arquivo);
-    if (erroArquivo) novosErros.arquivo = erroArquivo;
-    if (Object.keys(novosErros).length) {
-      setErrosForm(novosErros);
+  async function handleVisualizar(doc) {
+    if (!ehArquivoPdf(doc)) {
+      await acionarDownloadArquivo(doc, true);
       return;
     }
 
-    setEnviando(true);
+    setDocVisualizando(doc);
+    setCarregandoVisualizador(true);
     try {
-      const criado = await enviarDocumento({ ...form, titulo: form.titulo.trim() });
-      toast.sucesso(
-        criado.versao > 1
-          ? `Nova versão (v${criado.versao}) publicada. A anterior foi arquivada.`
-          : "Documento publicado com sucesso.",
-      );
-      setModalAberto(false);
-      setForm(FORM_VAZIO);
-      setErrosForm({});
-      setPagina(1);
-      await Promise.all([carregar(), carregarCategorias()]);
+      const { blob } = await obterBlobArquivoDocumento(doc.id_doc, { download: false });
+      const pdfBlob =
+        blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" });
+      const url = URL.createObjectURL(pdfBlob);
+      setBlobUrlVisualizador(url);
     } catch (err) {
-      setErrosForm(err.erros || {});
-      toast.erro(err.mensagem || "Não foi possível enviar o documento.");
+      toastErro(err?.mensagem || "Não foi possível abrir o visualizador do documento.");
+      setDocVisualizando(null);
     } finally {
-      setEnviando(false);
+      setCarregandoVisualizador(false);
     }
   }
 
   async function abrirVersoes(doc) {
     setVersoesDoc(doc);
     setVersoes([]);
+    setCarregandoVersoes(true);
     try {
-      setVersoes(await listarVersoesDocumento(doc.id_doc));
+      const dados = await listarVersoesDocumento(doc.id_doc);
+      setVersoes(Array.isArray(dados) ? dados : []);
     } catch (err) {
-      toast.erro(err.mensagem || "Não foi possível carregar o histórico.");
+      toastErro(err?.mensagem || "Não foi possível carregar o histórico de versões.");
+    } finally {
+      setCarregandoVersoes(false);
     }
   }
 
-  async function baixar(doc) {
-    try {
-      await baixarDocumento(doc);
-    } catch (err) {
-      toast.erro(err.mensagem || "Não foi possível baixar o arquivo.");
+  function abrirModalNovo() {
+    setDocEditando(null);
+    setFormTitulo("");
+    setFormTipo("POP");
+    setFormCategoria("");
+    setFormDescricao("");
+    setFormTags([]);
+    setTagDigitando("");
+    setFormArquivo(null);
+    setErrosForm({});
+    setProgressoUpload(0);
+    setModalFormOpen(true);
+  }
+
+  function abrirModalEditar(doc) {
+    setDocEditando(doc);
+    setFormTitulo(doc.titulo || "");
+    setFormTipo(doc.tipo || "POP");
+    setFormCategoria(doc.categoria || "");
+    setFormDescricao(doc.descricao || "");
+    setFormTags(Array.isArray(doc.palavras_chave) ? [...doc.palavras_chave] : []);
+    setTagDigitando("");
+    setFormArquivo(null);
+    setErrosForm({});
+    setProgressoUpload(0);
+    setModalFormOpen(true);
+  }
+
+  function adicionarTagInput(valorBruto) {
+    const partes = String(valorBruto || "")
+      .replace(/;/g, ",")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (partes.length === 0) return;
+
+    setFormTags((atuais) => {
+      const existentesLower = new Set(atuais.map((a) => a.toLowerCase()));
+      const novas = [...atuais];
+      partes.forEach((p) => {
+        if (!existentesLower.has(p.toLowerCase())) {
+          existentesLower.add(p.toLowerCase());
+          novas.push(p);
+        }
+      });
+      return novas;
+    });
+    setTagDigitando("");
+  }
+
+  function handleKeyDownTag(e) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      adicionarTagInput(tagDigitando);
+    } else if (e.key === "Backspace" && !tagDigitando && formTags.length > 0) {
+      setFormTags((atuais) => atuais.slice(0, -1));
     }
   }
 
-  async function confirmarExclusao() {
+  function removerTag(tagRemover) {
+    setFormTags((atuais) => atuais.filter((t) => t !== tagRemover));
+  }
+
+  function validarESelecionarArquivo(file) {
+    if (!file) return;
+    const nome = String(file.name || "").toLowerCase();
+    if (!nome.endsWith(".pdf") && !nome.endsWith(".docx")) {
+      setErrosForm((prev) => ({
+        ...prev,
+        arquivo: "Formato não aceito. Selecione apenas arquivos .pdf ou .docx.",
+      }));
+      return;
+    }
+    const maxBytes = DOCUMENTO_MAX_MB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setErrosForm((prev) => ({
+        ...prev,
+        arquivo: `O arquivo excede o tamanho máximo permitido de ${DOCUMENTO_MAX_MB} MB.`,
+      }));
+      return;
+    }
+    setErrosForm((prev) => ({ ...prev, arquivo: "" }));
+    setFormArquivo(file);
+  }
+
+  function validarFormulario() {
+    const novosErros = {};
+    const tituloLimpo = formTitulo.trim();
+    if (!tituloLimpo) {
+      novosErros.titulo = "Este campo é obrigatório.";
+    } else if (tituloLimpo.length < 3) {
+      novosErros.titulo = "O título deve ter pelo menos 3 caracteres.";
+    }
+
+    if (!formTipo) {
+      novosErros.tipo = "Selecione o tipo do documento.";
+    }
+
+    if (!docEditando && !formArquivo) {
+      novosErros.arquivo = "Anexe um arquivo PDF ou DOCX.";
+    }
+
+    setErrosForm(novosErros);
+    return Object.keys(novosErros).length === 0;
+  }
+
+  async function executarEnvioFormulario() {
+    setConfirmSubstituirOpen(false);
+    setSalvandoForm(true);
+    setProgressoUpload(10);
+
+    const tagsFinais = [...formTags];
+    if (tagDigitando.trim()) {
+      tagDigitando
+        .replace(/;/g, ",")
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .forEach((t) => {
+          if (!tagsFinais.some((ex) => ex.toLowerCase() === t.toLowerCase())) {
+            tagsFinais.push(t);
+          }
+        });
+    }
+
+    const formData = new FormData();
+    formData.append("titulo", formTitulo.trim());
+    formData.append("tipo", formTipo);
+    if (formCategoria.trim()) formData.append("categoria", formCategoria.trim());
+    if (formDescricao.trim()) formData.append("descricao", formDescricao.trim());
+    if (tagsFinais.length > 0) formData.append("palavras_chave", tagsFinais.join(", "));
+    if (formArquivo) formData.append("arquivo", formArquivo);
+
+    const callbackProgresso = (evento) => {
+      if (evento?.total) {
+        const pct = Math.min(98, Math.round((evento.loaded * 100) / evento.total));
+        setProgressoUpload(pct);
+      }
+    };
+
+    try {
+      if (docEditando) {
+        await atualizarDocumento(docEditando.id_doc, formData, callbackProgresso);
+        sucesso("Documento atualizado com sucesso.");
+      } else {
+        const criado = await criarDocumento(formData, callbackProgresso);
+        sucesso(
+          criado?.versao > 1
+            ? `Nova versão (v${criado.versao}) publicada. A anterior foi arquivada.`
+            : "Documento cadastrado e disponibilizado na central.",
+        );
+      }
+      setProgressoUpload(100);
+      setModalFormOpen(false);
+      await Promise.all([carregarDocumentos(), carregarCategorias()]);
+    } catch (err) {
+      if (err?.erros && Object.keys(err.erros).length > 0) {
+        setErrosForm(err.erros);
+      }
+      toastErro(err?.mensagem || "Erro ao salvar o documento.");
+    } finally {
+      setSalvandoForm(false);
+      setProgressoUpload(0);
+    }
+  }
+
+  function handleSubmitForm(e) {
+    e.preventDefault();
+    if (!validarFormulario()) return;
+
+    if (docEditando && formArquivo) {
+      setConfirmSubstituirOpen(true);
+      return;
+    }
+
+    executarEnvioFormulario();
+  }
+
+  async function handleConfirmarExclusao() {
+    if (!docExcluindo) return;
     setExcluindo(true);
     try {
-      await excluirDocumento(excluir.id_doc);
-      toast.sucesso("Versão excluída.");
-      setExcluir(null);
+      await excluirDocumento(docExcluindo.id_doc);
+      sucesso(
+        docExcluindo.ativo !== false
+          ? "Versão excluída. A versão anterior voltou a ser a vigente."
+          : "Versão arquivada excluída com sucesso.",
+      );
+      setDocExcluindo(null);
       setVersoesDoc(null);
-      await Promise.all([carregar(), carregarCategorias()]);
+      await Promise.all([carregarDocumentos(), carregarCategorias()]);
     } catch (err) {
-      toast.erro(err.mensagem || "Não foi possível excluir.");
+      toastErro(err?.mensagem || "Não foi possível excluir o documento.");
     } finally {
       setExcluindo(false);
     }
   }
 
-  const itens = dados.itens || [];
-  const grupos = agruparPorCategoria(itens);
+  const temFiltroAtivo = Boolean(busca.trim() || tipoAtivo || categoriaAtiva || verInativas);
+  const sugestoesCategorias = Array.from(
+    new Set([...CATEGORIAS_SUGERIDAS_PADRAO, ...categorias]),
+  ).sort((a, b) => a.localeCompare(b));
 
   return (
     <div className="p-6 space-y-5 max-w-[1400px] mx-auto">
+      {/* Cabeçalho */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#1e293b]">Documentos (POPs)</h1>
+          <h1 className="text-xl font-bold text-[#1e293b]">Central de Documentos & POPs</h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Repositório central de Procedimentos Operacionais Padrão e normas institucionais
+            Repositório central de Procedimentos Operacionais Padrão, protocolos clínicos e normas institucionais
           </p>
         </div>
         {podeGerir && (
-          <Button variant="primary" onClick={() => setModalAberto(true)}>
+          <Button variant="primary" onClick={abrirModalNovo}>
             + Adicionar Novo
           </Button>
         )}
       </div>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="w-full max-w-md">
-          <SearchInput
-            value={busca}
-            onChange={(v) => {
-              setBusca(v);
-              setPagina(1);
-            }}
-            placeholder="Buscar por título, categoria ou palavra-chave..."
-          />
-        </div>
-        <div className="w-56">
-          <Select
-            aria-label="Filtrar por categoria"
-            placeholder="Todas as categorias"
-            value={categoria}
-            onChange={(e) => {
-              setCategoria(e.target.value);
-              setPagina(1);
-            }}
-            options={categorias.map((c) => ({ value: c, label: c }))}
-          />
-        </div>
-        {podeGerir && (
-          <label className="flex items-center gap-2 text-sm text-[#475569] pb-2">
-            <input
-              type="checkbox"
-              checked={verInativas}
-              onChange={(e) => {
-                setVerInativas(e.target.checked);
+      {/* Barra de Busca e Filtros Combinados */}
+      <Card className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex-1 min-w-[260px]">
+            <SearchInput
+              value={busca}
+              onChange={(val) => {
+                setBusca(val);
                 setPagina(1);
               }}
+              placeholder="Pesquisar por título, descrição ou palavra-chave (ex.: curativo, cateter, portaria 344)..."
             />
-            Exibir versões antigas
-          </label>
-        )}
-      </div>
+          </div>
 
-      {erro && <ErrorBanner message={erro} onRetry={carregar} />}
+          <div className="w-56">
+            <Select
+              aria-label="Filtrar por categoria"
+              value={categoriaAtiva}
+              onChange={(e) => {
+                setCategoriaAtiva(e.target.value);
+                setPagina(1);
+              }}
+              options={[
+                { value: "", label: "Todas as categorias" },
+                ...sugestoesCategorias.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+          </div>
 
+          {podeGerir && (
+            <label className="flex items-center gap-2 text-xs font-medium text-[#475569] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={verInativas}
+                onChange={(e) => {
+                  setVerInativas(e.target.checked);
+                  setPagina(1);
+                }}
+                className="rounded border-slate-300 text-[#800020] focus:ring-[#800020]"
+              />
+              Exibir versões arquivadas
+            </label>
+          )}
+        </div>
+
+        {/* Chips de Tipo (Todos, POPs, Documentos) */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+          <span className="text-xs font-semibold text-[#64748b] mr-1">Tipo:</span>
+          {CHIPS_TIPO.map((chip) => {
+            const ativo = tipoAtivo === chip.value;
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => {
+                  setTipoAtivo(chip.value);
+                  setPagina(1);
+                }}
+                className={`px-3 py-1 text-xs font-semibold rounded-full border transition cursor-pointer ${
+                  ativo
+                    ? "bg-[#800020] text-white border-[#800020] shadow-sm"
+                    : "bg-white text-[#475569] border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+
+          {temFiltroAtivo && (
+            <button
+              type="button"
+              onClick={() => {
+                setBusca("");
+                setTipoAtivo("");
+                setCategoriaAtiva("");
+                setVerInativas(false);
+                setPagina(1);
+              }}
+              className="ml-auto text-xs text-[#800020] hover:underline font-semibold cursor-pointer"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {/* Mensagem de Erro da Listagem */}
+      {erroLista && <ErrorBanner message={erroLista} onRetry={carregarDocumentos} />}
+
+      {/* Listagem de Documentos */}
       {carregando ? (
         <div className="space-y-3">
-          <Skeleton height="72px" />
-          <Skeleton height="72px" />
-          <Skeleton height="72px" />
+          <Skeleton height="88px" className="rounded-xl" />
+          <Skeleton height="88px" className="rounded-xl" />
+          <Skeleton height="88px" className="rounded-xl" />
         </div>
-      ) : itens.length === 0 ? (
+      ) : documentos.length === 0 ? (
         <Card>
-          <EmptyState title="Nenhum documento encontrado. Revise os termos da pesquisa." />
+          <EmptyState
+            title={
+              temFiltroAtivo
+                ? "Nenhum documento encontrado. Revise os termos da pesquisa."
+                : "Nenhum documento cadastrado"
+            }
+            description={
+              temFiltroAtivo
+                ? "Tente buscar por outro termo ou remover os filtros de tipo e categoria selecionados."
+                : "Quando novos POPs ou documentos institucionais forem publicados, eles aparecerão aqui."
+            }
+          />
         </Card>
       ) : (
-        <div className="space-y-6">
-          {grupos.map(([nomeCategoria, docs]) => (
-            <section key={nomeCategoria} aria-label={nomeCategoria} className="space-y-3">
-              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[#475569] border-b border-[#e2e8f0] pb-1">
-                {nomeCategoria}
-                <span className="text-xs font-normal text-[#94a3b8]">({docs.length})</span>
-              </h2>
-              {docs.map((doc) => (
-            <Card key={doc.id_doc} className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="primary">{doc.tipo}</Badge>
-                  {doc.categoria && <Badge variant="default">{doc.categoria}</Badge>}
-                  <Badge variant={doc.ativo ? "ativo" : "warning"}>
-                    v{doc.versao}
-                    {doc.ativo ? " • vigente" : " • arquivada"}
-                  </Badge>
+        <div className="space-y-3">
+          {documentos.map((doc) => {
+            const isPdf = ehArquivoPdf(doc);
+            const dataRef = doc.data_atualizacao || doc.data_upload;
+            return (
+              <Card
+                key={doc.id_doc}
+                className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-slate-300 transition"
+              >
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold text-xs border ${
+                      isPdf
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-blue-50 text-blue-700 border-blue-200"
+                    }`}
+                    title={isPdf ? "Documento PDF" : "Documento Word (DOCX)"}
+                  >
+                    <span>{isPdf ? "PDF" : "DOCX"}</span>
+                  </div>
+
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={doc.tipo === "POP" ? "primary" : "info"}>
+                        {doc.tipo}
+                      </Badge>
+                      {doc.categoria && <Badge variant="default">{doc.categoria}</Badge>}
+                      <Badge variant={doc.ativo !== false ? "ativo" : "warning"}>
+                        v{doc.versao || 1}
+                        {doc.ativo === false ? " • arquivada" : " • vigente"}
+                      </Badge>
+                      <span className="text-xs text-[#64748b]">
+                        Atualizado em {formatarDataDocumento(dataRef)} ·{" "}
+                        {formatarTamanhoBytes(doc.tamanho_bytes)}
+                      </span>
+                    </div>
+
+                    <h2 className="text-base font-bold text-[#1e293b] break-words">
+                      {doc.titulo}
+                    </h2>
+
+                    {doc.descricao && (
+                      <p className="text-xs text-[#475569] leading-relaxed">
+                        {doc.descricao}
+                      </p>
+                    )}
+
+                    {Array.isArray(doc.palavras_chave) && doc.palavras_chave.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {doc.palavras_chave.map((kw) => (
+                          <button
+                            key={kw}
+                            type="button"
+                            onClick={() => {
+                              setBusca(kw);
+                              setPagina(1);
+                            }}
+                            title={`Filtrar por palavra-chave "${kw}"`}
+                            className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-[#800020]/10 hover:text-[#800020] text-[11px] font-medium text-[#475569] transition cursor-pointer"
+                          >
+                            #{kw}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-sm font-bold text-[#1e293b]">{doc.titulo}</h3>
-                {doc.descricao && <p className="text-xs text-[#64748b]">{doc.descricao}</p>}
-                {doc.palavras_chave.length > 0 && (
-                  <p className="text-xs text-[#94a3b8]">
-                    {doc.palavras_chave.map((p) => `#${p}`).join("  ")}
-                  </p>
-                )}
-                <p className="text-xs text-[#94a3b8]">
-                  {doc.nome_arquivo} · {formatarTamanho(doc.tamanho_bytes)} · {formatarData(doc.data_upload)}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {podeGerir && (
-                  <>
-                    <Button variant="secondary" size="sm" onClick={() => abrirVersoes(doc)}>
-                      Versões
-                    </Button>
-                    <Button variant="secondary" size="sm" onClick={() => setExcluir(doc)}>
-                      Excluir
-                    </Button>
-                  </>
-                )}
-                <Button variant="secondary" size="sm" onClick={() => baixar(doc)}>
-                  Visualizar / Baixar
-                </Button>
-              </div>
-            </Card>
-          ))}
-            </section>
-          ))}
+
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleVisualizar(doc)}
+                  >
+                    {isPdf ? "Visualizar" : "Abrir DOCX"}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={baixandoId === doc.id_doc}
+                    onClick={() => acionarDownloadArquivo(doc, false)}
+                  >
+                    Baixar
+                  </Button>
+                  {podeGerir && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => abrirVersoes(doc)}
+                      >
+                        Versões
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => abrirModalEditar(doc)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setDocExcluindo(doc)}
+                      >
+                        Excluir
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Paginação */}
+      {total > tamanho && (
+        <div className="pt-2 flex justify-center">
           <Pagination
-            pagina={pagina}
-            tamanho={TAMANHO_PAGINA}
-            total={dados.total}
+            page={pagina}
+            pageSize={tamanho}
+            total={total}
             onPageChange={setPagina}
           />
         </div>
       )}
 
+      {/* Visualizador Embutido de PDF */}
       <Modal
-        open={modalAberto}
-        onClose={fecharModal}
-        title="Adicionar documento"
+        open={Boolean(docVisualizando)}
+        onClose={fecharVisualizador}
+        title={docVisualizando ? docVisualizando.titulo : "Visualizador de Documento"}
+        size="lg"
+        footer={
+          docVisualizando && (
+            <>
+              <Button variant="secondary" onClick={fecharVisualizador}>
+                Fechar
+              </Button>
+              <Button
+                variant="primary"
+                loading={baixandoId === docVisualizando.id_doc}
+                onClick={() => acionarDownloadArquivo(docVisualizando, false)}
+              >
+                Baixar PDF ({formatarTamanhoBytes(docVisualizando.tamanho_bytes)})
+              </Button>
+            </>
+          )
+        }
+      >
+        {carregandoVisualizador ? (
+          <div className="py-12 space-y-3">
+            <Skeleton height="24px" width="50%" />
+            <Skeleton height="420px" width="100%" />
+          </div>
+        ) : blobUrlVisualizador ? (
+          <div className="w-full h-[72vh] rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+            <iframe
+              src={blobUrlVisualizador}
+              title={docVisualizando?.titulo || "Visualizador PDF"}
+              className="w-full h-full border-0"
+            />
+          </div>
+        ) : null}
+      </Modal>
+
+      {/* Modal Histórico de Versões */}
+      <Modal
+        open={Boolean(versoesDoc)}
+        onClose={() => setVersoesDoc(null)}
+        title={versoesDoc ? `Histórico de Versões — ${versoesDoc.titulo}` : "Histórico de Versões"}
+        size="md"
+        footer={
+          <Button variant="secondary" onClick={() => setVersoesDoc(null)}>
+            Fechar
+          </Button>
+        }
+      >
+        {carregandoVersoes ? (
+          <div className="space-y-2 py-4">
+            <Skeleton height="48px" />
+            <Skeleton height="48px" />
+          </div>
+        ) : versoes.length === 0 ? (
+          <p className="text-sm text-[#64748b] py-4 text-center">Nenhuma versão registrada.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100 space-y-2">
+            {versoes.map((v) => (
+              <li key={v.id_doc} className="flex flex-wrap items-center justify-between gap-3 pt-2 text-sm">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={v.ativo ? "ativo" : "warning"}>
+                      v{v.versao} {v.ativo ? "• Vigente" : "• Arquivada"}
+                    </Badge>
+                    <span className="font-semibold text-[#1e293b]">{v.nome_arquivo}</span>
+                  </div>
+                  <p className="text-xs text-[#64748b] mt-0.5">
+                    {formatarDataDocumento(v.data_upload)} · {v.autor?.nome || "Sistema"} · {formatarTamanhoBytes(v.tamanho_bytes)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => acionarDownloadArquivo(v, false)}>
+                    Baixar
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => setDocExcluindo(v)}>
+                    Excluir
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+
+      {/* Modal Administrativo: Novo / Editar Documento */}
+      <Modal
+        open={modalFormOpen}
+        onClose={salvandoForm ? undefined : () => setModalFormOpen(false)}
+        title={docEditando ? "Editar Documento / POP" : "Cadastrar Novo Documento / POP"}
+        size="lg"
         footer={
           <>
-            <Button variant="secondary" onClick={fecharModal} disabled={enviando}>
+            <Button
+              variant="secondary"
+              onClick={() => setModalFormOpen(false)}
+              disabled={salvandoForm}
+            >
               Cancelar
             </Button>
-            <Button variant="primary" onClick={submeter} loading={enviando}>
-              Publicar
+            <Button
+              variant="primary"
+              onClick={handleSubmitForm}
+              loading={salvandoForm}
+            >
+              {docEditando ? "Salvar Alterações" : "Publicar Documento"}
             </Button>
           </>
         }
       >
-        <form onSubmit={submeter} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmitForm} className="space-y-4" noValidate>
           <Input
-            label="Título"
+            label="Título do Documento / POP"
             required
-            value={form.titulo}
-            maxLength={200}
+            value={formTitulo}
+            onChange={(e) => {
+              setFormTitulo(e.target.value);
+              if (errosForm.titulo) setErrosForm((p) => ({ ...p, titulo: "" }));
+            }}
+            placeholder="Ex.: POP-ENF-002 — Curativo em Acesso Venoso Central"
+            helperText="Reenviar com o mesmo título e tipo gera uma nova versão automaticamente."
             error={errosForm.titulo}
-            helperText="Reenviar com o mesmo título e tipo cria uma nova versão e arquiva a anterior."
-            onChange={(e) => atualizarCampo("titulo", e.target.value)}
           />
-          <Select
-            label="Tipo"
-            value={form.tipo}
-            error={errosForm.tipo}
-            onChange={(e) => atualizarCampo("tipo", e.target.value)}
-            options={[
-              { value: "POP", label: "POP" },
-              { value: "DOCUMENTO", label: "Documento" },
-            ]}
-          />
-          <Input
-            label="Palavras-chave"
-            value={form.palavras_chave}
-            error={errosForm.palavras_chave}
-            helperText="Separadas por vírgula. Se a categoria ficar em branco, ela é sugerida pelas palavras-chave."
-            onChange={(e) => atualizarCampo("palavras_chave", e.target.value)}
-          />
-          <Input
-            label="Categoria"
-            value={form.categoria}
-            maxLength={100}
-            error={errosForm.categoria}
-            list="categorias-documentos"
-            onChange={(e) => atualizarCampo("categoria", e.target.value)}
-          />
-          <datalist id="categorias-documentos">
-            {categorias.map((c) => (
-              <option key={c} value={c} />
-            ))}
-          </datalist>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Tipo de Publicação"
+              required
+              value={formTipo}
+              onChange={(e) => {
+                setFormTipo(e.target.value);
+                if (errosForm.tipo) setErrosForm((p) => ({ ...p, tipo: "" }));
+              }}
+              options={OPCOES_TIPO_SELECT}
+              error={errosForm.tipo}
+            />
+
+            <div>
+              <Input
+                label="Categoria Institucional"
+                list="datalist-categorias-docs"
+                value={formCategoria}
+                onChange={(e) => {
+                  setFormCategoria(e.target.value);
+                  if (errosForm.categoria) setErrosForm((p) => ({ ...p, categoria: "" }));
+                }}
+                placeholder="Ex.: Enfermagem, Farmácia..."
+                helperText="Se em branco, será sugerida pelas palavras-chave."
+                error={errosForm.categoria}
+              />
+              <datalist id="datalist-categorias-docs">
+                {sugestoesCategorias.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+            </div>
+          </div>
+
           <Textarea
-            label="Descrição"
+            label="Descrição / Objetivo do Documento"
             rows={3}
-            maxLength={1000}
-            value={form.descricao}
+            value={formDescricao}
+            onChange={(e) => {
+              setFormDescricao(e.target.value);
+              if (errosForm.descricao) setErrosForm((p) => ({ ...p, descricao: "" }));
+            }}
+            placeholder="Resumo das diretrizes clínicas, fluxo ou objetivo geral..."
             error={errosForm.descricao}
-            onChange={(e) => atualizarCampo("descricao", e.target.value)}
           />
-          <Input
-            label="Arquivo (PDF ou DOCX)"
-            type="file"
-            required
-            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            error={errosForm.arquivo}
-            helperText={`Tamanho máximo: ${DOCUMENTO_MAX_MB} MB.`}
-            onChange={(e) => atualizarCampo("arquivo", e.target.files?.[0] || null)}
-          />
+
+          {/* Palavras-chave */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-[#1e293b]">
+              Palavras-chave (Tags)
+            </label>
+            <div className="p-2 border border-slate-200 rounded-lg flex flex-wrap items-center gap-1.5 focus-within:ring-2 focus-within:ring-[#800020]/20 focus-within:border-[#800020] bg-white">
+              {formTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#800020]/10 text-[#800020]"
+                >
+                  #{tag}
+                  <button
+                    type="button"
+                    onClick={() => removerTag(tag)}
+                    className="hover:text-red-700 ml-0.5 text-xs font-bold cursor-pointer"
+                    aria-label={`Remover tag ${tag}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagDigitando}
+                onChange={(e) => setTagDigitando(e.target.value)}
+                onKeyDown={handleKeyDownTag}
+                onBlur={() => adicionarTagInput(tagDigitando)}
+                placeholder={
+                  formTags.length === 0
+                    ? "Digite as palavras-chave separadas por vírgula ou Enter (ex.: curativo, uti)"
+                    : "Adicionar mais tags..."
+                }
+                className="flex-1 min-w-[200px] border-none outline-none text-xs bg-transparent py-1"
+              />
+            </div>
+          </div>
+
+          {/* Upload com Drag and Drop */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-[#1e293b]">
+              Arquivo Digital (PDF ou DOCX) {!docEditando && <span className="text-red-500">*</span>}
+            </label>
+
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setArrastandoArquivo(true);
+              }}
+              onDragLeave={() => setArrastandoArquivo(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setArrastandoArquivo(false);
+                const file = e.dataTransfer?.files?.[0];
+                validarESelecionarArquivo(file);
+              }}
+              onClick={() => inputFileRef.current?.click()}
+              className={`p-6 border-2 border-dashed rounded-xl text-center cursor-pointer transition ${
+                arrastandoArquivo
+                  ? "border-[#800020] bg-[#800020]/5"
+                  : errosForm.arquivo
+                    ? "border-red-400 bg-red-50/30"
+                    : "border-slate-300 hover:border-slate-400 bg-slate-50/50"
+              }`}
+            >
+              <input
+                ref={inputFileRef}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(e) => validarESelecionarArquivo(e.target.files?.[0])}
+                className="hidden"
+              />
+
+              {formArquivo ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-[#1e293b]">
+                    📄 {formArquivo.name}
+                  </p>
+                  <p className="text-xs text-[#64748b]">
+                    {formatarTamanhoBytes(formArquivo.size)} · Clique ou arraste para substituir
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[#334155]">
+                    Arraste e solte o arquivo aqui ou <span className="text-[#800020] font-semibold underline">clique para selecionar</span>
+                  </p>
+                  <p className="text-xs text-[#64748b]">
+                    Formatos aceitos: PDF e DOCX (tamanho máximo de {DOCUMENTO_MAX_MB} MB)
+                  </p>
+                  {docEditando && (
+                    <p className="text-xs text-[#475569] pt-1">
+                      Arquivo atual: <strong>{docEditando.nome_arquivo}</strong> ({formatarTamanhoBytes(docEditando.tamanho_bytes)})
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            {errosForm.arquivo && (
+              <p className="text-xs text-red-600 font-medium" role="alert">
+                ⚠ {errosForm.arquivo}
+              </p>
+            )}
+          </div>
+
+          {/* Barra de Progresso de Upload */}
+          {salvandoForm && progressoUpload > 0 && (
+            <div className="space-y-1" aria-live="polite">
+              <div className="flex justify-between text-xs font-medium text-[#475569]">
+                <span>Enviando arquivo para o armazenamento seguro...</span>
+                <span>{progressoUpload}%</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                <div
+                  className="h-full bg-[#800020] transition-all duration-200"
+                  style={{ width: `${progressoUpload}%` }}
+                />
+              </div>
+            </div>
+          )}
         </form>
       </Modal>
 
-      <Modal
-        open={Boolean(versoesDoc)}
-        onClose={() => setVersoesDoc(null)}
-        title={versoesDoc ? `Histórico — ${versoesDoc.titulo}` : ""}
-      >
-        <ul className="space-y-2">
-          {versoes.map((v) => (
-            <li key={v.id_doc} className="flex items-center justify-between gap-3 text-sm">
-              <span>
-                <strong>v{v.versao}</strong> · {formatarData(v.data_upload)} · {v.autor?.nome || "—"} ·{" "}
-                {v.ativo ? "vigente" : "arquivada"}
-              </span>
-              <span className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => baixar(v)}>
-                  Baixar
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => setExcluir(v)}>
-                  Excluir
-                </Button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Modal>
-
+      {/* Confirmação de substituição de arquivo */}
       <ConfirmDialog
-        open={Boolean(excluir)}
-        title="Excluir versão"
+        open={confirmSubstituirOpen}
+        title="Substituir arquivo existente?"
+        message={`Ao confirmar, o arquivo anterior (${docEditando?.nome_arquivo}) será permanentemente substituído por "${formArquivo?.name}". Deseja continuar?`}
+        confirmLabel="Sim, substituir arquivo"
+        variant="primary"
+        loading={salvandoForm}
+        onConfirm={executarEnvioFormulario}
+        onCancel={() => setConfirmSubstituirOpen(false)}
+      />
+
+      {/* Confirmação de exclusão de documento */}
+      <ConfirmDialog
+        open={Boolean(docExcluindo)}
+        title="Excluir Versão / Documento"
         message={
-          excluir?.ativo
-            ? `Excluir a versão vigente (v${excluir?.versao}) de "${excluir?.titulo}"? A versão anterior voltará a ser a vigente.`
-            : `Excluir a versão v${excluir?.versao} de "${excluir?.titulo}"?`
+          docExcluindo?.ativo !== false
+            ? `Tem certeza que deseja excluir a versão vigente (v${docExcluindo?.versao || 1}) de "${docExcluindo?.titulo}"? A versão anterior voltará a ser a vigente.`
+            : `Tem certeza que deseja excluir permanentemente a versão v${docExcluindo?.versao || 1} de "${docExcluindo?.titulo}"?`
         }
         confirmLabel="Excluir"
         variant="danger"
         loading={excluindo}
-        onConfirm={confirmarExclusao}
-        onCancel={() => setExcluir(null)}
+        onConfirm={handleConfirmarExclusao}
+        onCancel={() => setDocExcluindo(null)}
       />
     </div>
   );

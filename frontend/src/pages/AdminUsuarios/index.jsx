@@ -23,6 +23,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarDataHora } from "../../utils/date";
 
 const OPCOES_PERFIL = [
   { value: "COLABORADOR", label: "Colaborador" },
@@ -35,21 +36,6 @@ const OPCOES_STATUS = [
   { value: "ATIVO", label: "Ativo" },
   { value: "INATIVO", label: "Inativo" },
 ];
-
-function formatarDataHora(iso) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 function validarSenhaForte(senha) {
   if (!senha || senha.length < 8) {

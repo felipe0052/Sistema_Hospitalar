@@ -51,8 +51,8 @@ export default function Aniversariantes() {
               <div className="text-right">
                 <Badge variant={aniv.aniversario_hoje ? "primary" : "default"}>
                   {aniv.aniversario_hoje
-                    ? `🎂 Hoje (${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")})`
-                    : `${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")}`}
+                    ? `🎂 Hoje (${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")}/${new Date().getFullYear()})`
+                    : `${String(aniv.dia).padStart(2, "0")}/${String(aniv.mes).padStart(2, "0")}/${new Date().getFullYear()}`}
                 </Badge>
               </div>
             </Card>

@@ -9,6 +9,7 @@ from app.core.database import Base, SessionLocal, engine
 from app.core.security import gerar_hash_senha
 from app.models.aviso import Aviso
 from app.models.evento import Evento
+from app.models.faq import Faq
 from app.models.ramal import Ramal
 from app.models.setor import Setor
 from app.models.usuario import Usuario
@@ -353,6 +354,106 @@ def _seed_avisos_e_eventos(db, mapa_setores: dict[str, int], mapa_usuarios: dict
                 )
             )
 
+    faqs_seed = [
+        (
+            "Com quanta antecedência devo alinhar o período de férias com minha coordenação?",
+            "A solicitação de férias deve ser alinhada com o gestor imediato e registrada junto ao RH com no mínimo 60 dias de antecedência do início do gozo, garantindo a organização das escalas do setor.",
+            "Férias",
+            1,
+            id_rh,
+        ),
+        (
+            "Posso parcelar minhas férias em até quantos períodos?",
+            "Conforme a legislação vigente e política interna do Hospital Decós, as férias podem ser fracionadas em até 3 períodos, desde que um deles não seja inferior a 14 dias corridos e os demais não sejam inferiores a 5 dias corridos cada.",
+            "Férias",
+            2,
+            id_rh,
+        ),
+        (
+            "Como funciona a solicitação do abono pecuniário (venda de 1/3 das férias)?",
+            "O colaborador que desejar converter 1/3 do período de férias em abono pecuniário deve formalizar o pedido no RH até 15 dias antes do término do período aquisitivo.",
+            "Férias",
+            3,
+            id_rh,
+        ),
+        (
+            "Como incluir dependentes no plano de saúde e odontológico?",
+            "Para incluir cônjuge ou filhos como dependentes, compareça ao RH (4º andar, ramal 4102) apresentando certidão de casamento ou nascimento, CPF e documento de identidade do dependente em até 30 dias após o evento ou admissão.",
+            "Benefícios",
+            1,
+            id_rh,
+        ),
+        (
+            "Em que dia ocorre a recarga do vale-alimentação e vale-transporte?",
+            "O crédito do vale-alimentação/refeição e do vale-transporte é disponibilizado até o último dia útil do mês anterior ao mês de competência.",
+            "Benefícios",
+            2,
+            id_rh,
+        ),
+        (
+            "O que fazer em caso de perda ou dano ao cartão de benefícios?",
+            "Solicite imediatamente o bloqueio pelo aplicativo da operadora do cartão e comunique o Departamento Pessoal no ramal 4102 para emissão da segunda via.",
+            "Benefícios",
+            3,
+            id_rh,
+        ),
+        (
+            "Qual o procedimento para solicitar troca de plantão entre colaboradores?",
+            "As trocas de plantão devem ser solicitadas com no mínimo 48 horas de antecedência, mediante assinatura de ambos os profissionais e aprovação formal da coordenação do setor, respeitando o intervalo interjornada mínimo de 11 horas.",
+            "Escalas",
+            1,
+            id_admin,
+        ),
+        (
+            "Quando a escala mensal do setor é divulgada?",
+            "As escalas mensais das áreas assistenciais e de apoio são publicadas pelas coordenações até o dia 25 do mês anterior.",
+            "Escalas",
+            2,
+            id_admin,
+        ),
+        (
+            "Como proceder em caso de ausência imprevista por motivo de saúde?",
+            "Comunique imediatamente sua liderança direta por telefone/ramal do setor antes do início do turno e entregue o atestado médico original à Medicina do Trabalho/RH em até 48 horas.",
+            "Escalas",
+            3,
+            id_rh,
+        ),
+        (
+            "Quais são as regras sobre o uso de adornos nas áreas assistenciais?",
+            "Em conformidade com a NR-32 e diretrizes da CCIH, é estritamente proibido o uso de anéis, alianças, relógios, pulseiras e colares expostos em todas as áreas de assistência ao paciente e manipulação de insumos.",
+            "Normas Hospitalares",
+            1,
+            id_admin,
+        ),
+        (
+            "O uso do crachá de identificação é obrigatório em todas as dependências?",
+            "Sim. Todo colaborador deve portar o crachá institucional em local visível durante toda a permanência nas dependências do Hospital Decós, utilizando-o também nas catracas de acesso.",
+            "Normas Hospitalares",
+            2,
+            id_admin,
+        ),
+        (
+            "Onde encontro os Procedimentos Operacionais Padrão (POPs) vigentes do meu setor?",
+            'Todos os POPs vigentes estão centralizados no menu "Documentos (POPs)" desta Intranet, onde é possível filtrar por categoria (Enfermagem, Farmácia, Administrativo, etc.) ou buscar por palavras-chave.',
+            "Normas Hospitalares",
+            3,
+            id_admin,
+        ),
+    ]
+
+    for pergunta, resposta, categoria, ordem, id_autor in faqs_seed:
+        existente = db.query(Faq).filter(Faq.pergunta == pergunta).first()
+        if existente is None:
+            db.add(
+                Faq(
+                    pergunta=pergunta,
+                    resposta=resposta,
+                    categoria=categoria,
+                    ordem=ordem,
+                    id_autor=id_autor,
+                )
+            )
+
 
 def executar_seed() -> None:
     if settings.DATABASE_URL.startswith("sqlite"):
@@ -441,9 +542,10 @@ def executar_seed() -> None:
         total_setores = db.query(Setor).count()
         total_avisos = db.query(Aviso).count()
         total_eventos = db.query(Evento).count()
+        total_faqs = db.query(Faq).count()
         print(
             f"Seed concluído com sucesso: {total_setores} setores, {total_usuarios} usuários, "
-            f"{total_avisos} avisos e {total_eventos} eventos cadastrados."
+            f"{total_avisos} avisos, {total_eventos} eventos e {total_faqs} FAQs cadastrados."
         )
     finally:
         db.close()

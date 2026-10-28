@@ -30,6 +30,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarData } from "../../utils/date";
 
 const CATEGORIAS_EVENTO_CHIPS = [
   { value: "", label: "Todas" },
@@ -98,17 +99,7 @@ function formatarHorarioIntervalo(inicioIso, fimIso) {
 }
 
 function formatarDataCompleta(iso) {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return String(iso);
-  }
+  return formatarData(iso);
 }
 
 function paraInputDateTimeLocal(iso) {
@@ -502,7 +493,7 @@ export default function Eventos() {
                 {CATEGORIA_EVENTO_LABELS[ev.categoria] || ev.categoria}
               </Badge>
               <span className="text-xs font-semibold text-[#64748b]">
-                {formatarHorarioIntervalo(ev.data_inicio, ev.data_fim)}
+                {formatarData(ev.data_inicio)} · {formatarHorarioIntervalo(ev.data_inicio, ev.data_fim)}
               </span>
             </div>
 
@@ -842,7 +833,7 @@ export default function Eventos() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#1e293b]">
                 {diaSelecionado
-                  ? `Eventos em ${new Date(`${diaSelecionado}T00:00:00`).toLocaleDateString("pt-BR")}`
+                  ? `Eventos em ${formatarData(diaSelecionado)}`
                   : `Eventos do mês (${eventos.length})`}
               </h3>
               {diaSelecionado && (
@@ -864,7 +855,7 @@ export default function Eventos() {
                 <ul className="text-xs text-[#475569] space-y-1">
                   {aniversariantesLateral.map((a) => (
                     <li key={a.id_usuario}>
-                      <strong>{String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}</strong>{" "}
+                      <strong>{String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}/{anoCalendario}</strong>{" "}
                       {a.nome} · {a.setor?.nome || "Setor não informado"}
                     </li>
                   ))}

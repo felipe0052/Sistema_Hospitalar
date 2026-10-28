@@ -234,3 +234,78 @@
   font-size: 0.68rem;
   color: var(--gray-500, #64748b);
 }
+
+/* ==========================================================================
+   Modo Escuro (Dark Mode) - Quick Access FAB
+   ========================================================================== */
+:root[data-theme="dark"] .quick-access-fab-popup,
+.dark .quick-access-fab-popup {
+  background-color: #141d30;
+  border-color: #26334a;
+  box-shadow:
+    0 20px 42px -8px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(240, 138, 160, 0.18);
+}
+
+:root[data-theme="dark"] .quick-access-fab-popup__section-label,
+.dark .quick-access-fab-popup__section-label {
+  color: #7b8ba3;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item,
+.dark .quick-access-fab-item {
+  color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item:hover,
+.dark .quick-access-fab-item:hover {
+  background-color: #1b2640;
+  color: #f08aa0;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item--active,
+.dark .quick-access-fab-item--active {
+  background-color: #2a0f18;
+  color: #f08aa0;
+  box-shadow: inset 0 0 0 1px rgba(240, 138, 160, 0.35);
+}
+
+:root[data-theme="dark"] .quick-access-fab-item__icon,
+.dark .quick-access-fab-item__icon {
+  background-color: #1b2640;
+  color: #94a3b8;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item:hover .quick-access-fab-item__icon,
+.dark .quick-access-fab-item:hover .quick-access-fab-item__icon,
+:root[data-theme="dark"] .quick-access-fab-item--active .quick-access-fab-item__icon,
+.dark .quick-access-fab-item--active .quick-access-fab-item__icon {
+  background-color: var(--bordeaux, #800020);
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item__desc,
+.dark .quick-access-fab-item__desc {
+  color: #94a3b8;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item__route,
+.dark .quick-access-fab-item__route {
+  color: #94a3b8;
+  background-color: #0b1220;
+  border-color: #26334a;
+}
+
+:root[data-theme="dark"] .quick-access-fab-item--active .quick-access-fab-item__route,
+.dark .quick-access-fab-item--active .quick-access-fab-item__route {
+  color: #f08aa0;
+  background-color: #1e1119;
+  border-color: rgba(240, 138, 160, 0.4);
+}
+
+:root[data-theme="dark"] .quick-access-fab-popup__footer,
+.dark .quick-access-fab-popup__footer {
+  background-color: #101a2d;
+  border-top-color: #26334a;
+  color: #7b8ba3;
+}
