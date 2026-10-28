@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   ConfirmDialog,
+  DateInput,
   EmptyState,
   ErrorBanner,
   Input,
@@ -475,9 +476,9 @@ export default function Avisos() {
                 }
               />
 
-              <Input
+              <DateInput
                 label="Data de expiração (opcional)"
-                type="date"
+                placeholder="dd / mm / aaaa"
                 value={formDados.data_expiracao}
                 error={errosForm.data_expiracao}
                 helperText="Deixe em branco para manter o aviso sem prazo de expiração."

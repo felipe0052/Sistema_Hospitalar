@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session, joinedload
@@ -7,13 +8,19 @@ from app.models.usuario import Usuario
 from app.schemas.dashboard import AniversarianteResumoOut, DashboardOut, SetorAniversarianteOut
 from app.services import aviso_service, evento_service
 
+FUSO_BRASIL = ZoneInfo("America/Sao_Paulo")
+
+
+def obter_hoje_brasil() -> date:
+    return datetime.now(FUSO_BRASIL).date()
+
 
 def listar_aniversariantes_mes(
     db: Session,
     mes: int,
     referencia: date | None = None,
 ) -> list[AniversarianteResumoOut]:
-    hoje = referencia or date.today()
+    hoje = referencia or obter_hoje_brasil()
     usuarios = (
         db.query(Usuario)
         .options(joinedload(Usuario.setor))
@@ -43,7 +50,7 @@ def obter_resumo_aniversariantes_dashboard(
     db: Session,
     referencia: date | None = None,
 ) -> tuple[list[AniversarianteResumoOut], int]:
-    hoje = referencia or date.today()
+    hoje = referencia or obter_hoje_brasil()
 
     aniversariantes_mes = (
         db.query(Usuario)

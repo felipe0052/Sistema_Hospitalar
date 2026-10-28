@@ -1,0 +1,47 @@
+.ui-date-input__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ui-date-input__field {
+  padding-right: 2.75rem;
+}
+
+.ui-date-input__icon-btn {
+  position: absolute;
+  right: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  z-index: 1;
+}
+
+.ui-date-input__icon-btn:hover {
+  color: var(--color-primary);
+  background-color: var(--color-bg-subtle);
+}
+
+.ui-date-input__native-picker {
+  position: absolute;
+  right: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  pointer-events: auto;
+}

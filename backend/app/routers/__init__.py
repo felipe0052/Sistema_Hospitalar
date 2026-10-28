@@ -5,6 +5,7 @@ from app.routers import (
     auth,
     avisos,
     dashboard,
+    diretorio,
     documentos,
     eventos,
     faq,
@@ -16,6 +17,7 @@ from app.routers import (
 api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(aniversariantes.router)
+api_router.include_router(diretorio.router)
 api_router.include_router(usuarios.router)
 api_router.include_router(setores.router)
 api_router.include_router(avisos.router)

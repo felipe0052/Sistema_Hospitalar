@@ -168,6 +168,15 @@ class AvisoIn(BaseModel):
     def _limpar_data_expiracao(cls, v):
         if v == "" or v is None:
             return None
+        if isinstance(v, str):
+            v = v.strip()
+            match = re.match(r"^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$", v)
+            if match:
+                dia, mes, ano = match.groups()
+                try:
+                    return date(int(ano), int(mes), int(dia))
+                except ValueError as err:
+                    raise ValueError(f"Data de expiração inválida: {err}") from err
         return v
 
 

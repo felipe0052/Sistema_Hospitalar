@@ -126,6 +126,7 @@ COLABORADORES_FICTICIOS = [
     ("Sabrina Melo", "sabrina.melo@decos.com.br", "Recepcionista de Internação", "Recepção", date(1998, 2, 27)),
     ("Tatiane Borges", "tatiane.borges@decos.com.br", "Enfermeira Classificadora", "Pronto-Socorro", date(1989, 8, 8)),
     ("Vinícius Andrade", "vinicius.andrade@decos.com.br", "Coletador Laboratorial", "Laboratório", date(1995, 12, 1)),
+    ("Beatriz Nogueira", "beatriz.nogueira@decos.com.br", "Enfermeira Volante (Pool Assistencial)", None, date(1993, 10, 15)),
 ]
 
 
@@ -517,13 +518,14 @@ def executar_seed() -> None:
         for nome, email, cargo, nome_setor, data_nasc in COLABORADORES_FICTICIOS:
             email_norm = email.lower()
             existente = db.query(Usuario).filter(func.lower(Usuario.email) == email_norm).first()
+            id_setor_colab = mapa_setores.get(nome_setor) if nome_setor else None
             if existente is None:
                 db.add(
                     Usuario(
                         nome=nome,
                         email=email_norm,
                         senha_hash=hash_padrao_colab,
-                        id_setor=mapa_setores.get(nome_setor),
+                        id_setor=id_setor_colab,
                         cargo=cargo,
                         data_nascimento=data_nasc,
                         perfil="COLABORADOR",

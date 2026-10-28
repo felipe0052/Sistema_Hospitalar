@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   ConfirmDialog,
+  DateInput,
   ErrorBanner,
   Input,
   Modal,
@@ -23,7 +24,18 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
-import { formatarDataHora } from "../../utils/date";
+import { formatarData, formatarDataHora } from "../../utils/date";
+
+function normalizarDataParaIso(valor) {
+  if (!valor) return null;
+  const str = String(valor).trim();
+  const matchBr = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(str);
+  if (matchBr) {
+    const [, dia, mes, ano] = matchBr;
+    return `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+  }
+  return str.slice(0, 10);
+}
 
 const OPCOES_PERFIL = [
   { value: "COLABORADOR", label: "Colaborador" },
@@ -190,8 +202,9 @@ export default function AdminUsuarios() {
     }
 
     if (formDados.data_nascimento) {
+      const dataIso = normalizarDataParaIso(formDados.data_nascimento);
       const hojeIso = new Date().toISOString().slice(0, 10);
-      if (formDados.data_nascimento > hojeIso) {
+      if (dataIso && dataIso > hojeIso) {
         problemas.data_nascimento = "A data de nascimento não pode ser no futuro.";
       }
     }
@@ -207,7 +220,7 @@ export default function AdminUsuarios() {
       const payloadBase = {
         nome: nomeLimpo,
         email: emailLimpo,
-        data_nascimento: formDados.data_nascimento || null,
+        data_nascimento: normalizarDataParaIso(formDados.data_nascimento),
         cargo: formDados.cargo.trim() || null,
         id_setor: formDados.id_setor ? Number(formDados.id_setor) : null,
       };
@@ -368,6 +381,11 @@ export default function AdminUsuarios() {
         ) : (
           <span className="text-[#94a3b8] italic">Setor não informado</span>
         ),
+    },
+    {
+      key: "data_nascimento",
+      header: "Nascimento",
+      render: (u) => <span>{formatarData(u.data_nascimento)}</span>,
     },
     {
       key: "perfil",
@@ -611,9 +629,9 @@ export default function AdminUsuarios() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
+            <DateInput
               label="Data de nascimento"
-              type="date"
+              placeholder="dd / mm / aaaa"
               value={formDados.data_nascimento}
               error={errosForm.data_nascimento}
               onChange={(e) => {

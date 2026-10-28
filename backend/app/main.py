@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -29,9 +29,20 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Content-Disposition"],
 )
+
+
+@app.middleware("http")
+async def adicionar_headers_seguranca(request: Request, call_next) -> Response:
+    response: Response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
 
 registrar_exception_handlers(app)
 
@@ -39,7 +50,9 @@ registrar_exception_handlers(app)
 @app.get("/api/v1/health", tags=["Saúde"])
 def health_check(db: Session = Depends(get_db)) -> dict[str, str]:
     """Verifica a saúde da API e a conectividade com o banco de dados (§7.11)."""
-    sql = "SELECT 1" if settings.DATABASE_URL.startswith("sqlite") else "SELECT 1 FROM DUAL"
+    bind = db.get_bind()
+    eh_sqlite = bind.dialect.name == "sqlite" if bind is not None else settings.DATABASE_URL.startswith("sqlite")
+    sql = "SELECT 1" if eh_sqlite else "SELECT 1 FROM DUAL"
     db.execute(text(sql))
     return {"status": "ok", "banco": "ok"}
 

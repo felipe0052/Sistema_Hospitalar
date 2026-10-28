@@ -422,11 +422,42 @@ export default function Dashboard() {
                   ))}
                   {aniversariantesDoDiaSel.map((a) => (
                     <li key={a.id_usuario}>
-                      🎂 <strong>{String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}/{hojeCal.getFullYear()}</strong> · <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
+                      🎂 <strong>Dia {String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}</strong> · <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
                     </li>
                   ))}
                 </ul>
               )}
+            </div>
+          </Card>
+
+          {/* Atalhos Rápidos de Navegação (S2-T7 / S4-T6) */}
+          <Card className="space-y-2.5">
+            <h2 className="text-sm font-bold text-[#1e293b]">Atalhos Rápidos</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                to="/diretorio"
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
+              >
+                ☎️ Diretório e Ramais
+              </Link>
+              <Link
+                to="/documentos"
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
+              >
+                📄 Documentos (POPs)
+              </Link>
+              <Link
+                to="/faq"
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
+              >
+                💬 Central de Ajuda (FAQ)
+              </Link>
+              <Link
+                to="/aniversariantes"
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
+              >
+                🎂 Aniversariantes
+              </Link>
             </div>
           </Card>
         </div>

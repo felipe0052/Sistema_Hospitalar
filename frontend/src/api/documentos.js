@@ -159,9 +159,12 @@ export async function listarVersoesDocumento(id) {
   return data;
 }
 
-export async function obterBlobArquivoDocumento(id, { download = false } = {}) {
+export async function obterBlobArquivoDocumento(idOuDoc, { download = false } = {}) {
+  const id = typeof idOuDoc === "object" && idOuDoc !== null ? idOuDoc.id_doc : idOuDoc;
+  const docObj = typeof idOuDoc === "object" && idOuDoc !== null ? idOuDoc : null;
+
   if (useMocks) {
-    const doc = await obterDocumento(id);
+    const doc = docObj || (await obterDocumento(id));
     const salvo = arquivosBlobMemoria.get(Number(id));
     if (salvo) {
       return { blob: salvo, mimeType: doc.mime_type, nomeArquivo: doc.nome_arquivo };
@@ -184,10 +187,29 @@ export async function obterBlobArquivoDocumento(id, { download = false } = {}) {
     responseType: "blob",
     timeout: 60000,
   });
+
+  let nomeArquivo = docObj?.nome_arquivo;
+  const disposition = response.headers?.["content-disposition"];
+  if (!nomeArquivo && disposition) {
+    const matchUtf8 = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (matchUtf8) {
+      try {
+        nomeArquivo = decodeURIComponent(matchUtf8[1]);
+      } catch {
+        nomeArquivo = matchUtf8[1];
+      }
+    } else {
+      const matchAscii = disposition.match(/filename="?([^";]+)"?/i);
+      if (matchAscii) {
+        nomeArquivo = matchAscii[1];
+      }
+    }
+  }
+
   return {
     blob: response.data,
-    mimeType: response.headers["content-type"] || "application/octet-stream",
-    nomeArquivo: doc?.nome_arquivo || "documento",
+    mimeType: response.headers?.["content-type"] || "application/octet-stream",
+    nomeArquivo: nomeArquivo || "documento",
   };
 }
 

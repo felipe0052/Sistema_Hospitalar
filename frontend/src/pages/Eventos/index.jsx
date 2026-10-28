@@ -1052,6 +1052,7 @@ export default function Eventos() {
               label="Início"
               type="datetime-local"
               required
+              helperText="Ordem: Dia, Mês, Ano e Horário (DD/MM/AAAA HH:mm)"
               value={formDados.data_inicio}
               error={errosForm.data_inicio}
               onChange={(e) => {
@@ -1063,6 +1064,7 @@ export default function Eventos() {
             <Input
               label="Fim (opcional)"
               type="datetime-local"
+              helperText="Ordem: Dia, Mês, Ano e Horário (DD/MM/AAAA HH:mm)"
               value={formDados.data_fim}
               error={errosForm.data_fim}
               onChange={(e) => {

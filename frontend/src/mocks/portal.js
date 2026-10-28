@@ -100,14 +100,18 @@ export const MOCK_EVENTOS = [
   },
 ];
 
+const _HOJE_MOCK = new Date();
+const _DIA_ATUAL_MOCK = _HOJE_MOCK.getDate();
+const _MES_ATUAL_MOCK = _HOJE_MOCK.getMonth() + 1;
+
 export const MOCK_ANIVERSARIANTES = [
   {
     id_usuario: 2,
     nome: "Carlos Menezes",
     cargo: "Técnico de Enfermagem",
     setor: { id_setor: 1, nome: "UTI" },
-    dia: 21,
-    mes: 10,
+    dia: _DIA_ATUAL_MOCK,
+    mes: _MES_ATUAL_MOCK,
     aniversario_hoje: true,
   },
   {
@@ -115,8 +119,8 @@ export const MOCK_ANIVERSARIANTES = [
     nome: "Isabela Martins",
     cargo: "Enfermeira de Emergência",
     setor: { id_setor: 2, nome: "Pronto-Socorro" },
-    dia: 21,
-    mes: 10,
+    dia: _DIA_ATUAL_MOCK,
+    mes: _MES_ATUAL_MOCK,
     aniversario_hoje: true,
   },
   {
@@ -126,7 +130,7 @@ export const MOCK_ANIVERSARIANTES = [
     setor: { id_setor: 6, nome: "Recepção" },
     dia: 5,
     mes: 10,
-    aniversario_hoje: false,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 5 && _MES_ATUAL_MOCK === 10,
   },
   {
     id_usuario: 21,
@@ -135,7 +139,16 @@ export const MOCK_ANIVERSARIANTES = [
     setor: { id_setor: 5, nome: "Farmácia" },
     dia: 12,
     mes: 10,
-    aniversario_hoje: false,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 12 && _MES_ATUAL_MOCK === 10,
+  },
+  {
+    id_usuario: 31,
+    nome: "Beatriz Nogueira",
+    cargo: "Enfermeira Volante (Pool Assistencial)",
+    setor: null,
+    dia: 15,
+    mes: 10,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 15 && _MES_ATUAL_MOCK === 10,
   },
   {
     id_usuario: 7,
@@ -144,7 +157,7 @@ export const MOCK_ANIVERSARIANTES = [
     setor: { id_setor: 1, nome: "UTI" },
     dia: 18,
     mes: 10,
-    aniversario_hoje: false,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 18 && _MES_ATUAL_MOCK === 10,
   },
   {
     id_usuario: 8,
@@ -153,7 +166,25 @@ export const MOCK_ANIVERSARIANTES = [
     setor: { id_setor: 6, nome: "Recepção" },
     dia: 25,
     mes: 10,
-    aniversario_hoje: false,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 25 && _MES_ATUAL_MOCK === 10,
+  },
+  {
+    id_usuario: 12,
+    nome: "Bruno Cavalcanti",
+    cargo: "Técnico de Farmácia",
+    setor: { id_setor: 5, nome: "Farmácia" },
+    dia: 3,
+    mes: 11,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 3 && _MES_ATUAL_MOCK === 11,
+  },
+  {
+    id_usuario: 23,
+    nome: "Natália Gomes",
+    cargo: "Assistente de Departamento Pessoal",
+    setor: { id_setor: 8, nome: "RH" },
+    dia: 23,
+    mes: 11,
+    aniversario_hoje: _DIA_ATUAL_MOCK === 23 && _MES_ATUAL_MOCK === 11,
   },
 ];
 

@@ -184,11 +184,11 @@ export default function Documentos() {
   async function acionarDownloadArquivo(doc, mostrarOrientacaoDocx = false) {
     setBaixandoId(doc.id_doc);
     try {
-      const { blob } = await obterBlobArquivoDocumento(doc.id_doc, { download: true });
+      const { blob, nomeArquivo } = await obterBlobArquivoDocumento(doc, { download: true });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = doc.nome_arquivo || `${doc.titulo}.pdf`;
+      link.download = doc.nome_arquivo || nomeArquivo || `${doc.titulo}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -217,7 +217,7 @@ export default function Documentos() {
     setDocVisualizando(doc);
     setCarregandoVisualizador(true);
     try {
-      const { blob } = await obterBlobArquivoDocumento(doc.id_doc, { download: false });
+      const { blob } = await obterBlobArquivoDocumento(doc, { download: false });
       const pdfBlob =
         blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" });
       const url = URL.createObjectURL(pdfBlob);

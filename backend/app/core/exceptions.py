@@ -1,6 +1,12 @@
+import logging
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
+
+HTTP_422_STATUS = getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", 422)
 
 
 class AppError(Exception):
@@ -42,6 +48,10 @@ class ArquivoMuitoGrande(AppError):
 
 class TipoArquivoNaoAceito(AppError):
     status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+
+
+class MuitasTentativas(AppError):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
 
 
 def _traduzir_mensagem_validacao(err: dict) -> str:
@@ -95,9 +105,19 @@ def registrar_exception_handlers(app: FastAPI) -> None:
 
         detail = next(iter(erros.values()), "Dados obrigatórios ausentes ou em formato inválido.")
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_STATUS,
             content={
                 "detail": detail,
                 "erros": erros,
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error("Erro interno não tratado em %s %s: %s", request.method, request.url.path, type(exc).__name__)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "detail": "Ocorreu um erro interno no servidor. Tente novamente mais tarde.",
             },
         )

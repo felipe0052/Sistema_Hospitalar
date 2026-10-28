@@ -13,6 +13,7 @@ from app.main import app
 from app.models.ramal import Ramal
 from app.models.setor import Setor
 from app.models.usuario import Usuario
+from app.services import auth_service
 
 # Hashes pré-computados uma única vez por execução de suíte para acelerar os testes
 _HASH_ADMIN = gerar_hash_senha("Admin@123")
@@ -132,6 +133,8 @@ def db_session() -> Session:
 
 @pytest.fixture
 def client(db_session: Session) -> TestClient:
+    auth_service.limpar_tentativas_login()
+
     def _override_get_db():
         yield db_session
 
@@ -139,3 +142,4 @@ def client(db_session: Session) -> TestClient:
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+    auth_service.limpar_tentativas_login()
