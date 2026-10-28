@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,12 @@ class Settings(BaseSettings):
     UPLOAD_MAX_MB: int = 20
     DOCUMENTOS_MAX_MB: int = 10
     STORAGE_BACKEND: str = "local"
+
+    # Integração Google Agenda (OAuth 2.0). O secret também é lido da variável legada "chave_google".
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = Field(default="", validation_alias=AliasChoices("GOOGLE_CLIENT_SECRET", "chave_google"))
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/google-agenda/callback"
+    FRONTEND_URL: str = "http://localhost:5173"
 
     # Object Storage S3 / OCI (Semana 3/4)
     S3_ENDPOINT_URL: str = ""
