@@ -1,8 +1,10 @@
-"""Serviço de abstração de armazenamento de arquivos de Documentos/POPs (S3-T1 — §3 e §7.7)."""
+"""Serviço de abstração de armazenamento de arquivos de Documentos/POPs (S3-T1 / S4-T2 — §3 e §7.7)."""
 
 from collections.abc import Iterator
+import os
 from pathlib import Path
 from typing import Protocol, runtime_checkable
+import uuid
 
 from app.core.config import settings
 
@@ -19,26 +21,65 @@ class StorageService(Protocol):
 
 
 class LocalStorage:
-    """Armazena arquivos no sistema de arquivos local em settings.UPLOAD_DIR/<chave>."""
+    """Armazena arquivos no sistema de arquivos local em settings.UPLOAD_DIR/<chave> com segurança de paths e limpeza de temporários."""
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
         self.base_dir = Path(base_dir or settings.UPLOAD_DIR).resolve()
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(self.base_dir, 0o750)
+        except OSError:
+            pass
+        self.limpar_temporarios()
 
     def _resolver_caminho(self, chave: str) -> Path:
-        chave_limpa = str(chave).lstrip("/\\")
+        chave_str = str(chave or "").strip()
+        if not chave_str or "\x00" in chave_str:
+            raise ValueError("Chave de armazenamento inválida.")
+        chave_limpa = chave_str.lstrip("/\\")
         destino = (self.base_dir / chave_limpa).resolve()
-        # Previne ataques de Path Traversal garantindo que o destino está dentro de base_dir
+        # Previne ataques de Path Traversal garantindo que o destino está estritamente dentro de base_dir
         try:
             destino.relative_to(self.base_dir)
         except ValueError as exc:
             raise ValueError(f"Chave de armazenamento inválida: {chave}") from exc
+        if destino == self.base_dir:
+            raise ValueError(f"Chave de armazenamento inválida: {chave}")
         return destino
+
+    def limpar_temporarios(self) -> int:
+        """Remove arquivos temporários (.tmp) órfãos dentro do diretório de uploads."""
+        removidos = 0
+        if not self.base_dir.exists():
+            return removidos
+        for tmp_file in self.base_dir.rglob("*.tmp"):
+            if tmp_file.is_file():
+                try:
+                    tmp_file.unlink(missing_ok=True)
+                    removidos += 1
+                except OSError:
+                    pass
+        return removidos
 
     def salvar(self, conteudo: bytes, chave: str, mime_type: str) -> str:
         destino = self._resolver_caminho(chave)
         destino.parent.mkdir(parents=True, exist_ok=True)
-        destino.write_bytes(conteudo)
+        try:
+            os.chmod(destino.parent, 0o750)
+        except OSError:
+            pass
+
+        arquivo_tmp = destino.with_name(f".{destino.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            arquivo_tmp.write_bytes(conteudo)
+            try:
+                os.chmod(arquivo_tmp, 0o640)
+            except OSError:
+                pass
+            arquivo_tmp.replace(destino)
+        finally:
+            if arquivo_tmp.exists():
+                arquivo_tmp.unlink(missing_ok=True)
         return chave
 
     def abrir(self, chave: str) -> bytes:

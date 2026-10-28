@@ -379,4 +379,79 @@ VALUES (
     3
 );
 
+-- =====================================================================
+-- 6. USUARIOS BASE (5 perfis de teste do §9 + colaboradores/aniversariantes — S4-T3)
+-- =====================================================================
+INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
+VALUES (
+    'André Luiz (Administrador)',
+    'admin@decos.com.br',
+    '$2b$12$8p1jH6uK8zQ9yX2wV4tR6eO0mN3lB5vC7xZ9aS1dF3gH5jK7lM9nP',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Tecnologia'),
+    'Administrador de Sistemas',
+    DATE '1988-03-14',
+    'ADMIN',
+    'ATIVO'
+);
+
+INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
+VALUES (
+    'Carlos Menezes',
+    'colaborador@decos.com.br',
+    '$2b$12$8p1jH6uK8zQ9yX2wV4tR6eO0mN3lB5vC7xZ9aS1dF3gH5jK7lM9nP',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'UTI'),
+    'Técnico de Enfermagem',
+    TRUNC(SYSDATE) - NUMTOYMINTERVAL(29, 'YEAR'),
+    'COLABORADOR',
+    'ATIVO'
+);
+
+INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
+VALUES (
+    'Patrícia Nunes',
+    'rh@decos.com.br',
+    '$2b$12$8p1jH6uK8zQ9yX2wV4tR6eO0mN3lB5vC7xZ9aS1dF3gH5jK7lM9nP',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'RH'),
+    'Analista de Recursos Humanos',
+    DATE '1982-05-19',
+    'RH',
+    'ATIVO'
+);
+
+INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
+VALUES (
+    'Maria Silva',
+    'marketing@decos.com.br',
+    '$2b$12$8p1jH6uK8zQ9yX2wV4tR6eO0mN3lB5vC7xZ9aS1dF3gH5jK7lM9nP',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Administração'),
+    'Analista de Comunicação e Marketing',
+    DATE '1999-08-09',
+    'MARKETING',
+    'ATIVO'
+);
+
+INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
+VALUES (
+    'Roberto Almeida (Inativo)',
+    'inativo@decos.com.br',
+    '$2b$12$8p1jH6uK8zQ9yX2wV4tR6eO0mN3lB5vC7xZ9aS1dF3gH5jK7lM9nP',
+    (SELECT ID_SETOR FROM SETORES WHERE NOME = 'Administração'),
+    'Auxiliar Administrativo',
+    DATE '1991-01-30',
+    'COLABORADOR',
+    'INATIVO'
+);
+
+INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
+VALUES (
+    'Beatriz Nogueira',
+    'beatriz.nogueira@decos.com.br',
+    '$2b$12$8p1jH6uK8zQ9yX2wV4tR6eO0mN3lB5vC7xZ9aS1dF3gH5jK7lM9nP',
+    NULL,
+    'Enfermeira Volante (Pool Assistencial)',
+    DATE '1993-10-15',
+    'COLABORADOR',
+    'ATIVO'
+);
+
 COMMIT;

@@ -77,8 +77,17 @@ class UsuarioCreate(BaseModel):
     @field_validator("data_nascimento", mode="before")
     @classmethod
     def _limpar_data(cls, v):
-        if v == "":
+        if v is None or v == "":
             return None
+        if isinstance(v, str):
+            v = v.strip()
+            match = re.match(r"^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$", v)
+            if match:
+                dia, mes, ano = match.groups()
+                try:
+                    return date(int(ano), int(mes), int(dia))
+                except ValueError as err:
+                    raise ValueError(f"Data inválida: {err}") from err
         return v
 
     @field_validator("data_nascimento")
@@ -128,8 +137,17 @@ class UsuarioUpdate(BaseModel):
     @field_validator("data_nascimento", mode="before")
     @classmethod
     def _limpar_data(cls, v):
-        if v == "":
+        if v is None or v == "":
             return None
+        if isinstance(v, str):
+            v = v.strip()
+            match = re.match(r"^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$", v)
+            if match:
+                dia, mes, ano = match.groups()
+                try:
+                    return date(int(ano), int(mes), int(dia))
+                except ValueError as err:
+                    raise ValueError(f"Data inválida: {err}") from err
         return v
 
     @field_validator("data_nascimento")

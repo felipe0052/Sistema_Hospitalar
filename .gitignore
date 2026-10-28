@@ -33,6 +33,7 @@ test-results/
 !frontend/.env.example
 
 # IDEs e Sistema Operacional
+.run/
 .vscode/
 .idea/
 .DS_Store

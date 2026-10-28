@@ -12,9 +12,13 @@
 export function formatarData(valor) {
   if (!valor) return "—";
 
-  // Tratamento direto para strings YYYY-MM-DD para evitar conversões e desvios de fuso horário UTC
   if (typeof valor === "string") {
     const limpo = valor.trim();
+    const matchBr = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(limpo);
+    if (matchBr) {
+      const [, dia, mes, ano] = matchBr;
+      return `${dia.padStart(2, "0")}/${mes.padStart(2, "0")}/${ano}`;
+    }
     const matchSimples = /^(\d{4})-(\d{2})-(\d{2})/.exec(limpo);
     if (matchSimples && limpo.length === 10) {
       const [, ano, mes, dia] = matchSimples;

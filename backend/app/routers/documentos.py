@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_optional_user, require_roles
-from app.core.exceptions import AppError
+from app.core.exceptions import HTTP_422_STATUS, AppError
 from app.models.usuario import Usuario
 from app.schemas.documento import (
     DocumentoMetadadosIn,
@@ -98,7 +98,7 @@ async def criar_documento(
         raise AppError(
             "Selecione um arquivo PDF ou DOCX para enviar.",
             erros={"arquivo": "Este campo é obrigatório."},
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=HTTP_422_STATUS,
         )
 
     conteudo = await arquivo.read()
