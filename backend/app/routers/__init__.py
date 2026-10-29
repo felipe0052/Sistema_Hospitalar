@@ -10,6 +10,9 @@ from app.routers import (
     eventos,
     faq,
     google_agenda,
+    ia,
+    notificacoes,
+    reconhecimentos,
     setores,
     usuarios,
 )
@@ -26,3 +29,7 @@ api_router.include_router(google_agenda.router)
 api_router.include_router(documentos.router)
 api_router.include_router(faq.router)
 api_router.include_router(dashboard.router)
+api_router.include_router(notificacoes.router)
+api_router.include_router(reconhecimentos.router)
+api_router.include_router(reconhecimentos.router_indicacoes)
+api_router.include_router(ia.router)

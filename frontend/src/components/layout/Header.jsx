@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import decoLogo from "../../imports/Decos_Hospital_Logo_Horizontal_Transparente.png";
 import { useTheme } from "../../hooks/useTheme";
 import { Badge } from "../ui/Badge";
+import NotificacoesSino from "./NotificacoesSino";
 
 export function Header({ menuAberto = false, onAlternarMenu }) {
   const { usuario, autenticado, sair } = useAuth();
   const navigate = useNavigate();
-  const [notifOpen, setNotifOpen] = useState(false);
   const { escuro, alternar } = useTheme();
 
   const iniciais = (usuario?.nome || "Colaborador")
@@ -98,75 +98,19 @@ export function Header({ menuAberto = false, onAlternarMenu }) {
             )}
           </svg>
         </button>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setNotifOpen((v) => !v)}
-            aria-label="Notificações"
-            aria-expanded={notifOpen}
-            className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-[#64748b] cursor-pointer"
+        {autenticado && (
+          <Link
+            to="/perfil/integracoes"
+            aria-label="Integrações (Google Agenda)"
+            title="Integrações"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-[#64748b]"
           >
-            <svg
-              aria-hidden="true"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 01-3.46 0" />
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71 M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
-            <span
-              className="absolute top-1 right-1 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center"
-              style={{ backgroundColor: "var(--bordeaux)" }}
-            >
-              3
-            </span>
-          </button>
-
-          {notifOpen && (
-            <div
-              className="absolute right-0 top-11 w-80 bg-white rounded-xl z-50 overflow-hidden"
-              style={{
-                boxShadow: "var(--shadow-lg)",
-                border: "1px solid var(--color-border)",
-              }}
-            >
-              <div
-                className="px-4 py-3 flex items-center justify-between"
-                style={{ borderBottom: "1px solid var(--color-border)" }}
-              >
-                <span className="font-semibold text-sm text-[#1e293b]">Notificações</span>
-                <button
-                  type="button"
-                  onClick={() => setNotifOpen(false)}
-                  className="text-xs font-medium text-[#800020] hover:underline cursor-pointer"
-                >
-                  Fechar
-                </button>
-              </div>
-              {[
-                "Hospital Decós conquista certificação ONA Nível III",
-                "Protocolo de higienização das mãos atualizado pela CCIH",
-                "Treinamento prático de BLS disponível na agenda",
-              ].map((texto, idx) => (
-                <div
-                  key={idx}
-                  className="px-4 py-3 text-xs text-[#334155] flex gap-2.5 items-start border-b border-slate-100 last:border-none"
-                >
-                  <span
-                    className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: "var(--bordeaux)" }}
-                  />
-                  <span>{texto}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          </Link>
+        )}
+        {autenticado && <NotificacoesSino />}
 
         <div
           className="flex items-center gap-3 pl-4"

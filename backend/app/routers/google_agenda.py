@@ -58,6 +58,12 @@ def definir_preferencias(
     return {"receber_todos": payload.receber_todos, "adicionados": novos}
 
 
+@router.post("/sincronizar")
+def sincronizar(db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)) -> dict:
+    """Envia os eventos futuros à agenda Google do usuário e devolve o resumo (criados, erros...)."""
+    return service.sincronizar(db, usuario)
+
+
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 def desconectar(db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)) -> Response:
     service.desconectar(db, usuario)

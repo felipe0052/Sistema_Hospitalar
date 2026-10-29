@@ -308,6 +308,8 @@ def _enviar_pops_com_cliente(client: Any, base_prefix: str = "/api/v1") -> int:
                 "categoria": item["categoria"],
                 "descricao": item["descricao"],
                 "palavras_chave": item["palavras_chave"],
+                # Código do POP = prefixo do título (ex.: "POP-ENF-002"); documentos sem prefixo ficam sem código
+                "codigo": item["titulo"].split(" — ")[0] if item["titulo"].startswith("POP-") else "",
             },
             files={"arquivo": (caminho.name, caminho.read_bytes(), mime)},
         )

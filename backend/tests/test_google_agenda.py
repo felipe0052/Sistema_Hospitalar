@@ -183,3 +183,69 @@ def test_sem_receber_todos_evento_novo_nao_vai_para_agenda(client: TestClient, g
         },
     )
     assert client.get("/api/v1/google-agenda/status", headers=colab).json()["eventos_adicionados"] == []
+
+
+def test_botao_sincronizar_envia_eventos_futuros_sem_duplicar(client: TestClient, google, db_session):
+    h = _headers(client)
+    assert client.post("/api/v1/google-agenda/sincronizar", headers=h).status_code == 400  # sem conexão
+
+    _conectar(client, h)
+    _evento(db_session)
+    db_session.add(Evento(titulo="Palestra", categoria="OUTRO", data_inicio=datetime.now() + timedelta(days=9)))
+    db_session.commit()
+
+    primeira = client.post("/api/v1/google-agenda/sincronizar", headers=h)
+    assert primeira.status_code == 200
+    assert primeira.json() == {"criados": 2, "atualizados": 0, "sem_alteracao": 0, "erros": []}
+
+    segunda = client.post("/api/v1/google-agenda/sincronizar", headers=h).json()
+    assert segunda == {"criados": 0, "atualizados": 0, "sem_alteracao": 2, "erros": []}
+    assert len([c for c in google if c[0] == "POST"]) == 2  # nada duplicado no Google
+
+
+def test_sincronizar_continua_apos_erro_em_um_evento(client: TestClient, google, db_session, monkeypatch):
+    h = _headers(client)
+    _conectar(client, h)
+    ev_ok = _evento(db_session)
+    ev_ruim = Evento(titulo="Falha", categoria="OUTRO", data_inicio=datetime.now() + timedelta(days=1))
+    db_session.add(ev_ruim)
+    db_session.commit()
+
+    def calendar(metodo, token, caminho="", corpo=None):
+        if corpo and corpo["summary"] == "Falha":
+            return _Resp(503, {})
+        return _Resp(200, {"id": "g1"})
+
+    monkeypatch.setattr(svc, "_calendar", calendar)
+    resumo = client.post("/api/v1/google-agenda/sincronizar", headers=h).json()
+    assert resumo["criados"] == 1
+    assert [e["id_evento"] for e in resumo["erros"]] == [ev_ruim.id_evento]
+    assert ev_ok != ev_ruim.id_evento
+
+
+def test_sincronizar_com_token_revogado_pede_reconexao(client: TestClient, google, monkeypatch):
+    h = _headers(client)
+    _conectar(client, h)
+
+    def post_form(url, data):
+        return _Resp(400, {"error": "invalid_grant"})
+
+    monkeypatch.setattr(svc, "_post_form", post_form)
+    res = client.post("/api/v1/google-agenda/sincronizar", headers=h)
+    assert res.status_code == 409
+    assert res.json()["detail"] == "Reconecte sua conta do Google Agenda."
+    assert client.get("/api/v1/google-agenda/status", headers=h).json()["conectado"] is False
+
+
+def test_sincronizar_simultaneo_retorna_409(client: TestClient, google, db_session):
+    h = _headers(client)
+    _conectar(client, h)
+    from app.models.usuario import Usuario
+
+    uid = db_session.query(Usuario).filter(Usuario.email == "colaborador@decos.com.br").one().id_usuario
+    svc._sincronizando.add(uid)
+    try:
+        res = client.post("/api/v1/google-agenda/sincronizar", headers=h)
+    finally:
+        svc._sincronizando.discard(uid)
+    assert res.status_code == 409 and res.json()["detail"] == "Sincronização em andamento."

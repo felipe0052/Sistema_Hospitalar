@@ -138,3 +138,33 @@ SELECT * FROM VW_DIRETORIO;
 -- 2. Consultar apenas avisos vigentes (sem data de expiração ou não expirados)
 SELECT * FROM AVISOS WHERE DATA_EXPIRACAO IS NULL OR DATA_EXPIRACAO >= TRUNC(SYSDATE);
 ```
+
+## 4. Extras da Semana 5 (`database/init/04_ddl_extras.sql`)
+
+O script roda sobre o banco do MVP sem apagar dados. Em bancos já criados (o `init` só executa na 1ª subida do container):
+
+```bash
+docker exec -i intranet-decos-oracle sqlplus -s decos/decos123@FREEPDB1 < database/init/04_ddl_extras.sql
+```
+
+| Objeto | Para que serve |
+|---|---|
+| `AVISOS.PRIORIDADE` (`NORMAL`/`URGENTE`) | carrossel e destaque de avisos urgentes |
+| `DOCUMENTOS.CODIGO`, `JUSTIFICATIVA`, `RESUMO`, `STATUS_INDEXACAO` | código do POP, motivo da nova versão, resumo e situação da indexação (`PENDENTE`, `PROCESSANDO`, `INDEXADO`, `ERRO`, `SEM_TEXTO`). A versão vigente continua sendo `ATIVO = 'S'` (versionamento por tipo + título, já existente) |
+| `DOCUMENTO_TRECHOS` | trechos de ~1.000 caracteres com `EMBEDDING VECTOR(384, FLOAT32)` — base de conhecimento do RAG |
+| `RECONHECIMENTOS` | reconhecimentos publicados pelo RH/Admin |
+| `INDICACOES_RECONHECIMENTO` | indicações de colegas (`PENDENTE`/`APROVADA`/`RECUSADA`); `CK_INDIC_PROPRIA` impede autoindicação |
+| `NOTIFICACOES` | uma linha por publicação; `UQ_NOTIF_REFERENCIA (TIPO, ID_REFERENCIA, DATA_REFERENCIA)` impede duplicidade |
+| `NOTIFICACOES_LIDAS` | estado de leitura por usuário |
+| `LOG_IA` | log do assistente (usado a partir da Semana 6) |
+
+As tabelas do Google Agenda (`INTEGRACOES_GOOGLE`, `EVENTOS_GOOGLE`) continuam em `migrations_google_agenda.sql`.
+
+Busca vetorial (dimensão = modelo de embedding, 384):
+
+```sql
+SELECT ID_TRECHO FROM DOCUMENTO_TRECHOS
+ ORDER BY VECTOR_DISTANCE(EMBEDDING, :v, COSINE) FETCH FIRST 5 ROWS ONLY;
+```
+
+Validação de constraints: inserir duas vezes a mesma `(TIPO, ID_REFERENCIA, DATA_REFERENCIA)` em `NOTIFICACOES` retorna `ORA-00001`.

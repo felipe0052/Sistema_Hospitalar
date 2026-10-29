@@ -10,6 +10,7 @@ const ICONS = {
   users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75",
   folder: "M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z",
   chat: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+  award: "M12 15a7 7 0 100-14 7 7 0 000 14z M8.21 13.89L7 23l5-3 5 3-1.21-9.12",
   shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   building: "M3 21h18 M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16 M9 9h2 M13 9h2 M9 13h2 M13 13h2",
   logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9",
@@ -43,6 +44,7 @@ const MENU_PRINCIPAL = [
   { to: "/diretorio", label: "Diretório e Ramais", icon: ICONS.users },
   { to: "/documentos", label: "Documentos (POPs)", icon: ICONS.folder },
   { to: "/faq", label: "FAQ (Central de Ajuda)", icon: ICONS.chat },
+  { to: "/reconhecimentos", label: "Reconhecimentos", icon: ICONS.award, requerLogin: true },
 ];
 
 export function Sidebar() {
@@ -60,7 +62,7 @@ export function Sidebar() {
         <div className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">
           Navegação
         </div>
-        {MENU_PRINCIPAL.map((item) => (
+        {MENU_PRINCIPAL.filter((item) => !item.requerLogin || autenticado).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

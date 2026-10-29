@@ -116,6 +116,7 @@ export default function Avisos() {
     categoria: "COMUNICADO",
     conteudo: "",
     destaque: false,
+    prioridade: "NORMAL",
     data_expiracao: "",
   });
   const [errosForm, setErrosForm] = useState({});
@@ -191,6 +192,7 @@ export default function Avisos() {
       categoria: "COMUNICADO",
       conteudo: "",
       destaque: false,
+      prioridade: "NORMAL",
       data_expiracao: "",
     });
     setErrosForm({});
@@ -209,6 +211,7 @@ export default function Avisos() {
         categoria: completo.categoria || "COMUNICADO",
         conteudo: completo.conteudo || "",
         destaque: Boolean(completo.destaque),
+        prioridade: completo.prioridade || "NORMAL",
         data_expiracao: completo.data_expiracao ? String(completo.data_expiracao).slice(0, 10) : "",
       });
       setModalFormOpen(true);
@@ -272,6 +275,7 @@ export default function Avisos() {
         categoria: formDados.categoria,
         conteudo: conteudoLimpo,
         destaque: Boolean(formDados.destaque),
+        prioridade: formDados.prioridade || "NORMAL",
         data_expiracao: formDados.data_expiracao || null,
       };
 
@@ -372,6 +376,7 @@ export default function Avisos() {
                 <Badge variant={CATEGORIA_BADGE_VARIANT[avisoDetalhe.categoria] || "default"}>
                   {CATEGORIA_LABELS[avisoDetalhe.categoria] || avisoDetalhe.categoria}
                 </Badge>
+                {avisoDetalhe.prioridade === "URGENTE" && <Badge variant="inativo">⚠ URGENTE</Badge>}
                 {avisoDetalhe.destaque && <Badge variant="primary">★ Destaque</Badge>}
                 {avisoDetalhe.expirado && <Badge variant="inativo">Expirado</Badge>}
               </div>
@@ -549,6 +554,16 @@ export default function Avisos() {
                 }}
               />
             </div>
+
+            <Select
+              label="Prioridade"
+              value={formDados.prioridade}
+              onChange={(e) => setFormDados((prev) => ({ ...prev, prioridade: e.target.value }))}
+              options={[
+                { value: "NORMAL", label: "Normal" },
+                { value: "URGENTE", label: "Urgente (destaque em vermelho)" },
+              ]}
+            />
 
             <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
               <input
@@ -747,7 +762,11 @@ export default function Avisos() {
               <Card
                 key={aviso.id_aviso}
                 className={`space-y-3 flex flex-col justify-between transition-shadow hover:shadow-md ${
-                  aviso.destaque ? "border-[#800020]/30" : ""
+                  aviso.prioridade === "URGENTE"
+                    ? "border-[#dc2626] bg-[#fef2f2]"
+                    : aviso.destaque
+                      ? "border-[#800020]/30"
+                      : ""
                 }`}
               >
                 <div className="space-y-2">
@@ -756,6 +775,7 @@ export default function Avisos() {
                       <Badge variant={CATEGORIA_BADGE_VARIANT[aviso.categoria] || "default"}>
                         {CATEGORIA_LABELS[aviso.categoria] || aviso.categoria}
                       </Badge>
+                      {aviso.prioridade === "URGENTE" && <Badge variant="inativo">⚠ URGENTE</Badge>}
                       {aviso.destaque && <Badge variant="primary">Destaque</Badge>}
                       {aviso.expirado && <Badge variant="inativo">Expirado</Badge>}
                     </div>

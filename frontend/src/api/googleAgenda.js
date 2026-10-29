@@ -26,3 +26,8 @@ export async function definirReceberTodosGoogle(receberTodos) {
   const { data } = await apiClient.put("/google-agenda/preferencias", { receber_todos: receberTodos });
   return data;
 }
+
+export async function sincronizarEventosGoogle() {
+  const { data } = await apiClient.post("/google-agenda/sincronizar", null, { timeout: 60000 });
+  return data;
+}

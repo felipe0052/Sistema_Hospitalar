@@ -180,8 +180,13 @@ def converter_para_out(doc: Documento) -> DocumentoOut:
         nome_arquivo=doc.nome_arquivo,
         mime_type=doc.mime_type,
         tamanho_bytes=doc.tamanho_bytes,
+        codigo=doc.codigo,
         versao=doc.versao,
         ativo=(doc.ativo == "S"),
+        status_versao="VIGENTE" if doc.ativo == "S" else "ARQUIVADO",
+        justificativa=doc.justificativa,
+        resumo=doc.resumo,
+        status_indexacao=doc.status_indexacao or "PENDENTE",
         autor=autor_out,
         data_upload=doc.data_upload,
         data_atualizacao=doc.data_atualizacao,
@@ -344,6 +349,8 @@ def criar_documento(
     conteudo: bytes | None = None,
     autor: Usuario | None = None,
     storage: StorageService | None = None,
+    codigo: str | None = None,
+    justificativa: str | None = None,
 ) -> DocumentoOut:
     usuario_autor = usuario or autor
     if usuario_autor is None:
@@ -386,6 +393,10 @@ def criar_documento(
     # Versionamento: mesmo tipo + titulo (case insensitive) => nova versao, anteriores ficam inativas
     anteriores = _mesmo_documento(db.query(Documento), tipo_final, titulo_final).all()
     nova_versao = max((d.versao for d in anteriores), default=0) + 1
+    codigo_final = (codigo or "").strip() or next(
+        (d.codigo for d in sorted(anteriores, key=lambda x: x.versao, reverse=True) if d.codigo), None
+    )
+    justificativa_final = (justificativa or "").strip()[:500] or None
 
     chave = f"documentos/{uuid.uuid4().hex}.{ext}"
     servico_storage = storage or get_storage_service()
@@ -407,6 +418,8 @@ def criar_documento(
             nome_arquivo=nome_limpo[:255],
             mime_type=mime_type,
             tamanho_bytes=len(conteudo),
+            codigo=codigo_final[:30] if codigo_final else None,
+            justificativa=justificativa_final,
             versao=nova_versao,
             ativo="S",
             id_autor=usuario_autor.id_usuario,
@@ -421,6 +434,39 @@ def criar_documento(
         raise
 
     return converter_para_out(novo)
+
+
+def criar_nova_versao(
+    db: Session,
+    id_doc: int,
+    nome_arquivo: str | None,
+    conteudo: bytes,
+    usuario: Usuario,
+    justificativa: str | None = None,
+    categoria: str | None = None,
+    descricao: str | None = None,
+    palavras_chave: str | None = None,
+    storage: StorageService | None = None,
+) -> DocumentoOut:
+    """Publica uma nova versão de um POP existente: mesma identidade (tipo + título), versão + 1.
+
+    A versão anterior fica arquivada na mesma transação; metadados não informados são herdados.
+    """
+    base = _obter_modelo_documento(db, id_doc)
+    return criar_documento(
+        db=db,
+        titulo=base.titulo,
+        tipo=base.tipo,
+        categoria=categoria if categoria is not None else base.categoria,
+        descricao=descricao if descricao is not None else base.descricao,
+        palavras_chave=palavras_chave if palavras_chave is not None else base.palavras_chave,
+        usuario=usuario,
+        nome_arquivo=nome_arquivo,
+        conteudo=conteudo,
+        storage=storage,
+        codigo=base.codigo,
+        justificativa=justificativa,
+    )
 
 
 def atualizar_documento(
@@ -445,6 +491,7 @@ def atualizar_documento(
         doc.nome_arquivo = nome_limpo
         doc.mime_type = mime_type
         doc.tamanho_bytes = len(conteudo)
+        doc.status_indexacao = "PENDENTE"  # arquivo novo: trechos antigos deixam de valer até reindexar
 
     try:
         doc.titulo = metadados.titulo

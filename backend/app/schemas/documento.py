@@ -94,8 +94,13 @@ class DocumentoOut(BaseModel):
     nome_arquivo: str
     mime_type: str
     tamanho_bytes: int
+    codigo: str | None = None
     versao: int = 1
     ativo: bool = True
+    status_versao: Literal["VIGENTE", "ARQUIVADO"] = "VIGENTE"
+    justificativa: str | None = None
+    resumo: str | None = None
+    status_indexacao: str = "PENDENTE"
     autor: AutorDocumentoOut | None = None
     data_upload: datetime
     data_atualizacao: datetime | None = None

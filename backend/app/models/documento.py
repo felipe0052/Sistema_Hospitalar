@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -25,6 +25,12 @@ class Documento(Base):
     tamanho_bytes: Mapped[int] = mapped_column("TAMANHO_BYTES", Integer, nullable=False)
     versao: Mapped[int] = mapped_column("VERSAO", Integer, nullable=False, default=1, server_default="1")
     ativo: Mapped[str] = mapped_column("ATIVO", String(1), nullable=False, default="S", server_default="S")
+    codigo: Mapped[str | None] = mapped_column("CODIGO", String(30), nullable=True)
+    justificativa: Mapped[str | None] = mapped_column("JUSTIFICATIVA", String(500), nullable=True)
+    resumo: Mapped[str | None] = mapped_column("RESUMO", Text, nullable=True)
+    status_indexacao: Mapped[str] = mapped_column(
+        "STATUS_INDEXACAO", String(15), nullable=False, default="PENDENTE", server_default="PENDENTE"
+    )
     id_autor: Mapped[int | None] = mapped_column("ID_AUTOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True)
     data_upload: Mapped[datetime] = mapped_column("DATA_UPLOAD", DateTime, server_default=func.now())
     data_atualizacao: Mapped[datetime | None] = mapped_column("DATA_ATUALIZACAO", DateTime, nullable=True)

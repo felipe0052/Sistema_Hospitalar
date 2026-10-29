@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import or_
+from sqlalchemy import case, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import NaoEncontrado, RegraNegocio
@@ -15,6 +15,7 @@ from app.schemas.aviso import (
     PaginadoAvisosResumoOut,
     extrair_resumo_sem_html,
 )
+from app.services import notificacao_service
 
 PERFIS_GESTAO_AVISOS = ("ADMIN", "RH", "MARKETING")
 
@@ -36,6 +37,7 @@ def converter_para_resumo(aviso: Aviso) -> AvisoResumo:
         resumo=extrair_resumo_sem_html(aviso.conteudo, tamanho_max=200),
         categoria=aviso.categoria,  # type: ignore[arg-type]
         destaque=(aviso.destaque == "S"),
+        prioridade=aviso.prioridade or "NORMAL",  # type: ignore[arg-type]
         data_publicacao=aviso.data_publicacao,
         autor=autor_out,
     )
@@ -185,6 +187,7 @@ def criar_aviso(db: Session, dados: AvisoIn, autor: Usuario) -> AvisoOut:
         conteudo=dados.conteudo,
         categoria=dados.categoria,
         destaque="S" if dados.destaque else "N",
+        prioridade=dados.prioridade,
         data_publicacao=datetime.now(UTC).replace(tzinfo=None),
         data_expiracao=dados.data_expiracao,
         id_autor=autor.id_usuario,
@@ -192,6 +195,8 @@ def criar_aviso(db: Session, dados: AvisoIn, autor: Usuario) -> AvisoOut:
     db.add(novo)
     db.commit()
     db.refresh(novo)
+    if novo.categoria == "NOTICIA":
+        notificacao_service.registrar(db, "NOTICIA", novo.id_aviso, novo.titulo)
     return obter_aviso(db, novo.id_aviso, autor)
 
 
@@ -206,6 +211,7 @@ def atualizar_aviso(db: Session, id_aviso: int, dados: AvisoIn, autor: Usuario) 
     aviso.conteudo = dados.conteudo
     aviso.categoria = dados.categoria
     aviso.destaque = "S" if dados.destaque else "N"
+    aviso.prioridade = dados.prioridade
     aviso.data_expiracao = dados.data_expiracao
     aviso.data_atualizacao = datetime.now(UTC).replace(tzinfo=None)
 
@@ -221,6 +227,7 @@ def excluir_aviso(db: Session, id_aviso: int) -> None:
 
     db.delete(aviso)
     db.commit()
+    notificacao_service.remover(db, "NOTICIA", id_aviso)
 
 
 def listar_destaques_e_ultimos_dashboard(
@@ -236,7 +243,11 @@ def listar_destaques_e_ultimos_dashboard(
 
     destaques = (
         base_query.filter(Aviso.destaque == "S")
-        .order_by(Aviso.data_publicacao.desc(), Aviso.id_aviso.desc())
+        .order_by(
+            case((Aviso.prioridade == "URGENTE", 0), else_=1),
+            Aviso.data_publicacao.desc(),
+            Aviso.id_aviso.desc(),
+        )
         .limit(limite_destaques)
         .all()
     )

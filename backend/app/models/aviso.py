@@ -18,6 +18,9 @@ class Aviso(Base):
     conteudo: Mapped[str] = mapped_column("CONTEUDO", Text, nullable=False)
     categoria: Mapped[str] = mapped_column("CATEGORIA", String(50), nullable=False, default="COMUNICADO")
     destaque: Mapped[str] = mapped_column("DESTAQUE", String(1), nullable=False, default="N")
+    prioridade: Mapped[str] = mapped_column(
+        "PRIORIDADE", String(10), nullable=False, default="NORMAL", server_default="NORMAL"
+    )
     data_publicacao: Mapped[datetime] = mapped_column("DATA_PUBLICACAO", DateTime, server_default=func.now())
     data_expiracao: Mapped[date | None] = mapped_column("DATA_EXPIRACAO", Date, nullable=True)
     data_atualizacao: Mapped[datetime | None] = mapped_column("DATA_ATUALIZACAO", DateTime, nullable=True)

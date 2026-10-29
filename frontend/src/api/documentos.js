@@ -287,6 +287,41 @@ export async function criarDocumento(formData, onUploadProgress) {
   return data;
 }
 
+/** Publica uma nova versão de um POP existente (a anterior é arquivada pelo back-end). */
+export async function enviarNovaVersaoDocumento(id, formData, onUploadProgress) {
+  if (useMocks) {
+    const base = documentosMemoria.find((d) => Number(d.id_doc) === Number(id));
+    if (!base) {
+      const err = new Error("Documento não encontrado.");
+      err.status = 404;
+      err.mensagem = err.message;
+      throw err;
+    }
+    formData.set("titulo", base.titulo);
+    formData.set("tipo", base.tipo);
+    const mesmoPop = (d) => d.tipo === base.tipo && semAcentos(d.titulo) === semAcentos(base.titulo);
+    const maiorVersao = Math.max(...documentosMemoria.filter(mesmoPop).map((d) => d.versao || 1));
+    documentosMemoria = documentosMemoria.map((d) => (mesmoPop(d) ? { ...d, ativo: false } : d));
+    const criado = await criarDocumento(formData, onUploadProgress);
+    const atualizado = {
+      ...criado,
+      versao: maiorVersao + 1,
+      codigo: base.codigo || null,
+      justificativa: String(formData.get("justificativa") || "") || null,
+      status_versao: "VIGENTE",
+    };
+    documentosMemoria = documentosMemoria.map((d) => (d.id_doc === criado.id_doc ? atualizado : d));
+    return atualizado;
+  }
+
+  const { data } = await apiClient.post(`/documentos/${id}/nova-versao`, formData, {
+    headers: { "Content-Type": null },
+    onUploadProgress,
+    timeout: 60000,
+  });
+  return data;
+}
+
 export async function enviarDocumento({ arquivo, titulo, tipo, categoria, descricao, palavras_chave }) {
   const form = new FormData();
   if (arquivo) form.append("arquivo", arquivo);

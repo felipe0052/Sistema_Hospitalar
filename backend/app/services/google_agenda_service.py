@@ -2,7 +2,8 @@
 
 import base64
 import hashlib
-from datetime import UTC, datetime, timedelta
+import threading
+from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import urlencode
 
 import httpx
@@ -11,7 +12,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.exceptions import NaoEncontrado, RegraNegocio
+from app.core.exceptions import Conflito, NaoEncontrado, RegraNegocio
 from app.models.evento import Evento
 from app.models.google_agenda import EventoGoogle, IntegracaoGoogle
 from app.models.usuario import Usuario
@@ -227,6 +228,51 @@ def _enviar(db: Session, id_usuario: int, evento: Evento, token: str) -> bool:
     db.add(EventoGoogle(id_usuario=id_usuario, id_evento=evento.id_evento, google_event_id=resp.json()["id"]))
     db.flush()
     return True
+
+
+_sincronizando: set[int] = set()
+_trava_sincronizacao = threading.Lock()
+
+
+def sincronizar(db: Session, usuario: Usuario) -> dict:
+    """Botão "Sincronizar eventos": envia ao Google os eventos de hoje em diante que ainda não estão na agenda.
+
+    Nunca duplica (o vínculo EVENTOS_GOOGLE evita), continua se um evento falhar e devolve um resumo.
+    """
+    _exigir_configuracao()
+    with _trava_sincronizacao:
+        if usuario.id_usuario in _sincronizando:
+            raise Conflito("Sincronização em andamento.")
+        _sincronizando.add(usuario.id_usuario)
+    try:
+        integracao = _integracao(db, usuario)
+        try:
+            token = _access_token(db, integracao)
+        except RegraNegocio as exc:
+            raise Conflito("Reconecte sua conta do Google Agenda.") from exc
+
+        ja_enviados = {
+            v.id_evento for v in db.query(EventoGoogle).filter(EventoGoogle.id_usuario == usuario.id_usuario)
+        }
+        inicio_hoje = datetime.combine(date.today(), time.min)
+        futuros = db.query(Evento).filter(Evento.data_inicio >= inicio_hoje).order_by(Evento.data_inicio).all()
+
+        resumo: dict = {"criados": 0, "atualizados": 0, "sem_alteracao": 0, "erros": []}
+        for evento in futuros:
+            if evento.id_evento in ja_enviados:
+                resumo["sem_alteracao"] += 1  # edições já são propagadas por sincronizar_atualizacao
+                continue
+            try:
+                _enviar(db, usuario.id_usuario, evento, token)
+                db.commit()
+                resumo["criados"] += 1
+            except Exception as exc:  # noqa: BLE001 - um evento com falha não interrompe os demais
+                db.rollback()
+                mensagem = exc.detail if isinstance(exc, RegraNegocio) else "Falha ao enviar o evento."
+                resumo["erros"].append({"id_evento": evento.id_evento, "mensagem": mensagem})
+        return resumo
+    finally:
+        _sincronizando.discard(usuario.id_usuario)
 
 
 def definir_receber_todos(db: Session, usuario: Usuario, ativo: bool) -> int:

@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     # Semanas 5-6
     GEMINI_API_KEY: str = ""
     IA_MODELO_CHAT: str = "gemini-2.5-flash"
-    IA_MODELO_EMBEDDING: str = "gemini-embedding-001"
+    # Embeddings locais de 384 dimensões (= VECTOR(384)). "auto": sentence-transformers se instalado, senão hashing.
+    IA_MODELO_EMBEDDING: str = "sentence-transformers/all-MiniLM-L6-v2"
+    IA_EMBEDDING_BACKEND: str = "auto"  # auto | local | hash
     IA_TIMEOUT_SEGUNDOS: int = 20
 
     @property

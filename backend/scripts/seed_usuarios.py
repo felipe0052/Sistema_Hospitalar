@@ -11,8 +11,10 @@ from app.models.aviso import Aviso
 from app.models.evento import Evento
 from app.models.faq import Faq
 from app.models.ramal import Ramal
+from app.models.reconhecimento import IndicacaoReconhecimento, Reconhecimento
 from app.models.setor import Setor
 from app.models.usuario import Usuario
+from app.services import notificacao_service
 
 SETORES_BASE = [
     ("UTI", "2º andar", [("2101", "Posto de Enfermagem UTI"), ("2102", "Coordenação UTI"), ("2103", "Secretaria UTI")]),
@@ -456,6 +458,122 @@ def _seed_avisos_e_eventos(db, mapa_setores: dict[str, int], mapa_usuarios: dict
             )
 
 
+def _seed_extras(db, mapa_usuarios: dict[str, int]) -> None:
+    """Dados de exemplo da Semana 5: avisos urgentes, evento de hoje, reconhecimentos, indicações e notificações."""
+    agora = datetime.now().replace(second=0, microsecond=0)
+    hoje = date.today()
+    id_admin = mapa_usuarios["admin@decos.com.br"]
+    id_rh = mapa_usuarios["rh@decos.com.br"]
+    id_mkt = mapa_usuarios["marketing@decos.com.br"]
+
+    # 2 avisos urgentes (carrossel)
+    urgentes = [
+        (
+            "URGENTE: simulado de evacuação hoje às 15h em todos os andares",
+            "<p>Hoje, às <strong>15h</strong>, será realizado o simulado de evacuação. Siga as orientações da brigada.</p>",
+            id_admin,
+        ),
+        (
+            "URGENTE: sistema de prontuário em manutenção programada neste sábado",
+            "<p>No sábado, das <strong>22h às 02h</strong>, o prontuário ficará indisponível. Use o protocolo de contingência.</p>",
+            id_mkt,
+        ),
+    ]
+    for titulo, conteudo, id_autor in urgentes:
+        if db.query(Aviso).filter(Aviso.titulo == titulo).first() is None:
+            db.add(
+                Aviso(
+                    titulo=titulo,
+                    conteudo=conteudo,
+                    categoria="COMUNICADO",
+                    destaque="S",
+                    prioridade="URGENTE",
+                    data_publicacao=agora,
+                    id_autor=id_autor,
+                )
+            )
+
+    # 1 evento com data de hoje (testa "evento do dia")
+    titulo_evento = "Dia de Segurança do Paciente — palestra no Auditório"
+    evento = db.query(Evento).filter(Evento.titulo == titulo_evento).first()
+    if evento is None:
+        evento = Evento(
+            titulo=titulo_evento,
+            descricao="Palestra sobre metas internacionais de segurança do paciente.",
+            categoria="INSTITUCIONAL",
+            data_inicio=datetime.combine(hoje, datetime.min.time()) + timedelta(hours=16),
+            data_fim=datetime.combine(hoje, datetime.min.time()) + timedelta(hours=17),
+            local="Auditório Principal — 4º andar",
+            id_autor=id_mkt,
+        )
+        db.add(evento)
+    db.commit()
+
+    # 6 reconhecimentos para colaboradores variados + 3 indicações pendentes
+    colaboradores = (
+        db.query(Usuario)
+        .filter(Usuario.perfil == "COLABORADOR", Usuario.status == "ATIVO")
+        .order_by(Usuario.id_usuario)
+        .all()
+    )
+    reconhecimentos = [
+        ("PROMOCAO", "Promoção a Enfermeira Líder da UTI", "Reconhecemos a liderança e o cuidado com a equipe."),
+        ("DESTAQUE", "Colaborador destaque do trimestre", "Pela excelência no atendimento e na segurança do paciente."),
+        ("TEMPO_DE_CASA", "10 anos de Hospital Decós", "Uma década de dedicação. Muito obrigado!"),
+        ("AGRADECIMENTO", "Obrigado pelo apoio na campanha de vacinação", "Seu empenho fez toda a diferença."),
+        ("DESTAQUE", "Melhor índice de adesão à higiene das mãos", "Referência para os demais setores."),
+        ("AGRADECIMENTO", "Apoio na integração dos novos colaboradores", "Receber bem é cuidar de todos nós."),
+    ]
+    novos_ids: list[int] = []
+    for i, (tipo, titulo, mensagem) in enumerate(reconhecimentos):
+        if not colaboradores:
+            break
+        if db.query(Reconhecimento).filter(Reconhecimento.titulo == titulo).first() is None:
+            rec = Reconhecimento(
+                id_colaborador=colaboradores[i % len(colaboradores)].id_usuario,
+                tipo=tipo,
+                titulo=titulo,
+                mensagem=mensagem,
+                id_autor=id_rh,
+                data_criacao=agora - timedelta(days=len(reconhecimentos) - i),
+            )
+            db.add(rec)
+            db.flush()
+            novos_ids.append(rec.id_reconhecimento)
+
+    id_colab_teste = mapa_usuarios["colaborador@decos.com.br"]
+    indicados = [c for c in colaboradores if c.id_usuario != id_colab_teste][:3]
+    for indicado, motivo in zip(
+        indicados,
+        ["Sempre disponível para ajudar os colegas.", "Organizou o treinamento do setor.", "Atendimento exemplar."],
+        strict=False,
+    ):
+        ja_existe = (
+            db.query(IndicacaoReconhecimento)
+            .filter(
+                IndicacaoReconhecimento.id_indicado == indicado.id_usuario,
+                IndicacaoReconhecimento.id_indicante == id_colab_teste,
+            )
+            .first()
+        )
+        if ja_existe is None:
+            db.add(
+                IndicacaoReconhecimento(
+                    id_indicado=indicado.id_usuario, id_indicante=id_colab_teste, motivo=motivo, status="PENDENTE"
+                )
+            )
+    db.commit()
+
+    # 3 notificações de exemplo (notícia, evento, reconhecimento) — sem notificações retroativas para o resto
+    noticia = db.query(Aviso).filter(Aviso.categoria == "NOTICIA").order_by(Aviso.id_aviso).first()
+    if noticia is not None:
+        notificacao_service.registrar(db, "NOTICIA", noticia.id_aviso, noticia.titulo)
+    notificacao_service.registrar(db, "EVENTO", evento.id_evento, evento.titulo)
+    if novos_ids:
+        rec = db.query(Reconhecimento).filter(Reconhecimento.id_reconhecimento == novos_ids[0]).one()
+        notificacao_service.registrar(db, "RECONHECIMENTO", rec.id_reconhecimento, rec.titulo)
+
+
 def executar_seed() -> None:
     if settings.DATABASE_URL.startswith("sqlite"):
         Base.metadata.create_all(bind=engine)
@@ -540,6 +658,10 @@ def executar_seed() -> None:
         _seed_avisos_e_eventos(db, mapa_setores, mapa_usuarios)
 
         db.commit()
+
+        # 5. Extras da Semana 5: urgentes, evento de hoje, reconhecimentos, indicações e notificações
+        _seed_extras(db, mapa_usuarios)
+
         total_usuarios = db.query(Usuario).count()
         total_setores = db.query(Setor).count()
         total_avisos = db.query(Aviso).count()

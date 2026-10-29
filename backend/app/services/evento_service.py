@@ -9,7 +9,7 @@ from app.models.evento import Evento
 from app.models.setor import Setor
 from app.models.usuario import Usuario
 from app.schemas.evento import EventoIn, EventoOut
-from app.services import google_agenda_service
+from app.services import google_agenda_service, notificacao_service
 
 
 def _validar_setor(db: Session, id_setor: int | None) -> None:
@@ -127,6 +127,7 @@ def criar_evento(db: Session, dados: EventoIn, autor: Usuario) -> EventoOut:
     db.add(novo)
     db.commit()
     db.refresh(novo)
+    notificacao_service.registrar(db, "EVENTO", novo.id_evento, novo.titulo)
     google_agenda_service.sincronizar_criacao(db, novo)
     return obter_evento(db, novo.id_evento)
 
@@ -161,6 +162,7 @@ def excluir_evento(db: Session, id_evento: int) -> None:
     google_agenda_service.sincronizar_exclusao(db, id_evento)
     db.delete(evento)
     db.commit()
+    notificacao_service.remover(db, notificacao_service.TIPOS_EVENTO, id_evento)
 
 
 def listar_proximos_eventos_dashboard(db: Session, limite: int = 5) -> list[EventoOut]:

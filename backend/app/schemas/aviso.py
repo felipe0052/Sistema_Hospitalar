@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CategoriaAvisoLiteral = Literal["NOTICIA", "COMUNICADO", "PROMOCAO", "MUDANCA_SETOR", "DESTAQUE_CORPORATIVO"]
+PrioridadeAvisoLiteral = Literal["NORMAL", "URGENTE"]
 
 TAGS_PERMITIDAS = {"p", "br", "b", "strong", "i", "em", "ul", "ol", "li", "a"}
 TAGS_IGNORAR_CONTEUDO = {"script", "style", "iframe", "object", "embed"}
@@ -136,6 +137,7 @@ class AvisoIn(BaseModel):
     conteudo: str = Field(min_length=1)
     categoria: CategoriaAvisoLiteral = "COMUNICADO"
     destaque: bool = False
+    prioridade: PrioridadeAvisoLiteral = "NORMAL"
     data_expiracao: date | None = None
 
     @model_validator(mode="after")
@@ -188,6 +190,7 @@ class AvisoResumo(BaseModel):
     resumo: str
     categoria: CategoriaAvisoLiteral
     destaque: bool
+    prioridade: PrioridadeAvisoLiteral = "NORMAL"
     data_publicacao: datetime
     autor: AutorAvisoOut | None = None
 

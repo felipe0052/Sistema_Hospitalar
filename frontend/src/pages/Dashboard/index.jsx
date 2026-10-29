@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { listarAniversariantesMes } from "../../api/aniversariantes";
 import { listarEventos } from "../../api/eventos";
 import { obterDashboard } from "../../api/dashboard";
+import { ROTULO_TIPO_RECONHECIMENTO, listarReconhecimentos } from "../../api/reconhecimentos";
 import {
   Badge,
   Button,
@@ -68,6 +69,17 @@ function useAniversariantesMes() {
 
 export default function Dashboard() {
   const { usuario, autenticado, temPerfil } = useAuth();
+  const [reconhecimentosRecentes, setReconhecimentosRecentes] = useState([]);
+
+  useEffect(() => {
+    if (!autenticado) {
+      setReconhecimentosRecentes([]);
+      return;
+    }
+    listarReconhecimentos({ tamanho: 3 })
+      .then((dados) => setReconhecimentosRecentes(dados?.itens || []))
+      .catch(() => setReconhecimentosRecentes([]));
+  }, [autenticado]);
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -429,6 +441,37 @@ export default function Dashboard() {
               )}
             </div>
           </Card>
+
+          {/* Widget Reconhecimentos Recentes (somente logado) */}
+          {autenticado && (
+            <Card className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-[#1e293b]">🏆 Reconhecimentos Recentes</h2>
+                <Link to="/reconhecimentos" className="text-xs font-semibold text-[#800020] hover:underline">
+                  Ver todos →
+                </Link>
+              </div>
+              {reconhecimentosRecentes.length === 0 ? (
+                <p className="text-xs text-[#64748b]">Nenhum reconhecimento publicado ainda</p>
+              ) : (
+                <ul className="space-y-2">
+                  {reconhecimentosRecentes.map((r) => (
+                    <li key={r.id_reconhecimento}>
+                      <Link
+                        to={`/reconhecimentos?reconhecimento=${r.id_reconhecimento}`}
+                        className="block rounded-lg p-2 hover:bg-slate-50 no-underline"
+                      >
+                        <span className="block text-xs font-semibold text-[#1e293b]">{r.colaborador.nome}</span>
+                        <span className="block text-xs text-[#475569]">
+                          {ROTULO_TIPO_RECONHECIMENTO[r.tipo] || r.tipo} · {r.titulo}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
 
           {/* Atalhos Rápidos de Navegação (S2-T7 / S4-T6) */}
           <Card className="space-y-2.5">

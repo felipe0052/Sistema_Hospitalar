@@ -12,8 +12,11 @@ import Diretorio from "../pages/Diretorio";
 import Documentos from "../pages/Documentos";
 import Eventos from "../pages/Eventos";
 import Faq from "../pages/Faq";
+import Integracoes from "../pages/Integracoes";
 import Login from "../pages/Login";
 import NaoEncontrada from "../pages/NaoEncontrada";
+import Notificacoes from "../pages/Notificacoes";
+import Reconhecimentos from "../pages/Reconhecimentos";
 import SemPermissao from "../pages/SemPermissao";
 import PermissaoRoute from "./PermissaoRoute";
 import PrivateRoute from "./PrivateRoute";
@@ -94,6 +97,11 @@ export function AppRoutes() {
             <Route path="/diretorio" element={<Diretorio />} />
             <Route path="/documentos" element={<Documentos />} />
             <Route path="/faq" element={<Faq />} />
+            <Route element={<PrivateRoute requireAuth />}>
+              <Route path="/reconhecimentos" element={<Reconhecimentos />} />
+              <Route path="/notificacoes" element={<Notificacoes />} />
+              <Route path="/perfil/integracoes" element={<Integracoes />} />
+            </Route>
             <Route path="/_componentes" element={<ComponentesDemo />} />
             <Route path="/sem-permissao" element={<SemPermissao />} />
 

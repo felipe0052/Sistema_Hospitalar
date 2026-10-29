@@ -3,6 +3,7 @@ import {
   DOCUMENTO_MAX_MB,
   atualizarDocumento,
   criarDocumento,
+  enviarNovaVersaoDocumento,
   excluirDocumento,
   listarCategoriasDocumentos,
   listarDocumentos,
@@ -64,6 +65,14 @@ function formatarDataDocumento(iso) {
   return formatarData(iso);
 }
 
+const ROTULOS_INDEXACAO = {
+  INDEXADO: "indexado",
+  PENDENTE: "pendente",
+  PROCESSANDO: "processando…",
+  ERRO: "erro na indexação",
+  SEM_TEXTO: "sem texto extraível",
+};
+
 function ehArquivoPdf(doc) {
   if (!doc) return false;
   const mime = String(doc.mime_type || "").toLowerCase();
@@ -101,6 +110,13 @@ export default function Documentos() {
   const [versoesDoc, setVersoesDoc] = useState(null);
   const [versoes, setVersoes] = useState([]);
   const [carregandoVersoes, setCarregandoVersoes] = useState(false);
+
+  // Modal "Enviar Nova Versão" (POP existente + justificativa)
+  const [docNovaVersao, setDocNovaVersao] = useState(null);
+  const [novaVersaoArquivo, setNovaVersaoArquivo] = useState(null);
+  const [novaVersaoJustificativa, setNovaVersaoJustificativa] = useState("");
+  const [erroNovaVersao, setErroNovaVersao] = useState({});
+  const [enviandoNovaVersao, setEnviandoNovaVersao] = useState(false);
 
   // Modal de Cadastro / Edição
   const [modalFormOpen, setModalFormOpen] = useState(false);
@@ -241,6 +257,58 @@ export default function Documentos() {
       toastErro(err?.mensagem || "Não foi possível carregar o histórico de versões.");
     } finally {
       setCarregandoVersoes(false);
+    }
+  }
+
+  function abrirNovaVersao(doc) {
+    setDocNovaVersao(doc);
+    setNovaVersaoArquivo(null);
+    setNovaVersaoJustificativa("");
+    setErroNovaVersao({});
+  }
+
+  async function enviarNovaVersao() {
+    const erros = {};
+    if (!novaVersaoArquivo) erros.arquivo = "Selecione o arquivo PDF ou DOCX da nova versão.";
+    else if (!/\.(pdf|docx)$/i.test(novaVersaoArquivo.name)) erros.arquivo = "Envie apenas arquivos PDF ou DOCX.";
+    else if (novaVersaoArquivo.size > DOCUMENTO_MAX_MB * 1024 * 1024)
+      erros.arquivo = `O arquivo excede o limite de ${DOCUMENTO_MAX_MB} MB.`;
+    if (!novaVersaoJustificativa.trim()) erros.justificativa = "Informe a justificativa da alteração.";
+    setErroNovaVersao(erros);
+    if (Object.keys(erros).length > 0) return;
+
+    const formData = new FormData();
+    formData.append("arquivo", novaVersaoArquivo);
+    formData.append("justificativa", novaVersaoJustificativa.trim());
+
+    setEnviandoNovaVersao(true);
+    try {
+      const criada = await enviarNovaVersaoDocumento(docNovaVersao.id_doc, formData);
+      sucesso(`Versão v${criada.versao} publicada. A anterior foi arquivada.`);
+      setDocNovaVersao(null);
+      await carregarDocumentos();
+    } catch (err) {
+      if (err?.erros && Object.keys(err.erros).length > 0) setErroNovaVersao(err.erros);
+      toastErro(err?.mensagem || "Não foi possível enviar a nova versão.");
+    } finally {
+      setEnviandoNovaVersao(false);
+    }
+  }
+
+  /** Banner de versão arquivada: localiza a versão vigente do mesmo POP e a abre. */
+  async function abrirVersaoVigente(doc) {
+    try {
+      const dados = await listarVersoesDocumento(doc.id_doc);
+      const vigente = (Array.isArray(dados) ? dados : []).find((v) => v.ativo !== false);
+      if (!vigente) {
+        toastErro("Nenhuma versão vigente encontrada para este documento.");
+        return;
+      }
+      fecharVisualizador();
+      setVersoesDoc(null);
+      await handleVisualizar(vigente);
+    } catch (err) {
+      toastErro(err?.mensagem || "Não foi possível abrir a versão vigente.");
     }
   }
 
@@ -604,6 +672,7 @@ export default function Documentos() {
                         {doc.tipo}
                       </Badge>
                       {doc.categoria && <Badge variant="default">{doc.categoria}</Badge>}
+                      {doc.codigo && <Badge variant="info">{doc.codigo}</Badge>}
                       <Badge variant={doc.ativo !== false ? "ativo" : "warning"}>
                         v{doc.versao || 1}
                         {doc.ativo === false ? " • arquivada" : " • vigente"}
@@ -618,9 +687,41 @@ export default function Documentos() {
                       {doc.titulo}
                     </h2>
 
+                    {doc.ativo === false && (
+                      <div
+                        role="alert"
+                        className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                      >
+                        <span>
+                          Atenção: esta versão está arquivada e pode conter orientações desatualizadas.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => abrirVersaoVigente(doc)}
+                          className="font-semibold underline cursor-pointer"
+                        >
+                          Clique para abrir a versão vigente
+                        </button>
+                      </div>
+                    )}
+
                     {doc.descricao && (
                       <p className="text-xs text-[#475569] leading-relaxed">
                         {doc.descricao}
+                      </p>
+                    )}
+
+                    {doc.resumo && (
+                      <details className="text-xs text-[#475569]">
+                        <summary className="cursor-pointer font-semibold text-[#800020]">Resumo do POP</summary>
+                        <p className="mt-1 leading-relaxed whitespace-pre-line">{doc.resumo}</p>
+                      </details>
+                    )}
+
+                    {isAdmin && doc.status_indexacao && (
+                      <p className="text-[11px] text-[#64748b]">
+                        Base de conhecimento (IA):{" "}
+                        <strong>{ROTULOS_INDEXACAO[doc.status_indexacao] || doc.status_indexacao}</strong>
                       </p>
                     )}
 
@@ -663,6 +764,15 @@ export default function Documentos() {
                   </Button>
                   {podeGerir && (
                     <>
+                      {doc.ativo !== false && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => abrirNovaVersao(doc)}
+                        >
+                          Nova versão
+                        </Button>
+                      )}
                       <Button
                         variant="secondary"
                         size="sm"
@@ -728,6 +838,21 @@ export default function Documentos() {
           )
         }
       >
+        {docVisualizando && docVisualizando.ativo === false && (
+          <div
+            role="alert"
+            className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          >
+            <span>Atenção: esta versão está arquivada e pode conter orientações desatualizadas.</span>
+            <button
+              type="button"
+              onClick={() => abrirVersaoVigente(docVisualizando)}
+              className="font-semibold underline cursor-pointer"
+            >
+              Clique para abrir a versão vigente
+            </button>
+          </div>
+        )}
         {carregandoVisualizador ? (
           <div className="py-12 space-y-3">
             <Skeleton height="24px" width="50%" />
@@ -777,8 +902,14 @@ export default function Documentos() {
                   <p className="text-xs text-[#64748b] mt-0.5">
                     {formatarDataDocumento(v.data_upload)} · {v.autor?.nome || "Sistema"} · {formatarTamanhoBytes(v.tamanho_bytes)}
                   </p>
+                  {v.justificativa && (
+                    <p className="text-xs text-[#475569] mt-0.5">Justificativa: {v.justificativa}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => handleVisualizar(v)}>
+                    Consultar
+                  </Button>
                   <Button variant="secondary" size="sm" onClick={() => acionarDownloadArquivo(v, false)}>
                     Baixar
                   </Button>
@@ -790,6 +921,59 @@ export default function Documentos() {
             ))}
           </ul>
         )}
+      </Modal>
+
+      {/* Modal: Enviar Nova Versão de um POP existente */}
+      <Modal
+        open={Boolean(docNovaVersao)}
+        onClose={enviandoNovaVersao ? undefined : () => setDocNovaVersao(null)}
+        title={docNovaVersao ? `Enviar nova versão — ${docNovaVersao.titulo}` : "Enviar nova versão"}
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDocNovaVersao(null)} disabled={enviandoNovaVersao}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={enviarNovaVersao} loading={enviandoNovaVersao}>
+              Publicar versão v{(docNovaVersao?.versao || 1) + 1}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[#475569]">
+            A versão atual (v{docNovaVersao?.versao || 1}) será arquivada e a nova passa a ser a vigente.
+          </p>
+          <div className="ui-field">
+            <label htmlFor="nova-versao-arquivo" className="ui-field__label">
+              <span>Arquivo da nova versão (PDF ou DOCX)</span>
+              <span className="ui-field__required" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="nova-versao-arquivo"
+              type="file"
+              accept=".pdf,.docx"
+              aria-invalid={Boolean(erroNovaVersao.arquivo)}
+              onChange={(e) => setNovaVersaoArquivo(e.target.files?.[0] || null)}
+              className="ui-input"
+            />
+            {erroNovaVersao.arquivo && (
+              <p className="ui-field__error" role="alert">
+                <span>{erroNovaVersao.arquivo}</span>
+              </p>
+            )}
+          </div>
+          <Textarea
+            label="Justificativa da alteração"
+            required
+            rows={3}
+            maxLength={500}
+            value={novaVersaoJustificativa}
+            error={erroNovaVersao.justificativa}
+            onChange={(e) => setNovaVersaoJustificativa(e.target.value)}
+            placeholder="Ex.: Atualização conforme a nova RDC / mudança no fluxo de dispensação"
+          />
+        </div>
       </Modal>
 
       {/* Modal Administrativo: Novo / Editar Documento */}

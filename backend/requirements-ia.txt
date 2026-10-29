@@ -1,0 +1,4 @@
+# Opcional: embeddings semanticos locais (baixa o modelo e usa PyTorch, ~2 GB).
+# Sem isto o sistema usa o embedder lexical por hashing (IA_EMBEDDING_BACKEND=auto).
+-r requirements.txt
+sentence-transformers

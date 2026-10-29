@@ -4,6 +4,7 @@ import {
   criarEvento,
   excluirEvento,
   listarEventos,
+  obterEvento,
 } from "../../api/eventos";
 import { listarAniversariantesMes } from "../../api/aniversariantes";
 import GoogleAgendaModal from "./GoogleAgendaModal";
@@ -174,6 +175,20 @@ export default function Eventos() {
     else if (resultado === "negado") toastErro("Conexão com o Google cancelada.");
     else toastErro("Não foi possível conectar ao Google. Tente novamente.");
     window.history.replaceState({}, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Destino das notificações de evento: /eventos?evento=ID abre o detalhe
+  useEffect(() => {
+    const idEvento = Number(new URLSearchParams(window.location.search).get("evento"));
+    if (!idEvento) return;
+    obterEvento(idEvento)
+      .then((ev) => setEventoDetalhe(ev))
+      .catch(() => toastErro("Este conteúdo não está mais disponível."));
+    const params = new URLSearchParams(window.location.search);
+    params.delete("evento");
+    const restante = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (restante ? `?${restante}` : ""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
