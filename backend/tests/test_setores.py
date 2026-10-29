@@ -67,7 +67,10 @@ def test_listar_criar_e_editar_setor_com_multiplos_ramais(client: TestClient):
 def test_setor_nome_duplicado_e_ramal_conflitante_retornam_409_e_ramal_com_letras_422(
     client: TestClient,
 ):
-    """Garante bloqueio de nome de setor duplicado (409), ramal com letras (422) e ramal já vinculado a outro setor (409)."""
+    """Garante bloqueio de nome de setor duplicado (409), ramal com letras (422).
+
+    Também bloqueia ramal já vinculado a outro setor (409).
+    """
     headers_admin = _obter_headers(client, "admin@decos.com.br", "Admin@123")
 
     # 1. Nome de setor duplicado (UTI já existe no conftest) -> 409

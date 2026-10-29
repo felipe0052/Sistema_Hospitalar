@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
@@ -8,7 +8,7 @@ try:
 
     _USE_PYJWT = True
 except ImportError:  # pragma: no cover
-    from jose import JWTError, jwt as _jose_jwt
+    from jose import jwt as _jose_jwt
 
     _USE_PYJWT = False
 
@@ -34,7 +34,7 @@ def verificar_senha(senha: str, senha_hash: str) -> bool:
 
 def criar_token(usuario: Any) -> str:
     """Cria token JWT HS256 com payload {sub, perfil, ver, exp} (§5 do Contexto Global)."""
-    exp = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRES_MINUTES)
+    exp = datetime.now(UTC) + timedelta(minutes=settings.JWT_EXPIRES_MINUTES)
     payload = {
         "sub": str(usuario.id_usuario),
         "perfil": str(usuario.perfil),

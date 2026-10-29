@@ -1,6 +1,5 @@
 """Endpoints de Aniversariantes do Mês (UC11 — §7.6 e S4-T1)."""
 
-from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session

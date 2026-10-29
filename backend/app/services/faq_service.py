@@ -1,7 +1,7 @@
 """Regras de negócio do módulo de FAQ — Perguntas Frequentes (UC09 — S3-T2)."""
 
-from datetime import datetime, timezone
 import unicodedata
+from datetime import UTC, datetime
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -88,7 +88,7 @@ def criar_faq(db: Session, dados: FaqIn, autor: Usuario) -> FaqOut:
         categoria=dados.categoria.strip(),
         ordem=dados.ordem,
         id_autor=autor.id_usuario,
-        data_criacao=datetime.now(timezone.utc).replace(tzinfo=None),
+        data_criacao=datetime.now(UTC).replace(tzinfo=None),
     )
     db.add(novo)
     db.commit()
@@ -102,7 +102,7 @@ def atualizar_faq(db: Session, id_faq: int, dados: FaqIn) -> FaqOut:
     faq.resposta = dados.resposta.strip()
     faq.categoria = dados.categoria.strip()
     faq.ordem = dados.ordem
-    faq.data_atualizacao = datetime.now(timezone.utc).replace(tzinfo=None)
+    faq.data_atualizacao = datetime.now(UTC).replace(tzinfo=None)
     db.commit()
     db.refresh(faq)
     return FaqOut.model_validate(faq)

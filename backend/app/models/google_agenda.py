@@ -16,7 +16,9 @@ class IntegracaoGoogle(Base):
     )
     refresh_token: Mapped[str] = mapped_column("REFRESH_TOKEN", String(1000), nullable=False)
     # "S": todo evento futuro (existente ou novo) é enviado automaticamente à agenda do usuário
-    receber_todos: Mapped[str] = mapped_column("RECEBER_TODOS", String(1), nullable=False, default="N", server_default="N")
+    receber_todos: Mapped[str] = mapped_column(
+        "RECEBER_TODOS", String(1), nullable=False, default="N", server_default="N"
+    )
     data_ativacao: Mapped[datetime] = mapped_column("DATA_ATIVACAO", DateTime, server_default=func.now())
 
 

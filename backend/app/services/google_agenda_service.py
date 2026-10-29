@@ -1,13 +1,13 @@
 """Integração opcional com o Google Agenda (OAuth 2.0 + Calendar API v3, via REST/httpx)."""
 
 import base64
-from datetime import datetime, timedelta, timezone
 import hashlib
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
-from cryptography.fernet import Fernet, InvalidToken
 import httpx
 import jwt
+from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -71,7 +71,7 @@ def gerar_url_conexao(usuario: Usuario) -> str:
     _exigir_configuracao()
     # "state" assinado: liga o retorno do Google ao usuário logado e expira em 10 minutos
     state = jwt.encode(
-        {"sub": str(usuario.id_usuario), "exp": datetime.now(timezone.utc) + timedelta(minutes=10)},
+        {"sub": str(usuario.id_usuario), "exp": datetime.now(UTC) + timedelta(minutes=10)},
         settings.JWT_SECRET,
         algorithm="HS256",
     )
@@ -237,7 +237,9 @@ def definir_receber_todos(db: Session, usuario: Usuario, ativo: bool) -> int:
     novos = 0
     if ativo:
         token = _access_token(db, integracao)
-        ja_enviados = {v.id_evento for v in db.query(EventoGoogle).filter(EventoGoogle.id_usuario == usuario.id_usuario)}
+        ja_enviados = {
+            v.id_evento for v in db.query(EventoGoogle).filter(EventoGoogle.id_usuario == usuario.id_usuario)
+        }
         futuros = db.query(Evento).filter(Evento.data_inicio >= datetime.now()).order_by(Evento.data_inicio).all()
         for evento in futuros:
             if evento.id_evento not in ja_enviados and _enviar(db, usuario.id_usuario, evento, token):

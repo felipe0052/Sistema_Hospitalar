@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -146,7 +146,7 @@ def atualizar_usuario(db: Session, id_usuario: int, dados: UsuarioUpdate, autor:
     usuario.data_nascimento = dados.data_nascimento
     usuario.cargo = dados.cargo
     usuario.id_setor = dados.id_setor
-    usuario.data_atualizacao = datetime.now(timezone.utc)
+    usuario.data_atualizacao = datetime.now(UTC)
 
     db.commit()
     db.refresh(usuario)
@@ -157,7 +157,7 @@ def redefinir_senha(db: Session, id_usuario: int, dados: SenhaUpdate) -> None:
     usuario = obter_usuario(db, id_usuario)
     usuario.senha_hash = gerar_hash_senha(dados.nova_senha)
     usuario.versao_token = (usuario.versao_token or 0) + 1
-    usuario.data_atualizacao = datetime.now(timezone.utc)
+    usuario.data_atualizacao = datetime.now(UTC)
     db.commit()
 
 
@@ -174,7 +174,7 @@ def alterar_acesso(db: Session, id_usuario: int, dados: AcessoUpdate, admin: Usu
             )
 
     alterou_acesso = False
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
 
     if dados.perfil is not None and dados.perfil != usuario.perfil:
         historico_perfil = HistoricoAcesso(

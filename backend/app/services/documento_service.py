@@ -1,9 +1,9 @@
 """Regras de negócio de Documentos e POPs (UC06, UC07 — S3-T1 com versionamento)."""
 
-from datetime import datetime, timezone
-from pathlib import Path
 import unicodedata
 import uuid
+from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import UploadFile
 from sqlalchemy import func, or_
@@ -392,7 +392,7 @@ def criar_documento(
     servico_storage.salvar(conteudo, chave, mime_type)
 
     try:
-        agora = datetime.now(timezone.utc).replace(tzinfo=None)
+        agora = datetime.now(UTC).replace(tzinfo=None)
         for d in anteriores:
             if d.ativo == "S":
                 d.ativo = "N"
@@ -449,10 +449,12 @@ def atualizar_documento(
     try:
         doc.titulo = metadados.titulo
         doc.tipo = metadados.tipo
-        doc.categoria = metadados.categoria or inferir_categoria(normalizar_palavras_chave_lista(metadados.palavras_chave))
+        doc.categoria = metadados.categoria or inferir_categoria(
+            normalizar_palavras_chave_lista(metadados.palavras_chave)
+        )
         doc.descricao = metadados.descricao
         doc.palavras_chave = metadados.palavras_chave
-        doc.data_atualizacao = datetime.now(timezone.utc).replace(tzinfo=None)
+        doc.data_atualizacao = datetime.now(UTC).replace(tzinfo=None)
         db.commit()
         db.refresh(doc)
     except Exception:

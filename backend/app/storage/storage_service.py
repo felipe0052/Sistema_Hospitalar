@@ -1,10 +1,10 @@
 """Serviço de abstração de armazenamento de arquivos de Documentos/POPs (S3-T1 / S4-T2 — §3 e §7.7)."""
 
-from collections.abc import Iterator
 import os
+import uuid
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Protocol, runtime_checkable
-import uuid
 
 from app.core.config import settings
 
@@ -21,7 +21,10 @@ class StorageService(Protocol):
 
 
 class LocalStorage:
-    """Armazena arquivos no sistema de arquivos local em settings.UPLOAD_DIR/<chave> com segurança de paths e limpeza de temporários."""
+    """Armazena arquivos no sistema de arquivos local em settings.UPLOAD_DIR/<chave>.
+
+    Garante segurança de paths e limpeza de temporários.
+    """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
         self.base_dir = Path(base_dir or settings.UPLOAD_DIR).resolve()

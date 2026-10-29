@@ -15,5 +15,8 @@ def obter_dashboard(
     db: Session = Depends(get_db),
     _usuario_atual: Usuario | None = Depends(get_optional_user),
 ) -> DashboardOut:
-    """Retorna os blocos consolidados da tela inicial (destaques, últimos avisos, próximos eventos e aniversariantes — §7.10)."""
+    """Retorna os blocos consolidados da tela inicial.
+
+    Inclui destaques, últimos avisos, próximos eventos e aniversariantes (§7.10).
+    """
     return dashboard_service.obter_dashboard(db)

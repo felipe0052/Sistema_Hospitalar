@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query, Response, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings

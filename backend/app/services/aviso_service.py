@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -185,7 +185,7 @@ def criar_aviso(db: Session, dados: AvisoIn, autor: Usuario) -> AvisoOut:
         conteudo=dados.conteudo,
         categoria=dados.categoria,
         destaque="S" if dados.destaque else "N",
-        data_publicacao=datetime.now(timezone.utc).replace(tzinfo=None),
+        data_publicacao=datetime.now(UTC).replace(tzinfo=None),
         data_expiracao=dados.data_expiracao,
         id_autor=autor.id_usuario,
     )
@@ -207,7 +207,7 @@ def atualizar_aviso(db: Session, id_aviso: int, dados: AvisoIn, autor: Usuario) 
     aviso.categoria = dados.categoria
     aviso.destaque = "S" if dados.destaque else "N"
     aviso.data_expiracao = dados.data_expiracao
-    aviso.data_atualizacao = datetime.now(timezone.utc).replace(tzinfo=None)
+    aviso.data_atualizacao = datetime.now(UTC).replace(tzinfo=None)
 
     db.commit()
     db.refresh(aviso)

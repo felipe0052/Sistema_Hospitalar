@@ -1,7 +1,7 @@
+import re
 from datetime import date, datetime
 from html import escape, unescape
 from html.parser import HTMLParser
-import re
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator

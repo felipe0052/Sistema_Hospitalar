@@ -117,7 +117,8 @@ def test_diretorio_busca_sem_acento_por_nome_e_cargo_e_filtros_setor_andar(
     assert res_nome.json()["total"] == 1
     assert res_nome.json()["itens"][0]["ramais"] == ["1201", "1202"]
 
-    # Busca por cargo sem acento ("farmaceutico" encontra "Farmacêutico Clínico", "tecnico" encontra "Técnico de Enfermagem")
+    # Busca por cargo sem acento ("farmaceutico" encontra "Farmacêutico Clínico",
+    # "tecnico" encontra "Técnico de Enfermagem")
     res_cargo = client.get("/api/v1/diretorio?busca=farmaceutico clinico", headers=headers)
     assert res_cargo.status_code == 200
     assert res_cargo.json()["total"] == 1

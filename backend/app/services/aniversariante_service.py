@@ -1,7 +1,7 @@
 """Regras de negócio de Aniversariantes do Mês (UC11 — §7.6 e S4-T1)."""
 
-from datetime import date, datetime
 import unicodedata
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import extract

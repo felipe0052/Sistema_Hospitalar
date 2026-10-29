@@ -1,11 +1,11 @@
 """Testes de Segurança, Robustez, Auditoria de Permissões e Homologação Integrada do MVP (S4-T2 e S4-T7)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.schemas.auth import LoginRequest
@@ -182,7 +182,7 @@ def test_protecao_forca_bruta_login_bloqueia_com_429_apos_5_falhas_em_15_minutos
     assert res_outro.status_code == 200
 
     # Após 16 minutos, o bloqueio expira automaticamente
-    futuro = datetime.now(timezone.utc) + timedelta(minutes=16)
+    futuro = datetime.now(UTC) + timedelta(minutes=16)
     token_resp = auth_service.login(
         db_session,
         LoginRequest(email="colaborador@decos.com.br", senha="Colab@123"),
@@ -206,7 +206,9 @@ def test_headers_seguranca_e_tratamento_excecao_global_500_sem_vazar_traceback(
     assert res_health.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
 
     # Simula erro inesperado em um service e verifica resposta 500 amigável
-    with patch("app.services.dashboard_service.obter_dashboard", side_effect=RuntimeError("SELECT * FROM SECRET_TABLE")):
+    with patch(
+        "app.services.dashboard_service.obter_dashboard", side_effect=RuntimeError("SELECT * FROM SECRET_TABLE")
+    ):
         with TestClient(client.app, raise_server_exceptions=False) as safe_client:
             res_500 = safe_client.get("/api/v1/dashboard")
             assert res_500.status_code == 500
@@ -242,7 +244,9 @@ def test_local_storage_seguranca_path_traversal_e_limpeza_temporarios(tmp_path: 
         storage.abrir("../fora.pdf")
 
 
-def test_homologacao_mvp_fluxo_completo_uc01_a_uc12(client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_homologacao_mvp_fluxo_completo_uc01_a_uc12(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     """
     S4-T7: Homologação ponta a ponta cobrindo os 12 Casos de Uso (UC01 a UC12)
     integrados em uma única jornada.
@@ -254,8 +258,10 @@ def test_homologacao_mvp_fluxo_completo_uc01_a_uc12(client: TestClient, tmp_path
     monkeypatch.setattr(storage_service, "_storage_instance", None)
 
     # UC01: Login válido (Admin, RH, Marketing, Colaborador), senha inválida (401) e inativo (403)
-    assert client.post("/api/v1/auth/login", json={"email": "admin@decos.com.br", "senha": "Errada123"}).status_code == 401
-    assert client.post("/api/v1/auth/login", json={"email": "inativo@decos.com.br", "senha": "Inativo@123"}).status_code == 403
+    login_errado = client.post("/api/v1/auth/login", json={"email": "admin@decos.com.br", "senha": "Errada123"})
+    assert login_errado.status_code == 401
+    login_inativo = client.post("/api/v1/auth/login", json={"email": "inativo@decos.com.br", "senha": "Inativo@123"})
+    assert login_inativo.status_code == 403
 
     h_admin = _obter_headers(client, "admin@decos.com.br", "Admin@123")
     h_rh = _obter_headers(client, "rh@decos.com.br", "Rh@12345")

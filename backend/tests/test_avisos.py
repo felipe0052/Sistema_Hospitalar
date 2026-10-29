@@ -151,7 +151,10 @@ def test_avisos_expirados_ocultos_na_listagem_publica_e_visiveis_na_gestao(
     client: TestClient,
     db_session: Session,
 ):
-    """Avisos expirados não aparecem para colaboradores em GET /avisos nem em GET /avisos/{id}, mas aparecem em /avisos/gestao."""
+    """Avisos expirados não aparecem para colaboradores em GET /avisos nem em GET /avisos/{id}.
+
+    Eles continuam aparecendo em /avisos/gestao.
+    """
     aviso_vigente = Aviso(
         titulo="Campanha de Vacinação Vigente",
         conteudo="Compareça ao posto do 1º andar com carteira de vacinação.",

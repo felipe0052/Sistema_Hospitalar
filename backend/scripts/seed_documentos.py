@@ -1,12 +1,12 @@
 """Script para geração dos POPs hospitalares de exemplo em PDF/DOCX e upload via API (S3-T3)."""
 
-from io import BytesIO
 import os
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from docx import Document as DocxDocument
 import httpx
+from docx import Document as DocxDocument
 
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine

@@ -3,8 +3,8 @@
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from app.core.config import settings
 from app.models.evento import Evento
@@ -152,7 +152,8 @@ def test_receber_todos_envia_futuros_agora_e_novos_automaticamente(client: TestC
     assert client.get("/api/v1/google-agenda/status", headers=colab).json()["receber_todos"] is True
 
     # ligar de novo não duplica
-    assert client.put("/api/v1/google-agenda/preferencias", json={"receber_todos": True}, headers=colab).json()["adicionados"] == 0
+    reativar = client.put("/api/v1/google-agenda/preferencias", json={"receber_todos": True}, headers=colab)
+    assert reativar.json()["adicionados"] == 0
 
     # evento criado depois entra sozinho
     novo = client.post(
@@ -175,6 +176,10 @@ def test_sem_receber_todos_evento_novo_nao_vai_para_agenda(client: TestClient, g
     client.post(
         "/api/v1/eventos",
         headers=admin,
-        json={"titulo": "Outro evento", "categoria": "OUTRO", "data_inicio": (datetime.now() + timedelta(days=5)).isoformat()},
+        json={
+            "titulo": "Outro evento",
+            "categoria": "OUTRO",
+            "data_inicio": (datetime.now() + timedelta(days=5)).isoformat(),
+        },
     )
     assert client.get("/api/v1/google-agenda/status", headers=colab).json()["eventos_adicionados"] == []

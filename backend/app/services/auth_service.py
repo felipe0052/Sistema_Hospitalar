@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
 import threading
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -63,7 +63,7 @@ def login(
     agora: datetime | None = None,
 ) -> TokenResponse:
     email_normalizado = dados.email.strip().lower()
-    instante = agora or datetime.now(timezone.utc)
+    instante = agora or datetime.now(UTC)
     chave = _chave_tentativa(email_normalizado, client_ip)
 
     _verificar_bloqueio_forca_bruta(chave, instante)

@@ -18,7 +18,10 @@ def test_eventos_passados_ocultados_na_busca_padrao_e_visiveis_no_calendario_men
     client: TestClient,
     db_session: Session,
 ):
-    """Eventos passados não aparecem na busca padrão (sem filtro de data), mas aparecem ao consultar mês/ano do calendário."""
+    """Eventos passados não aparecem na busca padrão (sem filtro de data).
+
+    Eles aparecem ao consultar mês/ano do calendário.
+    """
     hoje = date.today()
     dt_passado = datetime(2026, 5, 10, 9, 0, 0)
     dt_futuro_1 = datetime.combine(hoje + timedelta(days=5), datetime.min.time()).replace(hour=14)
