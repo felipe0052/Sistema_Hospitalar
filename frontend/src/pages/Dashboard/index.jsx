@@ -377,7 +377,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Widget Aniversariantes do Dia (somente logado) */}
-          {autenticado ? (
+          {autenticado && (
             <Card className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold text-[#1e293b]">🎂 Aniversariantes do Dia</h2>
@@ -450,40 +450,6 @@ export default function Dashboard() {
                     ))}
                   </ul>
                 )}
-              </div>
-            </Card>
-          ) : (
-            <Card className="space-y-3">
-              <h2 className="text-sm font-bold text-[#1e293b]">Acesso Rápido Institucional</h2>
-              <div className="grid grid-cols-1 gap-2">
-                <Link
-                  to="/diretorio"
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-[#800020] hover:bg-[#fff5f6] text-xs font-semibold text-[#1e293b] no-underline transition"
-                >
-                  ☎️ Diretório e Ramais →
-                </Link>
-                <Link
-                  to="/documentos"
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-[#800020] hover:bg-[#fff5f6] text-xs font-semibold text-[#1e293b] no-underline transition"
-                >
-                  📁 Documentos (POPs) →
-                </Link>
-                <Link
-                  to="/faq"
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-[#800020] hover:bg-[#fff5f6] text-xs font-semibold text-[#1e293b] no-underline transition"
-                >
-                  💬 FAQ (Central de Ajuda) →
-                </Link>
-              </div>
-              <div className="p-3 rounded-xl bg-[#fff5f5] border border-[#f1c5cf] space-y-2">
-                <p className="text-xs font-medium text-[#800020]">
-                  Faça login para ver o conteúdo completo da intranet (aniversariantes, reconhecimentos, notificações e mais).
-                </p>
-                <Link to="/login" className="inline-block no-underline">
-                  <Button variant="primary" size="sm">
-                    Entrar na intranet
-                  </Button>
-                </Link>
               </div>
             </Card>
           )}
