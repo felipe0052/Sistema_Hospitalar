@@ -13,10 +13,12 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard (Início)"])
 @router.get("", response_model=DashboardOut)
 def obter_dashboard(
     db: Session = Depends(get_db),
-    _usuario_atual: Usuario | None = Depends(get_optional_user),
+    usuario_atual: Usuario | None = Depends(get_optional_user),
 ) -> DashboardOut:
     """Retorna os blocos consolidados da tela inicial.
 
-    Inclui destaques, últimos avisos, próximos eventos e aniversariantes (§7.10).
+    Inclui destaques, últimos avisos, próximos eventos e, para usuários logados, aniversariantes (§7.10).
     """
+    if usuario_atual is None:
+        return dashboard_service.obter_dashboard(db, incluir_aniversariantes=False)
     return dashboard_service.obter_dashboard(db)

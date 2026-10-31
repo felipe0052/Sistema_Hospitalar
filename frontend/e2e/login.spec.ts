@@ -104,12 +104,17 @@ test("credenciais inválidas exibem mensagem exata e usuário inativo exibe bloq
   page,
 }) => {
   await page.route("**/auth/login", (route) =>
-    route.fulfill({ status: 401, json: { detail: "E-mail ou senha inválidos" } }),
+    route.fulfill({
+      status: 401,
+      json: { detail: "E-mail ou senha inválidos. Procure o ADMIN." },
+    }),
   );
   await page.goto("/login");
   await fillLogin(page);
   await page.getByRole("button", { name: "Entrar na intranet" }).click();
-  await expect(page.getByRole("alert")).toHaveText("E-mail ou senha inválidos");
+  await expect(page.getByRole("alert")).toHaveText(
+    "E-mail ou senha inválidos. Procure o ADMIN.",
+  );
 
   await page.route("**/auth/login", (route) =>
     route.fulfill({
@@ -119,7 +124,7 @@ test("credenciais inválidas exibem mensagem exata e usuário inativo exibe bloq
   );
   await page.getByRole("button", { name: "Entrar na intranet" }).click();
   await expect(page.getByRole("alert")).toHaveText(
-    "Usuário inativo. Procure o administrador.",
+    "E-mail ou senha inválidos. Procure o ADMIN.",
   );
 });
 

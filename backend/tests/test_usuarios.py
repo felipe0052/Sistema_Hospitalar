@@ -219,12 +219,13 @@ def test_inativacao_incrementa_versao_token_derruba_sessao_e_grava_historico(cli
     assert res_inativar.status_code == 200
     assert res_inativar.json()["status"] == "INATIVO"
 
-    # Colaborador inativado não consegue mais fazer login
+    # Colaborador inativado não consegue mais fazer login (retorna 401 com mensagem unificada)
     login_inativo = client.post(
         "/api/v1/auth/login",
         json={"email": "colaborador@decos.com.br", "senha": "Colab@123"},
     )
-    assert login_inativo.status_code == 403
+    assert login_inativo.status_code == 401
+    assert login_inativo.json()["detail"] == "E-mail ou senha inválidos. Procure o ADMIN."
 
     # Verifica histórico de auditoria gravado (do mais recente para o mais antigo)
     res_hist = client.get(f"/api/v1/usuarios/{id_colab}/historico-acesso", headers=headers_admin)

@@ -89,14 +89,17 @@ def obter_resumo_aniversariantes_dashboard(
     return aniversariantes_hoje, total_mes
 
 
-def obter_dashboard(db: Session) -> DashboardOut:
+def obter_dashboard(db: Session, incluir_aniversariantes: bool = True) -> DashboardOut:
     avisos_destaque, ultimos_avisos = aviso_service.listar_destaques_e_ultimos_dashboard(
         db=db,
         limite_destaques=5,
         limite_ultimos=5,
     )
     proximos_eventos = evento_service.listar_proximos_eventos_dashboard(db=db, limite=5)
-    aniversariantes_hoje, total_aniversariantes_mes = obter_resumo_aniversariantes_dashboard(db=db)
+    if incluir_aniversariantes:
+        aniversariantes_hoje, total_aniversariantes_mes = obter_resumo_aniversariantes_dashboard(db=db)
+    else:
+        aniversariantes_hoje, total_aniversariantes_mes = [], 0
 
     return DashboardOut(
         avisos_destaque=avisos_destaque,

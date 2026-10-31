@@ -13,6 +13,7 @@ const ICONS = {
   award: "M12 15a7 7 0 100-14 7 7 0 000 14z M8.21 13.89L7 23l5-3 5 3-1.21-9.12",
   shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   building: "M3 21h18 M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16 M9 9h2 M13 9h2 M9 13h2 M13 13h2",
+  compass: "M12 22a10 10 0 100-20 10 10 0 000 20z M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z",
   logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9",
   login: "M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3",
 };
@@ -38,9 +39,9 @@ function NavIcon({ path }) {
 
 const MENU_PRINCIPAL = [
   { to: "/", label: "Início", icon: ICONS.home, end: true },
-  { to: "/avisos", label: "Notícias e Comunicados", icon: ICONS.megaphone, badge: 3 },
+  { to: "/avisos", label: "Notícias e Comunicados", icon: ICONS.megaphone },
   { to: "/eventos", label: "Eventos", icon: ICONS.calendar },
-  { to: "/aniversariantes", label: "Aniversariantes", icon: ICONS.gift },
+  { to: "/aniversariantes", label: "Aniversariantes", icon: ICONS.gift, requerLogin: true },
   { to: "/diretorio", label: "Diretório e Ramais", icon: ICONS.users },
   { to: "/documentos", label: "Documentos (POPs)", icon: ICONS.folder },
   { to: "/faq", label: "FAQ (Central de Ajuda)", icon: ICONS.chat },
@@ -96,13 +97,22 @@ export function Sidebar() {
               </NavLink>
             )}
             {podeGerirSetores && (
-              <NavLink
-                to="/admin/setores"
-                className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
-              >
-                <NavIcon path={ICONS.building} />
-                <span className="flex-1 text-left truncate">Setores e Ramais</span>
-              </NavLink>
+              <>
+                <NavLink
+                  to="/admin/setores"
+                  className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
+                >
+                  <NavIcon path={ICONS.building} />
+                  <span className="flex-1 text-left truncate">Setores e Ramais</span>
+                </NavLink>
+                <NavLink
+                  to="/admin/acesso-rapido"
+                  className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
+                >
+                  <NavIcon path={ICONS.compass} />
+                  <span className="flex-1 text-left truncate">Acesso Rápido</span>
+                </NavLink>
+              </>
             )}
           </div>
         )}

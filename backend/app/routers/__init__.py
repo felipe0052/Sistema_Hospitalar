@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.routers import (
+    acessos_rapidos,
     aniversariantes,
     auth,
     avisos,
@@ -33,3 +34,4 @@ api_router.include_router(notificacoes.router)
 api_router.include_router(reconhecimentos.router)
 api_router.include_router(reconhecimentos.router_indicacoes)
 api_router.include_router(ia.router)
+api_router.include_router(acessos_rapidos.router)

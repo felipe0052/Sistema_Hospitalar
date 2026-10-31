@@ -23,7 +23,7 @@ def listar_diretorio(
     pagina: int = Query(default=1, ge=1, description="Número da página"),
     tamanho: int = Query(default=20, ge=1, le=100, description="Itens por página (máx. 100)"),
     db: Session = Depends(get_db),
-    _usuario_atual: Usuario | None = Depends(get_optional_user),
+    usuario_atual: Usuario | None = Depends(get_optional_user),
 ) -> PaginadoDiretorioOut:
     """Lista colaboradores ativos no diretório institucional com setor, andar e ramais (UC10)."""
     return diretorio_service.listar_diretorio(
@@ -33,6 +33,7 @@ def listar_diretorio(
         andar=andar,
         pagina=pagina,
         tamanho=tamanho,
+        incluir_email=usuario_atual is not None,
     )
 
 

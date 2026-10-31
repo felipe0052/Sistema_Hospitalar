@@ -55,15 +55,19 @@ function formatarDataExtenso(data = new Date()) {
   }
 }
 
-function useAniversariantesMes() {
+function useAniversariantesMes(autenticado) {
   const hoje = new Date();
   const [lista, setLista] = useState([]);
   useEffect(() => {
+    if (!autenticado) {
+      setLista([]);
+      return;
+    }
     listarAniversariantesMes(hoje.getMonth() + 1)
       .then((l) => setLista(l || []))
       .catch(() => setLista([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [autenticado]);
   return lista;
 }
 
@@ -84,7 +88,7 @@ export default function Dashboard() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [indiceDestaque, setIndiceDestaque] = useState(0);
-  const aniversariantesMes = useAniversariantesMes();
+  const aniversariantesMes = useAniversariantesMes(autenticado);
   const [diaAniv, setDiaAniv] = useState(null);
   const hojeCal = new Date();
   const diasComAniv = useMemo(() => new Set(aniversariantesMes.map((a) => a.dia)), [aniversariantesMes]);
@@ -189,6 +193,9 @@ export default function Dashboard() {
                     <span className="text-xs font-bold px-2.5 py-0.5 rounded-full destaque-banner__pill">
                       ★ Destaque Corporativo
                     </span>
+                    {destaqueAtual.prioridade === "URGENTE" && (
+                      <Badge variant="inativo">⚠ URGENTE</Badge>
+                    )}
                     <span className="text-xs text-[#64748b] font-medium">
                       {CATEGORIA_AVISO_LABELS[destaqueAtual.categoria] || destaqueAtual.categoria}
                     </span>
@@ -274,6 +281,9 @@ export default function Dashboard() {
                         <Badge variant={CATEGORIA_AVISO_BADGE_VARIANT[aviso.categoria] || "default"}>
                           {CATEGORIA_AVISO_LABELS[aviso.categoria] || aviso.categoria}
                         </Badge>
+                        {aviso.prioridade === "URGENTE" && (
+                          <Badge variant="inativo">⚠ URGENTE</Badge>
+                        )}
                         {aviso.destaque && <Badge variant="primary">Destaque</Badge>}
                       </div>
                       <span className="text-xs text-[#64748b]">
@@ -366,81 +376,117 @@ export default function Dashboard() {
             )}
           </Card>
 
-          {/* Widget Aniversariantes do Dia */}
-          <Card className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-[#1e293b]">🎂 Aniversariantes do Dia</h2>
-              <Link
-                to="/aniversariantes"
-                className="text-xs font-semibold text-[#800020] hover:underline"
-              >
-                Ver mês ({totalAniversariantesMes}) →
-              </Link>
-            </div>
-
-            {carregando ? (
-              <div className="space-y-2.5">
-                <Skeleton width="100%" height="3.25rem" />
-                <Skeleton width="100%" height="3.25rem" />
-              </div>
-            ) : aniversariantesHoje.length === 0 ? (
-              <div className="p-3 rounded-lg bg-slate-50 text-xs text-[#64748b]">
-                Nenhum colaborador aniversariando hoje. Confira os{" "}
-                <Link to="/aniversariantes" className="font-semibold text-[#800020] hover:underline">
-                  {totalAniversariantesMes} aniversariantes deste mês
+          {/* Widget Aniversariantes do Dia (somente logado) */}
+          {autenticado ? (
+            <Card className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-[#1e293b]">🎂 Aniversariantes do Dia</h2>
+                <Link
+                  to="/aniversariantes"
+                  className="text-xs font-semibold text-[#800020] hover:underline"
+                >
+                  Ver mês ({totalAniversariantesMes}) →
                 </Link>
-                .
               </div>
-            ) : (
-              <div className="space-y-2.5">
-                {aniversariantesHoje.map((aniv) => (
-                  <div
-                    key={aniv.id_usuario}
-                    className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gradient-to-r from-[#fff5f6] to-white border border-[#f1c5cf]"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-[#1e293b]">{aniv.nome}</div>
-                      <div className="text-[11px] text-[#64748b]">
-                        {aniv.cargo || "Colaborador"} ·{" "}
-                        {aniv.setor?.nome || "Setor não informado"}
-                      </div>
-                      <div className="text-[11px] font-medium text-[#800020] mt-0.5">
-                        Parabéns pelo seu dia! 🎉
-                      </div>
-                    </div>
-                    <Badge variant="primary">Hoje</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
 
-            <div className="pt-3 border-t border-slate-100 space-y-2">
-              <MiniCalendario
-                ano={hojeCal.getFullYear()}
-                mes={hojeCal.getMonth() + 1}
-                marcados={diasComAniv}
-                marcadosEventos={diasComEvento}
-                diaSelecionado={diaAniv}
-                onSelecionarDia={setDiaAniv}
-              />
-              {diaAniv && (
-                <ul className="text-xs text-[#475569] space-y-1">
-                  {eventosDoDiaSel.map((ev) => (
-                    <li key={`ev-${ev.id_evento}`}>
-                      📅 <strong>{ev.titulo}</strong>
-                      {ev.local ? ` · ${ev.local}` : ""} ·{" "}
-                      {formatarData(ev.data_inicio)} às {new Date(ev.data_inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                    </li>
+              {carregando ? (
+                <div className="space-y-2.5">
+                  <Skeleton width="100%" height="3.25rem" />
+                  <Skeleton width="100%" height="3.25rem" />
+                </div>
+              ) : aniversariantesHoje.length === 0 ? (
+                <div className="p-3 rounded-lg bg-slate-50 text-xs text-[#64748b]">
+                  Nenhum colaborador aniversariando hoje. Confira os{" "}
+                  <Link to="/aniversariantes" className="font-semibold text-[#800020] hover:underline">
+                    {totalAniversariantesMes} aniversariantes deste mês
+                  </Link>
+                  .
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {aniversariantesHoje.map((aniv) => (
+                    <div
+                      key={aniv.id_usuario}
+                      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gradient-to-r from-[#fff5f6] to-white border border-[#f1c5cf]"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-[#1e293b]">{aniv.nome}</div>
+                        <div className="text-[11px] text-[#64748b]">
+                          {aniv.cargo || "Colaborador"} ·{" "}
+                          {aniv.setor?.nome || "Setor não informado"}
+                        </div>
+                        <div className="text-[11px] font-medium text-[#800020] mt-0.5">
+                          Parabéns pelo seu dia! 🎉
+                        </div>
+                      </div>
+                      <Badge variant="primary">Hoje</Badge>
+                    </div>
                   ))}
-                  {aniversariantesDoDiaSel.map((a) => (
-                    <li key={a.id_usuario}>
-                      🎂 <strong>Dia {String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}</strong> · <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
-                    </li>
-                  ))}
-                </ul>
+                </div>
               )}
-            </div>
-          </Card>
+
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <MiniCalendario
+                  ano={hojeCal.getFullYear()}
+                  mes={hojeCal.getMonth() + 1}
+                  marcados={diasComAniv}
+                  marcadosEventos={diasComEvento}
+                  diaSelecionado={diaAniv}
+                  onSelecionarDia={setDiaAniv}
+                />
+                {diaAniv && (
+                  <ul className="text-xs text-[#475569] space-y-1">
+                    {eventosDoDiaSel.map((ev) => (
+                      <li key={`ev-${ev.id_evento}`}>
+                        📅 <strong>{ev.titulo}</strong>
+                        {ev.local ? ` · ${ev.local}` : ""} ·{" "}
+                        {formatarData(ev.data_inicio)} às {new Date(ev.data_inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </li>
+                    ))}
+                    {aniversariantesDoDiaSel.map((a) => (
+                      <li key={a.id_usuario}>
+                        🎂 <strong>Dia {String(a.dia).padStart(2, "0")}/{String(a.mes).padStart(2, "0")}</strong> · <strong>{a.nome}</strong> · {a.setor?.nome || "Setor não informado"}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Card>
+          ) : (
+            <Card className="space-y-3">
+              <h2 className="text-sm font-bold text-[#1e293b]">Acesso Rápido Institucional</h2>
+              <div className="grid grid-cols-1 gap-2">
+                <Link
+                  to="/diretorio"
+                  className="p-2.5 rounded-lg border border-slate-200 hover:border-[#800020] hover:bg-[#fff5f6] text-xs font-semibold text-[#1e293b] no-underline transition"
+                >
+                  ☎️ Diretório e Ramais →
+                </Link>
+                <Link
+                  to="/documentos"
+                  className="p-2.5 rounded-lg border border-slate-200 hover:border-[#800020] hover:bg-[#fff5f6] text-xs font-semibold text-[#1e293b] no-underline transition"
+                >
+                  📁 Documentos (POPs) →
+                </Link>
+                <Link
+                  to="/faq"
+                  className="p-2.5 rounded-lg border border-slate-200 hover:border-[#800020] hover:bg-[#fff5f6] text-xs font-semibold text-[#1e293b] no-underline transition"
+                >
+                  💬 FAQ (Central de Ajuda) →
+                </Link>
+              </div>
+              <div className="p-3 rounded-xl bg-[#fff5f5] border border-[#f1c5cf] space-y-2">
+                <p className="text-xs font-medium text-[#800020]">
+                  Faça login para ver o conteúdo completo da intranet (aniversariantes, reconhecimentos, notificações e mais).
+                </p>
+                <Link to="/login" className="inline-block no-underline">
+                  <Button variant="primary" size="sm">
+                    Entrar na intranet
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          )}
 
           {/* Widget Reconhecimentos Recentes (somente logado) */}
           {autenticado && (
@@ -472,37 +518,6 @@ export default function Dashboard() {
               )}
             </Card>
           )}
-
-          {/* Atalhos Rápidos de Navegação (S2-T7 / S4-T6) */}
-          <Card className="space-y-2.5">
-            <h2 className="text-sm font-bold text-[#1e293b]">Atalhos Rápidos</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                to="/diretorio"
-                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
-              >
-                ☎️ Diretório e Ramais
-              </Link>
-              <Link
-                to="/documentos"
-                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
-              >
-                📄 Documentos (POPs)
-              </Link>
-              <Link
-                to="/faq"
-                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
-              >
-                💬 Central de Ajuda (FAQ)
-              </Link>
-              <Link
-                to="/aniversariantes"
-                className="p-2.5 rounded-xl bg-slate-50 hover:bg-[#fff5f5] border border-slate-100 hover:border-[#f1c5cf] transition text-xs font-semibold text-[#1e293b] hover:text-[#800020] no-underline"
-              >
-                🎂 Aniversariantes
-              </Link>
-            </div>
-          </Card>
         </div>
       </div>
     </div>

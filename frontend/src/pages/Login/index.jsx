@@ -97,18 +97,25 @@ export default function Login() {
       navigate("/", { replace: true });
     } catch (err) {
       let message =
-        "Não foi possível conectar ao sistema. Confira sua conexão ou procure a equipe de TI.";
+        "Não foi possível conectar ao sistema. Confira sua conexão ou procure a equipe de TI. Procure o ADMIN.";
       if (err && typeof err.status === "number") {
-        if (err.status === 401) {
-          message = "E-mail ou senha inválidos";
-        } else if (err.status === 403) {
-          message = err.mensagem || "Usuário inativo. Procure o administrador.";
+        if (err.status === 401 || err.status === 403) {
+          message = "E-mail ou senha inválidos. Procure o ADMIN.";
         } else if (err.status === 429) {
-          message = "Muitas tentativas de acesso. Aguarde um momento e tente novamente.";
+          message =
+            "Muitas tentativas de acesso. Aguarde um momento e tente novamente. Procure o ADMIN.";
         } else if (err.status === 422) {
-          message = err.mensagem || "Confira o e-mail e a senha informados.";
+          const base = err.mensagem || "Confira o e-mail e a senha informados.";
+          message = base.endsWith("Procure o ADMIN.")
+            ? base
+            : `${base.replace(/\.?$/, ".")} Procure o ADMIN.`;
         } else if (err.status > 0) {
-          message = err.mensagem || "O sistema está indisponível no momento. Tente novamente em instantes.";
+          const base =
+            err.mensagem ||
+            "O sistema está indisponível no momento. Tente novamente em instantes.";
+          message = base.endsWith("Procure o ADMIN.")
+            ? base
+            : `${base.replace(/\.?$/, ".")} Procure o ADMIN.`;
         }
       }
       setError(message);

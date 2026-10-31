@@ -51,7 +51,9 @@ Abaixo estão detalhados todos os recursos que **já estão implementados e oper
 - **Autenticação JWT (`POST /api/v1/auth/login` e `GET /api/v1/auth/me`):** Senhas criptografadas com `bcrypt`, tokens assinados com `HS256` e validação automática de sessão ativa a cada requisição e ao focar a janela.
 - **Revogação Instantânea de Sessão (`VERSAO_TOKEN`):** Qualquer redefinição de senha, inativação de conta ou alteração de perfil incrementa a versão do token no banco, invalidando imediatamente tokens antigos.
 - **Proteção contra Força Bruta (`RNF03`):** Controle de tentativas inválidas de login por IP/e-mail com bloqueio temporário automático (`HTTP 429 Too Many Requests` após 5 falhas em 15 minutos).
-- **Modo Leitura / Visitante (`modoLeitura`):** Terminais sem usuário logado podem consultar os painéis informativos do Portal do Colaborador em modo somente visualização (identificado pelo badge *"Modo Leitura"* no cabeçalho), com botão rápido de *"Entrar / Login"* e ocultação total de botões administrativos.
+- **Modo Leitura / Visitante (`modoLeitura` — Ajuste A1):** Terminais sem usuário logado visualizam apenas as 6 áreas públicas em modo somente leitura (Dashboard simplificado sem aniversariantes, Notícias/Avisos, Eventos, Diretório sem exposição de e-mails, Documentos vigentes e FAQ), enquanto Aniversariantes, Reconhecimentos, Notificações, Integrações, Acesso Rápido e telas administrativas exigem autenticação.
+- **Pop-up de Feliz Aniversário (`AniversarioPopup` — Ajuste A2):** Exibe automaticamente um modal comemorativo uma vez por dia ao colaborador logado que faz aniversário na data corrente (`aniversario_hoje`).
+- **Mensagem Unificada no Login (Ajuste A3):** Falhas de login por senha incorreta, e-mail inexistente ou conta `INATIVO` retornam `HTTP 401` com a mensagem única `"E-mail ou senha inválidos. Procure o ADMIN."`.
 - **Gestão de Usuários e Auditoria (`/admin/usuarios`):**
   - Cadastro e edição de usuários (`ADMIN` e `RH`), filtros combinados por busca textual, setor, perfil e status.
   - Controle estrito de acesso (exclusivo `ADMIN`) para alternar perfis (`ADMIN`, `COLABORADOR`, `RH`, `MARKETING`) e status (`ATIVO`, `INATIVO`), com trava contra auto-inativação ou auto-rebaixamento do próprio administrador.
@@ -97,7 +99,7 @@ Abaixo estão detalhados todos os recursos que **já estão implementados e oper
 
 ### 🎨 3.10. Experiência de Interface, Temas e Biblioteca de Componentes
 - **Tema Claro e Escuro (`Light / Dark Mode`):** Gerenciado pelo hook `useTheme` e `styles/dark.css`, com botão de alternância no `Header`, persistência em `localStorage` (`decos.theme`) e sincronização instantânea entre abas.
-- **Botão Flutuante de Acesso Rápido (`QuickAccessFab`):** Menu FAB no canto inferior direito para salto imediato entre as 7 áreas principais do Portal do Colaborador, com fechamento automático por `ESC` ou clique externo.
+- **Botão Flutuante de Acesso Rápido (`QuickAccessFab` e `/admin/acesso-rapido` — Ajuste A4):** Visível para usuários autenticados, lista links para sistemas externos cadastrados pelo `ADMIN` na tabela `ACESSOS_RAPIDOS` (`GET /api/v1/acessos-rapidos`), recarregando automaticamente ao abrir o menu e abrindo os destinos em nova aba.
 - **Design System Próprio (`src/components/ui/` e `/_componentes`):** Biblioteca padronizada contendo `Button`, `Input`, `Textarea`, `Select`, `DateInput` (seletor de data customizado), `SearchInput`, `Modal`, `ConfirmDialog`, `Table`, `Pagination`, `Badge`, `Card`, `Skeleton`, `EmptyState`, `ErrorBanner`, `Toast` e `MiniCalendario`.
 
 ---

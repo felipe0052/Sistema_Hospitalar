@@ -1,3 +1,4 @@
+from app.models.acesso_rapido import AcessoRapido
 from app.models.aviso import Aviso
 from app.models.documento import Documento
 from app.models.documento_trecho import DocumentoTrecho
@@ -29,4 +30,5 @@ __all__ = [
     "Notificacao",
     "NotificacaoLida",
     "LogIA",
+    "AcessoRapido",
 ]

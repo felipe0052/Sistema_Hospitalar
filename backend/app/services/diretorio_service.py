@@ -36,7 +36,10 @@ def _ordem_andar(andar: str) -> tuple[int, str]:
     return (100, norm)
 
 
-def _converter_colaborador_out(usuario: Usuario) -> DiretorioColaboradorOut:
+def _converter_colaborador_out(
+    usuario: Usuario,
+    incluir_email: bool = True,
+) -> DiretorioColaboradorOut:
     if usuario.setor is not None:
         setor_out = SetorDiretorioOut(
             id_setor=usuario.setor.id_setor,
@@ -54,7 +57,7 @@ def _converter_colaborador_out(usuario: Usuario) -> DiretorioColaboradorOut:
         id_usuario=usuario.id_usuario,
         nome=usuario.nome,
         cargo=usuario.cargo,
-        email=usuario.email,
+        email=usuario.email if incluir_email else None,
         setor=setor_out,
         ramais=ramais_ordenados,
     )
@@ -67,6 +70,7 @@ def listar_diretorio(
     andar: str | None = None,
     pagina: int = 1,
     tamanho: int = 20,
+    incluir_email: bool = True,
 ) -> PaginadoDiretorioOut:
     """Lista colaboradores ativos com setor, andar e ramais, com filtros e paginação (UC10)."""
     query = (
@@ -105,7 +109,7 @@ def listar_diretorio(
     fatia = usuarios[inicio:fim]
 
     return PaginadoDiretorioOut(
-        itens=[_converter_colaborador_out(u) for u in fatia],
+        itens=[_converter_colaborador_out(u, incluir_email=incluir_email) for u in fatia],
         total=total,
         pagina=pagina,
         tamanho=tamanho,

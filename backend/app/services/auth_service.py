@@ -4,12 +4,13 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.exceptions import MuitasTentativas, NaoAutorizado, Proibido
+from app.core.exceptions import MuitasTentativas, NaoAutorizado
 from app.core.security import criar_token, verificar_senha
 from app.models.usuario import Usuario
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.usuario import UsuarioOut
 
+MSG_LOGIN_INVALIDO = "E-mail ou senha inválidos. Procure o ADMIN."
 MAX_TENTATIVAS_LOGIN = 5
 JANELA_BLOQUEIO_MINUTOS = 15
 
@@ -75,14 +76,15 @@ def login(
         .first()
     )
 
-    if usuario is None or not verificar_senha(dados.senha, usuario.senha_hash):
+    if (
+        usuario is None
+        or not verificar_senha(dados.senha, usuario.senha_hash)
+        or usuario.status == "INATIVO"
+    ):
         _registrar_falha_login(chave, instante)
-        raise NaoAutorizado("E-mail ou senha inválidos")
+        raise NaoAutorizado(MSG_LOGIN_INVALIDO)
 
     _limpar_falhas_chave(chave)
-
-    if usuario.status == "INATIVO":
-        raise Proibido("Usuário inativo. Procure o administrador.")
 
     token = criar_token(usuario)
     return TokenResponse(

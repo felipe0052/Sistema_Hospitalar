@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import QuickAccessFab from "../components/layout/QuickAccessFab";
+import AdminAcessoRapido from "../pages/AdminAcessoRapido";
 import AdminSetores from "../pages/AdminSetores";
 import AdminUsuarios from "../pages/AdminUsuarios";
 import Aniversariantes from "../pages/Aniversariantes";
@@ -30,6 +31,7 @@ export const TELAS_PRINCIPAIS = [
     icon: "home",
     component: Dashboard,
     index: true,
+    publica: true,
   },
   {
     path: "/avisos",
@@ -38,6 +40,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "megaphone",
     component: Avisos,
+    publica: true,
   },
   {
     path: "/eventos",
@@ -46,6 +49,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "calendar",
     component: Eventos,
+    publica: true,
   },
   {
     path: "/aniversariantes",
@@ -54,6 +58,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "gift",
     component: Aniversariantes,
+    publica: false,
   },
   {
     path: "/diretorio",
@@ -62,6 +67,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "users",
     component: Diretorio,
+    publica: true,
   },
   {
     path: "/documentos",
@@ -70,6 +76,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "folder",
     component: Documentos,
+    publica: true,
   },
   {
     path: "/faq",
@@ -78,6 +85,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "chat",
     component: Faq,
+    publica: true,
   },
 ];
 
@@ -93,11 +101,11 @@ export function AppRoutes() {
             <Route path="/avisos" element={<Avisos />} />
             <Route path="/avisos/:id" element={<Avisos />} />
             <Route path="/eventos" element={<Eventos />} />
-            <Route path="/aniversariantes" element={<Aniversariantes />} />
             <Route path="/diretorio" element={<Diretorio />} />
             <Route path="/documentos" element={<Documentos />} />
             <Route path="/faq" element={<Faq />} />
             <Route element={<PrivateRoute requireAuth />}>
+              <Route path="/aniversariantes" element={<Aniversariantes />} />
               <Route path="/reconhecimentos" element={<Reconhecimentos />} />
               <Route path="/notificacoes" element={<Notificacoes />} />
               <Route path="/perfil/integracoes" element={<Integracoes />} />
@@ -111,13 +119,14 @@ export function AppRoutes() {
 
             <Route element={<PermissaoRoute perfis={["ADMIN"]} />}>
               <Route path="/admin/setores" element={<AdminSetores />} />
+              <Route path="/admin/acesso-rapido" element={<AdminAcessoRapido />} />
             </Route>
 
             <Route path="*" element={<NaoEncontrada />} />
           </Route>
         </Route>
       </Routes>
-      <QuickAccessFab telas={TELAS_PRINCIPAIS} />
+      <QuickAccessFab />
     </>
   );
 }

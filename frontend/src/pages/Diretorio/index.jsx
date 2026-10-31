@@ -15,6 +15,7 @@ import {
   Table,
   useToast,
 } from "../../components/ui";
+import { useAuth } from "../../contexts/AuthContext";
 
 const SETORES_CHAVE = [
   "UTI",
@@ -70,6 +71,7 @@ async function copiarTextoAreaTransferencia(texto) {
 }
 
 export default function Diretorio() {
+  const { autenticado } = useAuth();
   const { sucesso } = useToast();
 
   // Abas: "colaboradores" (UC10) ou "ramais" (Guia de Ramais por Andar)
@@ -262,13 +264,17 @@ export default function Diretorio() {
           <span className="text-xs italic text-[#64748b]">Setor não informado</span>
         ),
     },
-    {
-      key: "email",
-      header: "E-mail Corporativo",
-      render: (colab) => (
-        <span className="text-xs text-[#475569] font-medium">{colab.email}</span>
-      ),
-    },
+    ...(autenticado
+      ? [
+          {
+            key: "email",
+            header: "E-mail Corporativo",
+            render: (colab) => (
+              <span className="text-xs text-[#475569] font-medium">{colab.email || "—"}</span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "acoes",
       header: "Contato",
@@ -568,7 +574,7 @@ export default function Diretorio() {
                 Copiar Ramal ({colaboradorDetalhe.ramais[0]})
               </Button>
             )}
-            {colaboradorDetalhe?.email && (
+            {autenticado && colaboradorDetalhe?.email && (
               <Button
                 variant="primary"
                 onClick={() =>
@@ -615,25 +621,27 @@ export default function Diretorio() {
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-              <div className="text-xs font-semibold text-[#64748b] uppercase">
-                E-mail Corporativo
+            {autenticado && colaboradorDetalhe.email && (
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                <div className="text-xs font-semibold text-[#64748b] uppercase">
+                  E-mail Corporativo
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#1e293b]">
+                    {colaboradorDetalhe.email}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      handleCopiarEmail(colaboradorDetalhe.email, colaboradorDetalhe.nome)
+                    }
+                  >
+                    Copiar E-mail
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-[#1e293b]">
-                  {colaboradorDetalhe.email}
-                </span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() =>
-                    handleCopiarEmail(colaboradorDetalhe.email, colaboradorDetalhe.nome)
-                  }
-                >
-                  Copiar E-mail
-                </Button>
-              </div>
-            </div>
+            )}
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
               <div className="text-xs font-semibold text-[#64748b] uppercase">

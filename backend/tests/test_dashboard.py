@@ -241,11 +241,12 @@ def test_checkpoint_semana_2_fluxo_integrado_marketing_e_colaborador(client: Tes
 def test_listar_aniversariantes_do_mes_ordenados_por_dia(client):
     from datetime import date
 
-    mes_do_admin = client.get("/api/v1/aniversariantes", params={"mes": 3}).json()
+    headers = _obter_headers(client, "colaborador@decos.com.br", "Colab@123")
+    mes_do_admin = client.get("/api/v1/aniversariantes", params={"mes": 3}, headers=headers).json()
     assert [a["nome"] for a in mes_do_admin] == ["André Luiz"]
     assert mes_do_admin[0]["dia"] == 14 and mes_do_admin[0]["mes"] == 3
     assert "data_nascimento" not in mes_do_admin[0]
     # usuário inativo (janeiro) não aparece
-    assert client.get("/api/v1/aniversariantes", params={"mes": 1}).json() == []
-    assert client.get("/api/v1/aniversariantes", params={"mes": 13}).status_code == 422
-    assert isinstance(client.get("/api/v1/aniversariantes").json(), list) and date.today()
+    assert client.get("/api/v1/aniversariantes", params={"mes": 1}, headers=headers).json() == []
+    assert client.get("/api/v1/aniversariantes", params={"mes": 13}, headers=headers).status_code == 422
+    assert isinstance(client.get("/api/v1/aniversariantes", headers=headers).json(), list) and date.today()

@@ -63,7 +63,7 @@ export default function Notificacoes() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="p-6 space-y-5 max-w-[1400px] mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[#1e293b]">Notificações</h1>

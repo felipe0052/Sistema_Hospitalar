@@ -16,9 +16,11 @@ export function PermissaoRoute({ perfis = ["ADMIN"], children }) {
     );
   }
 
-  // Se o usuário estiver autenticado mas não possuir o perfil exigido, bloqueia com 403 (/sem-permissao).
-  // No modo não autenticado (Modo Leitura), permite a visualização somente leitura das telas mapeadas.
-  if (usuario && !temPerfil(...perfis)) {
+  if (!usuario) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!temPerfil(...perfis)) {
     return <Navigate to="/sem-permissao" replace />;
   }
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
+import AniversarioPopup from "./AniversarioPopup";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -49,6 +50,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <AniversarioPopup />
     </div>
   );
 }

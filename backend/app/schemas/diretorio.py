@@ -17,7 +17,7 @@ class DiretorioColaboradorOut(BaseModel):
     id_usuario: int
     nome: str
     cargo: str | None = None
-    email: str
+    email: str | None = None
     setor: SetorDiretorioOut | None = None
     ramais: list[str] = Field(default_factory=list)
 

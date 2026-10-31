@@ -280,10 +280,13 @@ export default function Eventos() {
     carregarEventos();
   }, [carregarEventos]);
 
-  // Aniversariantes do mês exibido no calendário
+  // Aniversariantes do mês exibido no calendário (apenas para usuários autenticados)
   const [aniversariantes, setAniversariantes] = useState([]);
   useEffect(() => {
-    if (abaAtiva !== "calendario") return;
+    if (abaAtiva !== "calendario" || !autenticado) {
+      setAniversariantes([]);
+      return;
+    }
     let cancelado = false;
     listarAniversariantesMes(mesCalendario)
       .then((l) => !cancelado && setAniversariantes(l || []))
@@ -291,7 +294,7 @@ export default function Eventos() {
     return () => {
       cancelado = true;
     };
-  }, [abaAtiva, mesCalendario]);
+  }, [abaAtiva, autenticado, mesCalendario]);
 
   const handleBusca = useCallback((termo) => {
     setBusca(termo);
@@ -614,7 +617,7 @@ export default function Eventos() {
             </button>
           </div>
 
-          {abaAtiva === "calendario" && (
+          {abaAtiva === "calendario" && autenticado && (
             <>
               {googleStatus?.conectado && (
                 <label
@@ -631,9 +634,9 @@ export default function Eventos() {
                   Receber todos os eventos
                 </label>
               )}
-            <Button variant="secondary" onClick={() => setGoogleInfoAberto(true)}>
-              📅 {googleStatus?.conectado ? "Google Agenda conectado" : "Integrar com Google Agenda"}
-            </Button>
+              <Button variant="secondary" onClick={() => setGoogleInfoAberto(true)}>
+                📅 {googleStatus?.conectado ? "Google Agenda conectado" : "Integrar com Google Agenda"}
+              </Button>
             </>
           )}
 

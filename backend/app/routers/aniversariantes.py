@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_optional_user
+from app.core.deps import get_current_user
 from app.models.usuario import Usuario
 from app.schemas.aniversariante import AniversarianteOut
 from app.services import aniversariante_service
@@ -33,7 +33,7 @@ def listar_aniversariantes(
         description="Busca textual por nome do colaborador (sem diferenciar maiúsculas/acentos)",
     ),
     db: Session = Depends(get_db),
-    _usuario_atual: Usuario | None = Depends(get_optional_user),
+    _usuario_atual: Usuario = Depends(get_current_user),
 ) -> list[AniversarianteOut]:
     """
     Lista colaboradores ativos que fazem aniversário no mês informado (UC11).

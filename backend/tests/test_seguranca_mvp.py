@@ -130,6 +130,14 @@ def test_auditoria_permissoes_colaborador_comum_recebe_403_em_todas_rotas_admini
             None,
         ),
         ("DELETE", "/api/v1/faq/1", None, None),
+        # Acessos Rápidos — Gestão (A4)
+        ("GET", "/api/v1/acessos-rapidos/admin", None, None),
+        (
+            "POST",
+            "/api/v1/acessos-rapidos",
+            {"titulo": "Link Bloqueado", "url": "https://decos.com.br"},
+            None,
+        ),
     ]
 
     for metodo, url, json_body, multipart in rotas_administrativas:
@@ -164,7 +172,7 @@ def test_protecao_forca_bruta_login_bloqueia_com_429_apos_5_falhas_em_15_minutos
             json={"email": "colaborador@decos.com.br", "senha": f"SenhaErrada@{tentativa}"},
         )
         assert res.status_code == 401
-        assert res.json()["detail"] == "E-mail ou senha inválidos"
+        assert res.json()["detail"] == "E-mail ou senha inválidos. Procure o ADMIN."
 
     # 6ª tentativa (mesmo com a senha correta!) dentro dos 15 minutos recebe 429
     res_bloqueado = client.post(
@@ -257,11 +265,13 @@ def test_homologacao_mvp_fluxo_completo_uc01_a_uc12(
     monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
     monkeypatch.setattr(storage_service, "_storage_instance", None)
 
-    # UC01: Login válido (Admin, RH, Marketing, Colaborador), senha inválida (401) e inativo (403)
+    # UC01: Login válido (Admin, RH, Marketing, Colaborador), senha inválida (401) e inativo (401 com mensagem unificada)
     login_errado = client.post("/api/v1/auth/login", json={"email": "admin@decos.com.br", "senha": "Errada123"})
     assert login_errado.status_code == 401
+    assert login_errado.json()["detail"] == "E-mail ou senha inválidos. Procure o ADMIN."
     login_inativo = client.post("/api/v1/auth/login", json={"email": "inativo@decos.com.br", "senha": "Inativo@123"})
-    assert login_inativo.status_code == 403
+    assert login_inativo.status_code == 401
+    assert login_inativo.json()["detail"] == "E-mail ou senha inválidos. Procure o ADMIN."
 
     h_admin = _obter_headers(client, "admin@decos.com.br", "Admin@123")
     h_rh = _obter_headers(client, "rh@decos.com.br", "Rh@12345")
@@ -411,4 +421,47 @@ def test_homologacao_mvp_fluxo_completo_uc01_a_uc12(
     assert res_dash.status_code == 200
     assert len(res_dash.json()["avisos_destaque"]) >= 1
     assert len(res_dash.json()["proximos_eventos"]) >= 1
+
+
+def test_modo_visitante_restricoes_e_telas_publicas_a1(client: TestClient):
+    """
+    A1 — Modo visitante vs. modo logado:
+    - Visitante (sem token) recebe 401 em /aniversariantes, /reconhecimentos, /notificacoes e /acessos-rapidos.
+    - Visitante recebe 200 em /avisos, /eventos, /diretorio (sem e-mail), /documentos, /faq e /dashboard (sem dados de aniversário).
+    """
+    # Endpoints restritos a usuários logados -> 401
+    for rota_privada in (
+        "/api/v1/aniversariantes",
+        "/api/v1/reconhecimentos",
+        "/api/v1/notificacoes",
+        "/api/v1/acessos-rapidos",
+    ):
+        res_priv = client.get(rota_privada)
+        assert res_priv.status_code == 401, f"Rota {rota_privada} deveria retornar 401 para visitante"
+
+    # Endpoints públicos de leitura -> 200
+    for rota_publica in (
+        "/api/v1/avisos",
+        "/api/v1/eventos",
+        "/api/v1/documentos",
+        "/api/v1/faq",
+    ):
+        res_pub = client.get(rota_publica)
+        assert res_pub.status_code == 200, f"Rota {rota_publica} deveria retornar 200 para visitante"
+
+    # Diretório para visitante não expõe e-mail dos colaboradores
+    res_dir = client.get("/api/v1/diretorio")
+    assert res_dir.status_code == 200
+    itens_dir = res_dir.json()["itens"]
+    assert len(itens_dir) >= 1
+    for item in itens_dir:
+        assert item["email"] is None
+
+    # Dashboard para visitante retorna aniversariantes_hoje = [] e total_aniversariantes_mes = 0
+    res_dash = client.get("/api/v1/dashboard")
+    assert res_dash.status_code == 200
+    dados_dash = res_dash.json()
+    assert dados_dash["aniversariantes_hoje"] == []
+    assert dados_dash["total_aniversariantes_mes"] == 0
+
 

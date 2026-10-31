@@ -25,7 +25,6 @@ import {
   ErrorBanner,
   Modal,
   Pagination,
-  SearchInput,
   Select,
   Skeleton,
   Input,
@@ -36,7 +35,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import { formatarData } from "../../utils/date";
 
 const TAMANHO = 9;
-const VARIANTE_TIPO = { PROMOCAO: "primary", DESTAQUE: "ativo", TEMPO_DE_CASA: "info", AGRADECIMENTO: "default" };
+const VARIANTE_TIPO = {
+  PROMOCAO: "primary",
+  DESTAQUE: "ativo",
+  TEMPO_DE_CASA: "info",
+  AGRADECIMENTO: "default",
+};
 const VARIANTE_STATUS = { PENDENTE: "warning", APROVADA: "ativo", RECUSADA: "inativo" };
 
 function iniciais(nome = "") {
@@ -74,16 +78,28 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
     return (
       <div className="ui-field">
         <span className="ui-field__label">Colega</span>
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm">
-          <span>
-            <strong>{selecionado.nome}</strong>
-            {selecionado.cargo ? ` · ${selecionado.cargo}` : ""}
-          </span>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              aria-hidden="true"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+            >
+              {iniciais(selecionado.nome)}
+            </div>
+            <span className="truncate text-[#1e293b]">
+              <strong>{selecionado.nome}</strong>
+              {selecionado.cargo ? (
+                <span className="text-xs text-[#64748b]"> · {selecionado.cargo}</span>
+              ) : (
+                ""
+              )}
+            </span>
+          </div>
           {onSelecionar && (
             <button
               type="button"
               onClick={() => onSelecionar(null)}
-              className="text-xs font-semibold text-[#800020] underline cursor-pointer"
+              className="text-xs font-semibold text-[#800020] underline cursor-pointer shrink-0"
             >
               Trocar
             </button>
@@ -120,18 +136,26 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
         <p className="text-xs text-[#64748b] mt-1">Nenhum funcionário encontrado</p>
       )}
       {resultados.length > 0 && (
-        <ul className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
+        <ul className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100 bg-white">
           {resultados.map((u) => (
             <li key={u.id_usuario}>
               <button
                 type="button"
                 onClick={() => onSelecionar(u)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 cursor-pointer flex items-center gap-2.5"
               >
-                <strong>{u.nome}</strong>
-                <span className="text-xs text-[#64748b]">
-                  {" "}
-                  · {u.cargo || "Cargo não informado"} · {u.setor?.nome || "Setor não informado"}
+                <span
+                  aria-hidden="true"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+                >
+                  {iniciais(u.nome)}
+                </span>
+                <span className="min-w-0 truncate">
+                  <strong className="text-[#1e293b]">{u.nome}</strong>
+                  <span className="text-xs text-[#64748b]">
+                    {" "}
+                    · {u.cargo || "Cargo não informado"} · {u.setor?.nome || "Setor não informado"}
+                  </span>
                 </span>
               </button>
             </li>
@@ -370,44 +394,71 @@ export default function Reconhecimentos() {
     setParams(novos, { replace: true });
   }
 
+  function limparFiltrosMural() {
+    setTipo("");
+    setSetor("");
+    setPagina(1);
+  }
+
   function CartaoReconhecimento({ r, realce = false }) {
-    const c = r.colaborador;
+    const c = r.colaborador || {};
     return (
       <Card
         ref={realce ? refDestaque : undefined}
-        className={`space-y-3 ${realce ? "ring-2 ring-[#800020]" : ""}`}
+        className={`flex flex-col justify-between h-full transition-shadow hover:shadow-md ${
+          realce ? "ring-2 ring-[#800020] bg-gradient-to-b from-[#fff5f6] to-white" : ""
+        }`}
         aria-label={`Reconhecimento: ${r.titulo}`}
       >
-        <div className="flex items-start gap-3">
-          <div
-            aria-hidden="true"
-            className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold bg-[#fff5f5] text-[#800020] border border-[#f3dfe5] shrink-0"
-          >
-            {iniciais(c.nome)}
+        <div className="space-y-3">
+          {/* Topo: Avatar + Dados do colaborador + Badge de Tipo */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                aria-hidden="true"
+                className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+              >
+                {iniciais(c.nome)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[#1e293b] truncate">{c.nome}</p>
+                <p className="text-xs text-[#64748b] mt-0.5 truncate">
+                  {c.cargo || "Cargo não informado"} · {c.setor?.nome || "Setor não informado"}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <Badge variant={VARIANTE_TIPO[r.tipo] || "default"}>
+                {ROTULO_TIPO_RECONHECIMENTO[r.tipo] || r.tipo}
+              </Badge>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-[#1e293b] truncate">{c.nome}</p>
-            <p className="text-xs text-[#64748b]">
-              {c.cargo || "Cargo não informado"} · {c.setor?.nome || "Setor não informado"}
+
+          {/* Corpo: Título + Mensagem de elogio */}
+          <div className="pt-3 border-t border-slate-100 space-y-1.5">
+            <h2 className="text-base font-bold text-[#1e293b] leading-snug">🏆 {r.titulo}</h2>
+            <p className="text-sm text-[#475569] leading-relaxed whitespace-pre-line">
+              {r.mensagem}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={VARIANTE_TIPO[r.tipo] || "default"}>{ROTULO_TIPO_RECONHECIMENTO[r.tipo] || r.tipo}</Badge>
-          <span className="text-xs text-[#64748b]">{formatarData(r.data_criacao)}</span>
+
+        {/* Rodapé fixo na base do card: Data + Ações administrativas */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-4 border-t border-slate-100">
+          <span className="text-xs font-medium text-[#64748b]">
+            Publicado em {formatarData(r.data_criacao)}
+          </span>
+          {podeGerir && (
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={() => abrirEdicao(r)}>
+                Editar
+              </Button>
+              <Button variant="danger" size="sm" onClick={() => setExcluindo(r)}>
+                Excluir
+              </Button>
+            </div>
+          )}
         </div>
-        <h2 className="text-base font-bold text-[#1e293b]">🏆 {r.titulo}</h2>
-        <p className="text-sm text-[#475569] leading-relaxed whitespace-pre-line">{r.mensagem}</p>
-        {podeGerir && (
-          <div className="flex gap-2 pt-1 border-t border-slate-100">
-            <Button variant="secondary" size="sm" onClick={() => abrirEdicao(r)}>
-              Editar
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => setExcluindo(r)}>
-              Excluir
-            </Button>
-          </div>
-        )}
       </Card>
     );
   }
@@ -415,11 +466,19 @@ export default function Reconhecimentos() {
   const abas = [
     { id: "mural", rotulo: "Mural" },
     { id: "minhas", rotulo: "Minhas indicações" },
-    ...(podeGerir ? [{ id: "recebidas", rotulo: `Indicações recebidas${recebidas.total ? ` (${recebidas.total})` : ""}` }] : []),
+    ...(podeGerir
+      ? [
+          {
+            id: "recebidas",
+            rotulo: `Indicações recebidas${recebidas.total ? ` (${recebidas.total})` : ""}`,
+          },
+        ]
+      : []),
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="p-6 space-y-5 max-w-[1400px] mx-auto">
+      {/* Cabeçalho padronizado */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[#1e293b]">Reconhecimentos</h1>
@@ -427,7 +486,7 @@ export default function Reconhecimentos() {
             Celebre as conquistas de quem faz o Hospital Decós acontecer
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Button variant="secondary" onClick={abrirIndicar}>
             Indicar um colega
           </Button>
@@ -439,53 +498,85 @@ export default function Reconhecimentos() {
         </div>
       </div>
 
-      <div role="tablist" aria-label="Seções de reconhecimentos" className="flex gap-2 border-b border-slate-200">
-        {abas.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            role="tab"
-            aria-selected={aba === a.id}
-            onClick={() => setAba(a.id)}
-            className={`px-3 py-2 text-sm font-semibold cursor-pointer border-b-2 -mb-px ${
-              aba === a.id ? "border-[#800020] text-[#800020]" : "border-transparent text-[#64748b]"
-            }`}
-          >
-            {a.rotulo}
-          </button>
-        ))}
+      {/* Barra de Abas padronizada */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div
+          role="tablist"
+          aria-label="Seções de reconhecimentos"
+          className="inline-flex flex-wrap p-1 rounded-xl bg-slate-100 border border-slate-200 gap-1"
+        >
+          {abas.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              role="tab"
+              aria-selected={aba === a.id}
+              onClick={() => setAba(a.id)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                aba === a.id
+                  ? "bg-[#800020] text-white shadow-sm"
+                  : "text-[#475569] hover:text-[#1e293b]"
+              }`}
+            >
+              {a.rotulo}
+            </button>
+          ))}
+        </div>
+
+        {aba === "mural" && !carregando && (
+          <Badge variant="default">
+            {lista.total}{" "}
+            {lista.total === 1 ? "reconhecimento publicado" : "reconhecimentos publicados"}
+          </Badge>
+        )}
       </div>
 
       {aba === "mural" && (
         <section className="space-y-4" aria-label="Mural de reconhecimentos">
-          <div className="flex flex-wrap gap-3">
-            <Select
-              label="Tipo"
-              value={tipo}
-              onChange={(e) => {
-                setTipo(e.target.value);
-                setPagina(1);
-              }}
-              placeholder="Todos os tipos"
-              options={TIPOS_RECONHECIMENTO}
-            />
-            <Select
-              label="Setor"
-              value={setor}
-              onChange={(e) => {
-                setSetor(e.target.value);
-                setPagina(1);
-              }}
-              placeholder="Todos os setores"
-              options={setores.map((s) => ({ value: s.id_setor, label: s.nome }))}
-            />
-          </div>
+          {/* Card de Filtros padronizado */}
+          <Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[260px_280px_auto] gap-3 items-end">
+              <Select
+                label="Tipo"
+                value={tipo}
+                onChange={(e) => {
+                  setTipo(e.target.value);
+                  setPagina(1);
+                }}
+                placeholder="Todos os tipos"
+                options={TIPOS_RECONHECIMENTO}
+              />
+              <Select
+                label="Setor"
+                value={setor}
+                onChange={(e) => {
+                  setSetor(e.target.value);
+                  setPagina(1);
+                }}
+                placeholder="Todos os setores"
+                options={setores.map((s) => ({ value: s.id_setor, label: s.nome }))}
+              />
+              {(tipo || setor) && (
+                <div className="flex items-center">
+                  <Button variant="secondary" size="sm" onClick={limparFiltrosMural}>
+                    Limpar filtros
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
 
           {destacado && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-[#800020]">Reconhecimento da notificação</p>
-                <button type="button" onClick={limparDestaque} className="text-xs underline cursor-pointer">
+                <p className="text-xs font-semibold text-[#800020]">
+                  Reconhecimento da notificação
+                </p>
+                <button
+                  type="button"
+                  onClick={limparDestaque}
+                  className="text-xs font-semibold text-[#800020] underline cursor-pointer"
+                >
                   Dispensar
                 </button>
               </div>
@@ -496,9 +587,19 @@ export default function Reconhecimentos() {
           {erroLista ? (
             <ErrorBanner message={erroLista} onRetry={carregarMural} />
           ) : carregando ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} height="200px" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" aria-busy="true">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton width="44px" height="44px" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton width="70%" height="16px" />
+                      <Skeleton width="50%" height="12px" />
+                    </div>
+                  </div>
+                  <Skeleton width="85%" height="20px" />
+                  <Skeleton width="100%" height="64px" />
+                </Card>
               ))}
             </div>
           ) : lista.itens.length === 0 ? (
@@ -506,7 +607,7 @@ export default function Reconhecimentos() {
               <EmptyState title="Nenhum reconhecimento publicado ainda" />
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
               {lista.itens.map((r) => (
                 <CartaoReconhecimento key={r.id_reconhecimento} r={r} />
               ))}
@@ -514,19 +615,31 @@ export default function Reconhecimentos() {
           )}
 
           {lista.total > TAMANHO && (
-            <div className="flex justify-center">
-              <Pagination pagina={pagina} tamanho={TAMANHO} total={lista.total} onPageChange={setPagina} />
+            <div className="flex justify-center pt-2">
+              <Pagination
+                pagina={pagina}
+                tamanho={TAMANHO}
+                total={lista.total}
+                onPageChange={setPagina}
+              />
             </div>
           )}
         </section>
       )}
 
       {aba === "minhas" && (
-        <section className="space-y-3" aria-label="Minhas indicações">
+        <section className="space-y-4" aria-label="Minhas indicações">
           {erroInd ? (
             <ErrorBanner message={erroInd} onRetry={carregarIndicacoes} />
           ) : carregandoInd ? (
-            <Skeleton height="80px" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {[1, 2].map((i) => (
+                <Card key={i} className="space-y-3">
+                  <Skeleton width="60%" height="18px" />
+                  <Skeleton width="100%" height="48px" />
+                </Card>
+              ))}
+            </div>
           ) : minhas.length === 0 ? (
             <Card>
               <EmptyState
@@ -535,51 +648,110 @@ export default function Reconhecimentos() {
               />
             </Card>
           ) : (
-            minhas.map((i) => (
-              <Card key={i.id_indicacao} className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="font-semibold text-[#1e293b]">{i.indicado.nome}</p>
-                  <p className="text-sm text-[#475569]">{i.motivo}</p>
-                  <p className="text-xs text-[#64748b]">Enviada em {formatarData(i.data_indicacao)}</p>
-                </div>
-                <Badge variant={VARIANTE_STATUS[i.status] || "default"}>{ROTULO_STATUS_INDICACAO[i.status]}</Badge>
-              </Card>
-            ))
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+              {minhas.map((i) => (
+                <Card
+                  key={i.id_indicacao}
+                  className="flex flex-col justify-between h-full space-y-3"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          aria-hidden="true"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+                        >
+                          {iniciais(i.indicado?.nome)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-[#1e293b] truncate">
+                            {i.indicado?.nome}
+                          </p>
+                          <p className="text-xs text-[#64748b]">
+                            Enviada em {formatarData(i.data_indicacao)}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={VARIANTE_STATUS[i.status] || "default"}>
+                        {ROTULO_STATUS_INDICACAO[i.status]}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
+                      {i.motivo}
+                    </p>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </section>
       )}
 
       {aba === "recebidas" && podeGerir && (
-        <section className="space-y-3" aria-label="Indicações recebidas">
+        <section className="space-y-4" aria-label="Indicações recebidas">
           {erroInd ? (
             <ErrorBanner message={erroInd} onRetry={carregarIndicacoes} />
           ) : carregandoInd ? (
-            <Skeleton height="80px" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {[1, 2].map((i) => (
+                <Card key={i} className="space-y-3">
+                  <Skeleton width="60%" height="18px" />
+                  <Skeleton width="100%" height="48px" />
+                </Card>
+              ))}
+            </div>
           ) : recebidas.itens.length === 0 ? (
             <Card>
               <EmptyState title="Nenhuma indicação pendente" />
             </Card>
           ) : (
-            recebidas.itens.map((i) => (
-              <Card key={i.id_indicacao} className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="font-semibold text-[#1e293b]">
-                    {i.indicado.nome}
-                    <span className="text-xs font-normal text-[#64748b]"> · indicado por {i.indicante.nome}</span>
-                  </p>
-                  <p className="text-sm text-[#475569]">{i.motivo}</p>
-                  <p className="text-xs text-[#64748b]">Enviada em {formatarData(i.data_indicacao)}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="primary" size="sm" onClick={() => abrirNovoReconhecimento(i)}>
-                    Criar reconhecimento
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => setRecusando(i)}>
-                    Recusar
-                  </Button>
-                </div>
-              </Card>
-            ))
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+              {recebidas.itens.map((i) => (
+                <Card
+                  key={i.id_indicacao}
+                  className="flex flex-col justify-between h-full space-y-3"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          aria-hidden="true"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+                        >
+                          {iniciais(i.indicado?.nome)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-[#1e293b] truncate">
+                            {i.indicado?.nome}
+                          </p>
+                          <p className="text-xs text-[#64748b] truncate">
+                            Indicado por {i.indicante?.nome} · {formatarData(i.data_indicacao)}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="warning">Pendente</Badge>
+                    </div>
+
+                    <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
+                      {i.motivo}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => abrirNovoReconhecimento(i)}
+                    >
+                      Criar reconhecimento
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => setRecusando(i)}>
+                      Recusar
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </section>
       )}
@@ -591,7 +763,11 @@ export default function Reconhecimentos() {
         title="Indicar um colega"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIndicarAberto(false)} disabled={enviandoIndicacao}>
+            <Button
+              variant="secondary"
+              onClick={() => setIndicarAberto(false)}
+              disabled={enviandoIndicacao}
+            >
               Cancelar
             </Button>
             <Button variant="primary" onClick={enviarIndicacao} loading={enviandoIndicacao}>
@@ -604,7 +780,11 @@ export default function Reconhecimentos() {
           <p className="text-sm text-[#475569]">
             Sua indicação não é publicada: ela vai para análise do RH.
           </p>
-          <SeletorColega selecionado={colegaIndicado} onSelecionar={setColegaIndicado} erro={errosIndicar.id_indicado} />
+          <SeletorColega
+            selecionado={colegaIndicado}
+            onSelecionar={setColegaIndicado}
+            erro={errosIndicar.id_indicado}
+          />
           <Textarea
             label="Motivo"
             required
@@ -625,7 +805,11 @@ export default function Reconhecimentos() {
         title={editando ? "Editar reconhecimento" : "Adicionar reconhecimento"}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormAberto(false)} disabled={salvando}>
+            <Button
+              variant="secondary"
+              onClick={() => setFormAberto(false)}
+              disabled={salvando}
+            >
               Cancelar
             </Button>
             <Button variant="primary" onClick={salvarReconhecimento} loading={salvando}>

@@ -1,14 +1,40 @@
+import calendar
 import re
 from datetime import date, datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 PerfilLiteral = Literal["ADMIN", "COLABORADOR", "RH", "MARKETING"]
 StatusLiteral = Literal["ATIVO", "INATIVO"]
 
 _TEM_LETRA = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]")
 _TEM_NUMERO = re.compile(r"\d")
+_FUSO_PADRAO = ZoneInfo("America/Sao_Paulo")
+
+
+def eh_aniversario_hoje(data_nascimento: date | None, hoje: date | None = None) -> bool:
+    """Verifica se a data de nascimento corresponde ao dia/mês atual em America/Sao_Paulo (29/02 -> 28/02 em ano não bissexto)."""
+    if data_nascimento is None:
+        return False
+    if hoje is None:
+        hoje = datetime.now(_FUSO_PADRAO).date()
+    if (
+        data_nascimento.month == 2
+        and data_nascimento.day == 29
+        and not calendar.isleap(hoje.year)
+    ):
+        return hoje.month == 2 and hoje.day == 28
+    return data_nascimento.month == hoje.month and data_nascimento.day == hoje.day
 
 
 def validar_regra_senha(senha: str) -> str:
@@ -39,6 +65,11 @@ class UsuarioOut(BaseModel):
     perfil: PerfilLiteral
     status: StatusLiteral
     setor: SetorResumoOut | None = None
+
+    @computed_field
+    @property
+    def aniversario_hoje(self) -> bool:
+        return eh_aniversario_hoje(self.data_nascimento)
 
 
 class UsuarioCreate(BaseModel):

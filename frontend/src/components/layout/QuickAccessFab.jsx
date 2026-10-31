@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { listarAcessosRapidos } from "../../api/acessosRapidos";
 import { useAuth } from "../../contexts/AuthContext";
 import symbol from "../../imports/Decos_Hospital_Simbolo_Transparente_v2.png";
 import "./QuickAccessFab.css";
@@ -21,6 +22,7 @@ const ICON_PATHS = {
   login: "M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3",
   compass:
     "M12 22a10 10 0 100-20 10 10 0 000 20z M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z",
+  external: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6 M15 3h6v6 M10 14L21 3",
   close: "M18 6L6 18 M6 6l12 12",
 };
 
@@ -44,11 +46,46 @@ function QuickIcon({ name, size = 16, className = "" }) {
   );
 }
 
-export function QuickAccessFab({ telas = [] }) {
+export function QuickAccessFab() {
   const [aberto, setAberto] = useState(false);
+  const [itens, setItens] = useState([]);
+  const [carregando, setCarregando] = useState(false);
   const containerRef = useRef(null);
   const location = useLocation();
-  const { autenticado, usuario } = useAuth();
+  const { autenticado, usuario, temPerfil } = useAuth();
+  const podeGerir = autenticado && temPerfil("ADMIN");
+
+  const carregarItens = useCallback(async () => {
+    if (!autenticado) {
+      setItens([]);
+      return;
+    }
+    setCarregando(true);
+    try {
+      const dados = await listarAcessosRapidos();
+      setItens(Array.isArray(dados) ? dados : []);
+    } catch {
+      setItens([]);
+    } finally {
+      setCarregando(false);
+    }
+  }, [autenticado]);
+
+  useEffect(() => {
+    if (autenticado) {
+      carregarItens();
+    } else {
+      setItens([]);
+      setAberto(false);
+    }
+  }, [autenticado, carregarItens]);
+
+  // Recarrega a lista sempre que o pop-up é aberto (reflete alterações do ADMIN sem relogar)
+  useEffect(() => {
+    if (aberto && autenticado) {
+      carregarItens();
+    }
+  }, [aberto, autenticado, carregarItens]);
 
   // Fecha o pop-up automaticamente ao trocar de rota
   useEffect(() => {
@@ -79,19 +116,9 @@ export function QuickAccessFab({ telas = [] }) {
     };
   }, [aberto]);
 
-  const telasColaborador = useMemo(
-    () =>
-      telas.filter(
-        (tela) => !tela.grupo || tela.grupo === "Portal do Colaborador",
-      ),
-    [telas],
-  );
-
-  function isRotaAtiva(path) {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  // Visível apenas para usuários logados (A1 e A4)
+  if (!autenticado) {
+    return null;
   }
 
   return (
@@ -103,7 +130,7 @@ export function QuickAccessFab({ telas = [] }) {
       <div
         id="quick-access-popup"
         role="dialog"
-        aria-label="Acesso rápido às telas do Portal do Colaborador"
+        aria-label="Acesso rápido a sistemas externos"
         aria-hidden={!aberto}
         className={`quick-access-fab-popup ${aberto ? "quick-access-fab-popup--open" : ""}`}
       >
@@ -115,59 +142,92 @@ export function QuickAccessFab({ telas = [] }) {
               className="w-6 h-6 object-contain brightness-0 invert flex-shrink-0"
             />
             <div className="min-w-0">
-              <h2 className="quick-access-fab-popup__title">Portal do Colaborador</h2>
+              <h2 className="quick-access-fab-popup__title">Acesso Rápido</h2>
               <p className="quick-access-fab-popup__subtitle">
-                Acesso rápido às telas principais
+                Sistemas e portais externos do hospital
               </p>
             </div>
           </div>
           <span className="quick-access-fab-popup__badge">
-            {autenticado ? usuario?.perfil || "Autenticado" : "Modo Leitura"}
+            {usuario?.perfil || "Autenticado"}
           </span>
         </div>
 
         <nav
-          aria-label="Atalhos rápidos do Portal do Colaborador"
+          aria-label="Atalhos rápidos para sistemas externos"
           className="quick-access-fab-popup__list"
         >
-          {telasColaborador.map((tela) => {
-            const ativa = isRotaAtiva(tela.path);
-            return (
-              <Link
-                key={tela.path}
-                to={tela.path}
+          {carregando && itens.length === 0 ? (
+            <div className="px-4 py-6 text-center text-xs text-[#64748b]">
+              Carregando atalhos...
+            </div>
+          ) : itens.length === 0 ? (
+            <div className="px-4 py-6 text-center space-y-2">
+              <p className="text-xs font-medium text-[#64748b]">
+                Nenhum acesso rápido configurado
+              </p>
+              {podeGerir && (
+                <Link
+                  to="/admin/acesso-rapido"
+                  onClick={() => setAberto(false)}
+                  className="inline-block text-xs font-semibold text-[#800020] hover:underline"
+                >
+                  Gerenciar →
+                </Link>
+              )}
+            </div>
+          ) : (
+            itens.map((item) => (
+              <a
+                key={item.id}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setAberto(false)}
-                className={`quick-access-fab-item ${
-                  ativa ? "quick-access-fab-item--active" : ""
-                }`}
+                className="quick-access-fab-item"
               >
                 <span className="quick-access-fab-item__icon">
-                  <QuickIcon name={tela.icon} size={16} />
+                  <QuickIcon name={item.icone || "compass"} size={16} />
                 </span>
                 <span className="quick-access-fab-item__content">
-                  <span className="quick-access-fab-item__label">{tela.label}</span>
-                  {tela.descricao && (
-                    <span className="quick-access-fab-item__desc">{tela.descricao}</span>
+                  <span className="quick-access-fab-item__label flex items-center gap-1.5">
+                    <span className="truncate">{item.titulo}</span>
+                    <QuickIcon name="external" size={12} className="opacity-60 shrink-0" />
+                  </span>
+                  {item.descricao && (
+                    <span className="quick-access-fab-item__desc">{item.descricao}</span>
                   )}
                 </span>
-              </Link>
-            );
-          })}
+              </a>
+            ))
+          )}
         </nav>
 
         <div className="quick-access-fab-popup__footer">
-          <span>{telasColaborador.length} telas disponíveis</span>
-          <span>ESC ou clique fora para fechar</span>
+          <span>
+            {itens.length} {itens.length === 1 ? "link disponível" : "links disponíveis"}
+          </span>
+          {podeGerir ? (
+            <Link
+              to="/admin/acesso-rapido"
+              onClick={() => setAberto(false)}
+              className="font-semibold text-[#800020] hover:underline"
+            >
+              Gerenciar
+            </Link>
+          ) : (
+            <span>ESC ou clique fora para fechar</span>
+          )}
         </div>
       </div>
 
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        aria-label={aberto ? "Fechar menu de acesso rápido" : "Abrir menu de acesso rápido às telas"}
+        aria-label={aberto ? "Fechar menu de acesso rápido" : "Abrir menu de acesso rápido"}
         aria-expanded={aberto}
         aria-controls="quick-access-popup"
-        title="Acesso Rápido às Telas"
+        title="Acesso Rápido"
         className={`quick-access-fab-trigger ${aberto ? "quick-access-fab-trigger--open" : ""}`}
       >
         <QuickIcon
