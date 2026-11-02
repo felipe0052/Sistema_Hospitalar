@@ -6,6 +6,16 @@
 -- EVENTOS_GOOGLE) já existem nas migrations anteriores e não são recriadas aqui.
 -- ===========================================================================
 
+-- O container executa cada script de init em uma nova sessão SYS no CDB$ROOT.
+-- Ao executar manualmente como DECOS no FREEPDB1, não é preciso trocar de PDB.
+BEGIN
+    IF SYS_CONTEXT('USERENV', 'CON_NAME') = 'CDB$ROOT' THEN
+        EXECUTE IMMEDIATE 'ALTER SESSION SET CONTAINER=FREEPDB1';
+    END IF;
+END;
+/
+ALTER SESSION SET CURRENT_SCHEMA=DECOS;
+
 -- 1) Prioridade do aviso (carrossel de urgentes)
 ALTER TABLE AVISOS ADD (PRIORIDADE VARCHAR2(10) DEFAULT 'NORMAL' NOT NULL);
 ALTER TABLE AVISOS ADD CONSTRAINT CK_AVISOS_PRIORIDADE CHECK (PRIORIDADE IN ('NORMAL','URGENTE'));

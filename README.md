@@ -215,13 +215,18 @@ cd Sistema_Hospitalar
 # 1. Modo Docker Completo (sobe Oracle + Back-end + Front-end em containers):
 ./iniciar.sh
 
+# Em um ambiente de desenvolvimento, criar/atualizar as contas de teste:
+docker compose exec backend python -m scripts.seed_usuarios
+
 # 2. Modo Desenvolvimento Híbrido (sobe o Oracle no Docker e roda Back-end e Front-end localmente):
 ./iniciar.sh --dev
 
 # Para encerrar todos os serviços e pausar os containers com segurança:
 ./parar.sh
 ```
-> **Nota:** Caso o Docker não esteja instalado ou em execução na máquina, o `./iniciar.sh` inicia automaticamente o Back-end em **modo fallback SQLite (`hospital.db`)** junto com o Front-end local.
+Para acessar o sistema com as credenciais da seção 6.4 no modo Docker completo, execute o comando de seed acima após a inicialização. O script recria as senhas e atualiza os dados dos usuários de teste existentes; execute-o somente em um banco de desenvolvimento, nunca em produção.
+
+> **Nota:** Para usar SQLite sem Docker, configure `DATABASE_URL=sqlite:///./hospital.db` no ambiente ou no arquivo `backend/.env` antes de executar `./iniciar.sh`.
 
 ---
 
@@ -232,7 +237,8 @@ cd Sistema_Hospitalar
 cd Sistema_Hospitalar
 docker compose up -d oracle
 ```
-- Na primeira execução, o container executa automaticamente os scripts de `database/init/` (`01_ddl_mvp.sql`, `02_indices_views.sql` e `03_seed_base.sql`).
+- Na primeira execução, o container executa automaticamente os scripts de `database/init/` (`01_ddl_mvp.sql`, `02_indices_views.sql`, `03_seed_base.sql` e `04_ddl_extras.sql`).
+- Em um volume Oracle existente, esses scripts não são executados novamente. Se os extras ainda não tiverem sido aplicados, execute uma vez o `04_ddl_extras.sql` como `DECOS`, conforme o comando no cabeçalho do arquivo. O script não é idempotente: se tiver sido aplicado parcialmente, verifique o esquema antes de executá-lo novamente.
 - Para acompanhar até o banco ficar saudável (`healthy`): `docker compose ps` ou `docker logs -f intranet-decos-oracle`.
 - **Dados de conexão (DBeaver / SQL Developer):** Host `localhost`, Porta `1521`, Service Name `FREEPDB1`, Usuário `decos`, Senha `decos123`.
 
@@ -252,7 +258,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Verifique o arquivo `.env` (por padrão já aponta para o Oracle local em `oracle+oracledb://decos:decos123@localhost:1521/?service_name=FREEPDB1`). Em seguida, popule os usuários e documentos de teste e inicie o servidor:
+Verifique o arquivo `.env` (por padrão já aponta para o Oracle local em `oracle+oracledb://decos:decos123@localhost:1521/?service_name=FREEPDB1`). Em seguida, em um banco de desenvolvimento, popule os usuários e documentos de teste e inicie o servidor. O seed redefine as senhas e atualiza os usuários de teste existentes; não o execute em produção.
 
 ```bash
 # Popular os 5 usuários de teste + 25 colaboradores fictícios
@@ -286,7 +292,7 @@ npm run dev
 
 ### 6.4. Credenciais de Teste (Criadas pelo Seed)
 
-O script `python -m scripts.seed_usuarios` cria automaticamente os perfis abaixo para validação de todas as regras de negócio e permissões:
+O script `python -m scripts.seed_usuarios` cria ou atualiza os perfis abaixo para validação de todas as regras de negócio e permissões. Ele precisa ser executado explicitamente no ambiente de desenvolvimento; o seed SQL inicial não configura essas senhas.
 
 | Perfil | E-mail | Senha | Status | Permissões Principais |
 | :--- | :--- | :--- | :---: | :--- |
@@ -294,7 +300,7 @@ O script `python -m scripts.seed_usuarios` cria automaticamente os perfis abaixo
 | **RH** | `rh@decos.com.br` | `Rh@12345` | `ATIVO` | Cadastro/edição de colaboradores comuns, publicação de avisos, gestão de documentos/POPs e gestão de FAQ |
 | **Marketing** | `marketing@decos.com.br` | `Mkt@12345` | `ATIVO` | Publicação e gestão de avisos/notícias corporativas e agenda de eventos |
 | **Colaborador** | `colaborador@decos.com.br` | `Colab@123` | `ATIVO` | Consulta ao Dashboard, avisos, eventos, diretório, ramais, aniversariantes, POPs e FAQ |
-| **Inativo (Teste)** | `inativo@decos.com.br` | `Inativo@123` | `INATIVO` | Bloqueado no login (`HTTP 403`) e oculto no diretório e aniversariantes |
+| **Inativo (Teste)** | `inativo@decos.com.br` | `Inativo@123` | `INATIVO` | Bloqueado no login (`HTTP 401`) e oculto no diretório e aniversariantes |
 
 ---
 

@@ -382,6 +382,9 @@ VALUES (
 -- =====================================================================
 -- 6. USUARIOS BASE (5 perfis de teste do §9 + colaboradores/aniversariantes — S4-T3)
 -- =====================================================================
+-- Hashes abaixo são marcadores, não senhas de acesso. Em desenvolvimento,
+-- execute explicitamente scripts.seed_usuarios para configurar contas de teste.
+-- Esse script altera usuários existentes e não deve ser executado em produção.
 INSERT INTO USUARIOS (NOME, EMAIL, SENHA_HASH, ID_SETOR, CARGO, DATA_NASCIMENTO, PERFIL, STATUS)
 VALUES (
     'André Luiz (Administrador)',
