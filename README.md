@@ -286,11 +286,47 @@ Sistema_Hospitalar/
 
 ---
 
-### 6.2. Opção A — Execução Automatizada com Docker Compose (Recomendado para Windows / Linux / macOS)
+### 6.2. Opção A — Execução Automatizada com Scripts (`iniciar.sh` / `parar.sh`) ou Docker Compose
 
-Esta é a forma mais simples e confiável de executar o sistema em qualquer sistema operacional, pois orquestra o banco Oracle 23ai Free, o back-end FastAPI e o front-end React em containers isolados:
+O projeto conta com scripts utilitários inteligentes na raiz da pasta `Sistema_Hospitalar/` que detectam o ambiente automaticamente, constroem e sobem os containers, aplicam migrações e configuram contingência automática (fallback para SQLite caso o Docker esteja inativo):
 
-Abra o terminal na pasta `Sistema_Hospitalar` (no Windows, pode ser **PowerShell**, **CMD** ou **Git Bash**) e execute:
+#### ⚡ Método 1 — Via Scripts Automatizados (`iniciar.sh` e `parar.sh`)
+*Recomendado para quem usa **Git Bash** (terminal padrão do Git no Windows), **WSL** ou **Linux/macOS**:*
+
+> [!IMPORTANT]
+> **Antes de executar os scripts, o Docker deve estar rodando:**
+> - **No Windows:** Abra o aplicativo **Docker Desktop** (pelo Menu Iniciar ou atalho da área de trabalho). Aguarde alguns instantes até que o ícone da baleia na barra de tarefas (próximo ao relógio) fique estável e a interface exiba a mensagem em verde **"Engine running"**. (Você pode confirmar se está ativo abrindo um terminal e digitando `docker ps`).
+> - **No Linux:** Certifique-se de que o serviço está ativo executando no terminal:
+>   ```bash
+>   sudo systemctl start docker
+>   ```
+> *(Nota: Caso o Docker não esteja em execução ao chamar `./iniciar.sh`, o script identificará a indisponibilidade e tentará iniciar automaticamente no modo de contingência local com SQLite `hospital.db`).*
+
+Com o Docker ativo, abra o terminal na pasta `Sistema_Hospitalar` e execute:
+
+```bash
+cd Sistema_Hospitalar
+
+# 1. Modo Docker Completo (sobe Oracle 23ai + Back-end + Front-end em containers com um único comando):
+./iniciar.sh
+
+# 2. Criar e atualizar os usuários e senhas de teste no banco de desenvolvimento:
+docker compose exec backend python -m scripts.seed_usuarios
+
+# 3. (Opcional) Popular o acervo de POPs e documentos hospitalares de exemplo:
+docker compose exec backend python -m scripts.seed_documentos
+
+# Alternativa: Modo Híbrido (sobe o Oracle no Docker e roda Back-end e Front-end locais com hot-reload):
+./iniciar.sh --dev
+
+# Para parar todos os serviços e encerrar os containers com segurança:
+./parar.sh
+```
+
+> **Dica para Windows (PowerShell / CMD):** Caso o Git esteja instalado no Windows com os comandos Unix no PATH, você também pode executar os scripts diretamente no PowerShell ou CMD digitando `bash ./iniciar.sh` e `bash ./parar.sh`.
+
+#### 🐳 Método 2 — Via Comandos Nativos do Docker Compose (PowerShell / CMD no Windows)
+*Caso prefira rodar os comandos padrão do Docker diretamente no **PowerShell** ou **Prompt de Comando (CMD)** sem passar por scripts bash:*
 
 ```bash
 cd Sistema_Hospitalar
@@ -303,18 +339,14 @@ docker compose exec backend python -m scripts.seed_usuarios
 
 # 3. (Opcional) Popular o acervo de POPs e documentos hospitalares de exemplo:
 docker compose exec backend python -m scripts.seed_documentos
+
+# Para parar todos os containers preservando os dados do banco com segurança:
+docker compose down
 ```
 
 - **Aplicação Web (Front-end):** Acesse `http://localhost:5173` no navegador.
 - **API REST (Swagger UI):** Acesse `http://localhost:8000/docs`.
 - **Healthcheck da API:** `http://localhost:8000/api/v1/health`.
-
-Para parar todos os containers preservando os dados do banco com segurança:
-```bash
-docker compose down
-```
-
-> **Usuários de Git Bash ou WSL no Windows (e Linux/macOS):** Você também pode utilizar os scripts utilitários automatizados `./iniciar.sh` (para subir tudo), `./iniciar.sh --dev` (modo híbrido) e `./parar.sh` (para encerrar).
 
 ---
 
