@@ -279,92 +279,137 @@ Sistema_Hospitalar/
 ## 🚀 6. Como Executar o Projeto Localmente
 
 ### 6.1. Pré-requisitos
-- **Docker** e **Docker Compose** (recomendado para orquestração automática com Oracle 23ai Free).
-- **Python 3.12+** (para execução local do back-end em modo híbrido ou standalone).
-- **Node.js 20+** e **npm** (para execução local do front-end).
+- **Docker Desktop** (no Windows, certifique-se de que o Docker Desktop está aberto e rodando com integração WSL 2 ativada) ou **Docker Engine** no Linux.
+- **Python 3.12+** instalado no sistema (no Windows, marque a opção *"Add python.exe to PATH"* durante a instalação).
+- **Node.js 20+ (LTS)** e **npm** instalados.
+- **Terminal no Windows:** Suporta **PowerShell**, **Prompt de Comando (CMD)**, **Git Bash** ou **WSL**.
 
 ---
 
-### 6.2. Opção A — Inicialização Rápida com Script Automatizado (`iniciar.sh`)
+### 6.2. Opção A — Execução Automatizada com Docker Compose (Recomendado para Windows / Linux / macOS)
 
-Na raiz do diretório `Sistema_Hospitalar/`, o projeto conta com um script inteligente que detecta o ambiente e gerencia a inicialização:
+Esta é a forma mais simples e confiável de executar o sistema em qualquer sistema operacional, pois orquestra o banco Oracle 23ai Free, o back-end FastAPI e o front-end React em containers isolados:
+
+Abra o terminal na pasta `Sistema_Hospitalar` (no Windows, pode ser **PowerShell**, **CMD** ou **Git Bash**) e execute:
 
 ```bash
 cd Sistema_Hospitalar
 
-# 1. Modo Docker Completo (sobe Oracle 23ai + Back-end + Front-end em containers):
-./iniciar.sh
+# 1. Construir as imagens e iniciar todos os containers (Oracle + Back-end + Front-end):
+docker compose up -d --build
 
-# Em ambiente de desenvolvimento, criar/atualizar as contas e senhas de teste:
+# 2. Criar e atualizar os usuários e senhas de teste no banco de desenvolvimento:
 docker compose exec backend python -m scripts.seed_usuarios
 
-# (Opcional) Popular os documentos e POPs hospitalares de exemplo:
+# 3. (Opcional) Popular o acervo de POPs e documentos hospitalares de exemplo:
 docker compose exec backend python -m scripts.seed_documentos
-
-# 2. Modo Desenvolvimento Híbrido (sobe o Oracle no Docker e roda Back-end e Front-end com hot-reload):
-./iniciar.sh --dev
-
-# 3. Encerramento Gracioso dos Serviços:
-./parar.sh
 ```
 
-> **Fallback Automático para SQLite:** Caso o Docker não esteja instalado ou o serviço esteja inativo na máquina, o `./iniciar.sh` inicia automaticamente a aplicação utilizando o banco local SQLite (`hospital.db`), garantindo disponibilidade imediata para desenvolvimento e avaliação.
+- **Aplicação Web (Front-end):** Acesse `http://localhost:5173` no navegador.
+- **API REST (Swagger UI):** Acesse `http://localhost:8000/docs`.
+- **Healthcheck da API:** `http://localhost:8000/api/v1/health`.
+
+Para parar todos os containers preservando os dados do banco com segurança:
+```bash
+docker compose down
+```
+
+> **Usuários de Git Bash ou WSL no Windows (e Linux/macOS):** Você também pode utilizar os scripts utilitários automatizados `./iniciar.sh` (para subir tudo), `./iniciar.sh --dev` (modo híbrido) e `./parar.sh` (para encerrar).
 
 ---
 
-### 6.3. Opção B — Inicialização Manual Passo a Passo
+### 6.3. Opção B — Inicialização Manual Passo a Passo (Desenvolvimento Local)
+
+Caso prefira executar o Back-end e o Front-end diretamente na sua máquina hospedeira com *hot-reload* imediato:
 
 #### Passo 1 — Subir o Banco de Dados Oracle 23ai no Docker
+Abra o terminal (PowerShell, CMD ou Git Bash):
 ```bash
 cd Sistema_Hospitalar
 docker compose up -d oracle
 ```
-- Na primeira execução, o Oracle executa automaticamente os scripts contidos em `database/init/` (`01_ddl_mvp.sql`, `02_indices_views.sql`, `03_seed_base.sql` e `04_ddl_extras.sql`).
-- Para acompanhar a prontidão do banco (`healthy`): `docker compose ps` ou `docker logs -f intranet-decos-oracle`.
+- Aguarde o container inicializar e ficar saudável (`healthy`). Verifique com: `docker compose ps`.
 - **Parâmetros de Conexão (DBeaver / VS Code):** Host `localhost`, Porta `1521`, Service Name `FREEPDB1`, Usuário `decos`, Senha `decos123`.
 
 #### Passo 2 — Configurar e Iniciar o Back-end (FastAPI)
-Em um terminal dedicado na pasta `backend/`:
-```bash
-cd Sistema_Hospitalar/backend
 
-# Criar e ativar o ambiente virtual Python
-python3 -m venv .venv
-source .venv/bin/activate
+Abra um novo terminal na pasta `Sistema_Hospitalar/backend`:
 
-# Instalar as dependências do back-end e IA
+**No Windows (PowerShell):**
+```powershell
+cd Sistema_Hospitalar\backend
+
+# 1. Criar o ambiente virtual Python
+python -m venv .venv
+
+# 2. Ativar o ambiente virtual no PowerShell
+.\.venv\Scripts\Activate.ps1
+# Nota: Se o PowerShell emitir erro sobre execução de scripts bloqueada, execute antes:
+# Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# 3. Instalar as dependências do back-end e dos módulos de IA
 pip install -r requirements.txt
 pip install -r requirements-ia.txt
 
-# Configurar as variáveis de ambiente a partir do exemplo
+# 4. Criar o arquivo de variáveis de ambiente a partir do modelo
 cp .env.example .env
 
-# Popular usuários de teste e colaboradores iniciais
+# 5. Popular os usuários de teste com senhas criptografadas
 python -m scripts.seed_usuarios
 
-# Popular o acervo de POPs hospitalares de demonstração
+# 6. (Opcional) Popular documentos e POPs hospitalares de demonstração
 python -m scripts.seed_documentos
 
-# Iniciar o servidor com recarregamento automático (hot-reload)
+# 7. Iniciar a API com recarregamento automático (hot-reload)
 uvicorn app.main:app --reload --port 8000
 ```
-- **API Base:** `http://localhost:8000/api/v1`
-- **Documentação Interativa (Swagger UI):** `http://localhost:8000/docs`
-- **Verificação de Saúde (Healthcheck):** `http://localhost:8000/api/v1/health`
+
+**No Windows (Prompt de Comando - CMD):**
+```cmd
+cd Sistema_Hospitalar\backend
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+pip install -r requirements-ia.txt
+copy .env.example .env
+python -m scripts.seed_usuarios
+python -m scripts.seed_documentos
+uvicorn app.main:app --reload --port 8000
+```
+
+**No Linux, macOS ou Git Bash:**
+```bash
+cd Sistema_Hospitalar/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r requirements-ia.txt
+cp .env.example .env
+python -m scripts.seed_usuarios
+python -m scripts.seed_documentos
+uvicorn app.main:app --reload --port 8000
+```
 
 #### Passo 3 — Configurar e Iniciar o Front-end (React + Vite)
-Em um segundo terminal dedicado na pasta `frontend/`:
-```bash
-cd Sistema_Hospitalar/frontend
 
-# Configurar variáveis de ambiente
+Abra outro terminal na pasta `Sistema_Hospitalar/frontend`:
+
+**No Windows (PowerShell / CMD / Git Bash):**
+```powershell
+cd Sistema_Hospitalar\frontend
+
+# Copiar arquivo de variáveis de ambiente (.env)
 cp .env.example .env
+# (No CMD tradicional: copy .env.example .env)
 
-# Instalar dependências e iniciar servidor de desenvolvimento
+# Instalar as dependências do projeto
 npm install
+
+# Iniciar o servidor de desenvolvimento do Vite
 npm run dev
 ```
-- **Aplicação Web:** Acesse `http://localhost:5173` no navegador.
+
+- Acesse a interface web em **`http://localhost:5173`**.
 
 ---
 
@@ -377,8 +422,6 @@ O script `python -m scripts.seed_usuarios` configura os seguintes perfis padrão
 | **Administrador** | `admin@decos.com.br` | `Admin@123` | `ATIVO` | Acesso irrestrito: gestão de usuários, auditoria, setores/ramais, acessos rápidos, documentos/POPs, FAQ, avisos e eventos. |
 | **RH** | `rh@decos.com.br` | `Rh@12345` | `ATIVO` | Cadastro e edição de colaboradores comuns, concessão de reconhecimentos, triagem de indicações, gestão de POPs e FAQ. |
 | **Marketing** | `marketing@decos.com.br` | `Mkt@12345` | `ATIVO` | Publicação e gestão do mural de avisos/notícias e criação/gerenciamento da agenda de eventos. |
-| **Colaborador** | `colaborador@decos.com.br` | `Colab@123` | `ATIVO` | Consulta geral (Dashboard, avisos, eventos, diretório, aniversariantes, POPs, FAQ), submissão de indicações, central de notificações e Google Agenda. |
-| **Inativo (Teste)** | `inativo@decos.com.br` | `Inativo@123` | `INATIVO` | Bloqueado no login com mensagem uniforme (`HTTP 401`) e oculto de todas as listagens de diretório e aniversariantes. |
 
 ---
 
@@ -407,17 +450,30 @@ O sistema possui uma suíte completa com **106 testes automatizados** distribuí
 | `test_google_agenda.py` | 13 | Fluxo OAuth 2.0, criptografia de tokens, sincronização sem duplicidade e resiliência a falhas. |
 
 Para executar toda a suíte de testes do back-end:
+
+**No Windows (PowerShell):**
+```powershell
+cd Sistema_Hospitalar\backend
+.\.venv\Scripts\Activate.ps1
+pytest -v
+```
+
+**No Windows (CMD):**
+```cmd
+cd Sistema_Hospitalar\backend
+.venv\Scripts\activate.bat
+pytest -v
+```
+
+**No Linux, macOS ou Git Bash:**
 ```bash
 cd Sistema_Hospitalar/backend
 source .venv/bin/activate
-
-# Executar todos os 106 testes automatizados
 pytest -v
+```
 
-# Executar módulo específico
-pytest tests/test_reconhecimentos.py -v
-
-# Verificar conformidade de código e formatação (Ruff)
+Para verificar conformidade e linting do código Python (Ruff):
+```bash
 ruff check .
 ruff format --check .
 ```
@@ -456,9 +512,11 @@ Projeto desenvolvido pelo **Squad 49** no âmbito do programa **RiseUp — Resid
 | **Qualidade de Software (QA) & Documentação (1)** | Elaboração da coleção de API (`docs/api/colecao.json`), massa de POPs hospitalares de exemplo, roteiros de testes (`docs/qa/roteiro_mvp.md`, `docs/qa/roteiro_extras.md`) e Relatório de Homologação. |
 
 ### Integrantes do Squad 49
-- **André Felipe** — Tech Lead / Full-Stack & DevOps
+- **André Felipe Costa Barreto** — Tech Lead / Full-Stack & DevOps
 - **Milton Felipe Oliveira Alves** — Engenharia de Back-end & Front-end (Autenticação, RBAC e Arquitetura)
-- *Demais integrantes do Squad 49 (Banco de Dados, Back-end, Front-end e QA)*
+- **George Delgado Gioseffi da Gama** — Engenharia de Back-end & Banco de Dados
+- **João Gabriel Mendonça Ribeiro** — Engenharia de Back-end & Banco de Dados
+- **João Vitor Nunes Oliveira Alves** — Engenharia de Front-end, UX/UI & QA
 
 ---
 
