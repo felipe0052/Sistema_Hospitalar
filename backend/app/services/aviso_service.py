@@ -195,8 +195,7 @@ def criar_aviso(db: Session, dados: AvisoIn, autor: Usuario) -> AvisoOut:
     db.add(novo)
     db.commit()
     db.refresh(novo)
-    if novo.categoria == "NOTICIA":
-        notificacao_service.registrar(db, "NOTICIA", novo.id_aviso, novo.titulo)
+    notificacao_service.registrar(db, "NOTICIA", novo.id_aviso, novo.titulo)
     return obter_aviso(db, novo.id_aviso, autor)
 
 

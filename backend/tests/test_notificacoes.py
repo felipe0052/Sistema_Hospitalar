@@ -46,21 +46,15 @@ def _total(db: Session, tipo: str | None = None) -> int:
     return q.count()
 
 
-def test_noticia_gera_notificacao_e_comunicado_nao(client: TestClient, db_session: Session):
-    _publicar_aviso(client, _marketing(client), "COMUNICADO")
-    _publicar_aviso(client, _marketing(client), "PROMOCAO")
-    _publicar_aviso(client, _marketing(client), "MUDANCA_SETOR")
-    assert _total(db_session) == 0
-
-    aviso = _publicar_aviso(client, _marketing(client), "NOTICIA", "Nova notícia")
-    assert _total(db_session, "NOTICIA") == 1
-
-    res = client.get("/api/v1/notificacoes", headers=_colab(client))
-    assert res.status_code == 200
-    item = res.json()["itens"][0]
-    assert item["tipo"] == "NOTICIA"
-    assert item["link"] == f"/avisos/{aviso['id_aviso']}"
-    assert item["lida"] is False
+def test_todos_tipos_avisos_geram_notificacao(client: TestClient, db_session: Session):
+    for cat in ("COMUNICADO", "PROMOCAO", "MUDANCA_SETOR", "NOTICIA", "DESTAQUE_CORPORATIVO"):
+        aviso = _publicar_aviso(client, _marketing(client), cat, f"Aviso {cat}")
+        res = client.get("/api/v1/notificacoes", headers=_colab(client))
+        assert res.status_code == 200
+        item = res.json()["itens"][0]
+        assert item["tipo"] == "NOTICIA"
+        assert item["link"] == f"/avisos/{aviso['id_aviso']}"
+        assert item["lida"] is False
 
 
 def test_evento_novo_gera_notificacao_evento(client: TestClient, db_session: Session):

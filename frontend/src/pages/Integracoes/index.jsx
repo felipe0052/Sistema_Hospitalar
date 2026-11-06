@@ -134,7 +134,7 @@ export default function Integracoes() {
   const adicionados = resumo ? resumo.criados + resumo.atualizados : 0;
 
   return (
-    <div className="p-6 space-y-5 max-w-[1400px] mx-auto">
+    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       {/* Cabeçalho padronizado */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -153,7 +153,7 @@ export default function Integracoes() {
       {erro ? (
         <ErrorBanner message={erro} onRetry={carregar} />
       ) : carregando && !status ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5" aria-busy="true">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" aria-busy="true">
           <Card className="lg:col-span-7 xl:col-span-8 space-y-4">
             <div className="flex items-center gap-3">
               <Skeleton width="48px" height="48px" />
@@ -171,7 +171,7 @@ export default function Integracoes() {
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Card Principal: Google Agenda */}
           <Card className="lg:col-span-7 xl:col-span-8 flex flex-col justify-between space-y-5">
             <div className="space-y-4">
@@ -204,18 +204,23 @@ export default function Integracoes() {
               </p>
 
               {indisponivel && (
-                <p
+                <div
                   role="alert"
                   className="rounded-lg border border-[#f1c5cf] bg-[#fff5f6] p-3.5 text-xs font-medium text-[#800020]"
                 >
                   A integração ainda não foi configurada no servidor. Fale com a TI.
-                </p>
+                </div>
               )}
 
               {problema && (
                 <div
                   role="alert"
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3.5 text-sm text-amber-900"
+                  className="integracao-banner--aviso flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3.5 text-sm font-medium"
+                  style={{
+                    backgroundColor: "var(--color-warning-bg)",
+                    borderColor: "var(--color-warning-border)",
+                    color: "var(--color-warning)",
+                  }}
                 >
                   <span>{problema}</span>
                   <Button variant="primary" size="sm" onClick={conectar} loading={ocupado}>
@@ -229,7 +234,7 @@ export default function Integracoes() {
                   <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-[#1e293b] cursor-pointer">
                     <input
                       type="checkbox"
-                      className="mt-0.5 rounded border-slate-300"
+                      className="mt-0.5 rounded border-slate-300 text-[#800020] focus:ring-[#800020] accent-[#800020]"
                       checked={Boolean(status?.receber_todos)}
                       disabled={ocupado || sincronizando}
                       onChange={(e) => alternarReceberTodos(e.target.checked)}
@@ -248,22 +253,35 @@ export default function Integracoes() {
                   {resumo && (
                     <div
                       role="status"
-                      className="rounded-lg border border-[#86efac] bg-[#dcfce7] p-3 text-sm text-[#15803d]"
+                      className="integracao-banner--sucesso rounded-lg border p-3 text-sm font-medium flex items-center gap-2"
+                      style={{
+                        backgroundColor: "var(--color-success-bg)",
+                        borderColor: "var(--color-success-border)",
+                        color: "var(--color-success)",
+                      }}
                     >
-                      {adicionados === 0 && resumo.erros.length === 0
-                        ? `Tudo em dia: ${resumo.sem_alteracao} evento(s) já estavam na sua agenda.`
-                        : `${resumo.criados} ${
-                            resumo.criados === 1 ? "evento adicionado" : "eventos adicionados"
-                          }${
-                            resumo.atualizados ? `, ${resumo.atualizados} atualizado(s)` : ""
-                          }.`}
+                      <span aria-hidden="true">✓</span>
+                      <span>
+                        {adicionados === 0 && resumo.erros.length === 0
+                          ? `Tudo em dia: ${resumo.sem_alteracao} evento(s) já estavam na sua agenda.`
+                          : `${resumo.criados} ${
+                              resumo.criados === 1 ? "evento adicionado" : "eventos adicionados"
+                            }${
+                              resumo.atualizados ? `, ${resumo.atualizados} atualizado(s)` : ""
+                            }.`}
+                      </span>
                     </div>
                   )}
 
                   {resumo && resumo.erros.length > 0 && (
                     <div
                       role="alert"
-                      className="rounded-lg border border-[#fecaca] bg-[#fef2f2] p-3 text-sm text-[#b91c1c] space-y-2"
+                      className="integracao-banner--erro rounded-lg border p-3 text-sm space-y-2 font-medium"
+                      style={{
+                        backgroundColor: "var(--color-danger-bg)",
+                        borderColor: "var(--color-danger-border)",
+                        color: "var(--color-danger)",
+                      }}
                     >
                       <p>Alguns eventos não puderam ser enviados:</p>
                       <ul className="list-disc pl-5">
@@ -331,7 +349,7 @@ export default function Integracoes() {
               <h3 className="text-sm font-bold text-[#1e293b]">Como funciona a integração</h3>
               <ul className="space-y-3 text-xs text-[#475569] leading-relaxed">
                 <li className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-[#fff5f5] text-[#800020] font-bold flex items-center justify-center shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-[#fff5f5] border border-[#f1c5cf] text-[#800020] text-xs font-bold flex items-center justify-center shrink-0">
                     1
                   </span>
                   <span>
@@ -340,7 +358,7 @@ export default function Integracoes() {
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-[#fff5f5] text-[#800020] font-bold flex items-center justify-center shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-[#fff5f5] border border-[#f1c5cf] text-[#800020] text-xs font-bold flex items-center justify-center shrink-0">
                     2
                   </span>
                   <span>
@@ -350,7 +368,7 @@ export default function Integracoes() {
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-[#fff5f5] text-[#800020] font-bold flex items-center justify-center shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-[#fff5f5] border border-[#f1c5cf] text-[#800020] text-xs font-bold flex items-center justify-center shrink-0">
                     3
                   </span>
                   <span>

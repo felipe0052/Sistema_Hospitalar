@@ -56,10 +56,6 @@ export function QuickAccessFab() {
   const podeGerir = autenticado && temPerfil("ADMIN");
 
   const carregarItens = useCallback(async () => {
-    if (!autenticado) {
-      setItens([]);
-      return;
-    }
     setCarregando(true);
     try {
       const dados = await listarAcessosRapidos();
@@ -69,23 +65,18 @@ export function QuickAccessFab() {
     } finally {
       setCarregando(false);
     }
-  }, [autenticado]);
+  }, []);
 
   useEffect(() => {
-    if (autenticado) {
-      carregarItens();
-    } else {
-      setItens([]);
-      setAberto(false);
-    }
-  }, [autenticado, carregarItens]);
+    carregarItens();
+  }, [carregarItens]);
 
   // Recarrega a lista sempre que o pop-up é aberto (reflete alterações do ADMIN sem relogar)
   useEffect(() => {
-    if (aberto && autenticado) {
+    if (aberto) {
       carregarItens();
     }
-  }, [aberto, autenticado, carregarItens]);
+  }, [aberto, carregarItens]);
 
   // Fecha o pop-up automaticamente ao trocar de rota
   useEffect(() => {
@@ -116,8 +107,8 @@ export function QuickAccessFab() {
     };
   }, [aberto]);
 
-  // Visível apenas para usuários logados (A1 e A4)
-  if (!autenticado) {
+  // Não exibe na tela de login
+  if (location.pathname === "/login") {
     return null;
   }
 
@@ -149,7 +140,7 @@ export function QuickAccessFab() {
             </div>
           </div>
           <span className="quick-access-fab-popup__badge">
-            {usuario?.perfil || "Autenticado"}
+            {usuario?.perfil || "Visitante"}
           </span>
         </div>
 

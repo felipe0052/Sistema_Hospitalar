@@ -590,10 +590,10 @@ export default function Documentos() {
                   setTipoAtivo(chip.value);
                   setPagina(1);
                 }}
-                className={`px-3 py-1 text-xs font-semibold rounded-full border transition cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                   ativo
-                    ? "bg-[#800020] text-white border-[#800020] shadow-sm"
-                    : "bg-white text-[#475569] border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                    ? "bg-[#800020] text-white shadow-sm"
+                    : "bg-slate-100 text-[#475569] hover:bg-slate-200"
                 }`}
               >
                 {chip.label}

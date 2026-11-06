@@ -229,11 +229,59 @@
 :root[data-theme="dark"] .ui-btn--ghost { color: #94a3b8; }
 :root[data-theme="dark"] .ui-btn--ghost:hover:not(:disabled) { background-color: #1b2640; color: #e2e8f0; }
 
-/* Indicadores do carrossel de destaques */
+/* Indicadores do carrossel de destaques (Dashboard) */
 :root[data-theme="dark"] .bg-\[\#800020\]\/25 { background-color: rgba(240, 138, 160, 0.3); }
-:root[data-theme="dark"] button.bg-\[\#800020\].w-2\.5,
-:root[data-theme="dark"] button.bg-\[\#800020\].rounded-full:not(.px-3\.5) { background-color: #f08aa0; }
-:root[data-theme="dark"] button.bg-\[\#800020\].text-white { background-color: var(--bordeaux); color: #ffffff; }
+:root[data-theme="dark"] button.w-2\.5.h-2\.5.bg-\[\#800020\],
+:root[data-theme="dark"] button.w-2\.5.bg-\[\#800020\],
+:root[data-theme="dark"] button.w-6.h-2\.5.bg-\[\#800020\],
+:root[data-theme="dark"] button.w-6.bg-\[\#800020\],
+:root[data-theme="dark"] .destaque-banner button.bg-\[\#800020\] {
+  background-color: #f08aa0;
+}
+
+/* Botões ativos com fundo bordô e texto branco: uniformidade total em todas as telas */
+:root[data-theme="dark"] button.bg-\[\#800020\].text-white,
+:root[data-theme="dark"] button.bg-\[\#800020\].text-white:hover,
+:root[data-theme="dark"] .bg-\[\#800020\].text-white {
+  background-color: var(--bordeaux) !important;
+  color: #ffffff !important;
+  border-color: var(--bordeaux) !important;
+}
+
+/* Botões inativos de chips / categorias */
+:root[data-theme="dark"] button.bg-slate-100.text-\[\#475569\],
+:root[data-theme="dark"] button.bg-slate-100.text-\[\#64748b\] {
+  background-color: #1b2640 !important;
+  color: #b4c0d0 !important;
+  border-color: transparent !important;
+}
+:root[data-theme="dark"] button.bg-slate-100.text-\[\#475569\]:hover,
+:root[data-theme="dark"] button.bg-slate-100.text-\[\#64748b\]:hover {
+  background-color: #26334a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Ring para realce de cartões (Reconhecimentos etc.) */
+:root[data-theme="dark"] .ring-\[\#800020\] {
+  --tw-ring-color: #d6536f;
+}
+
+/* Banners e status de integração no modo escuro */
+:root[data-theme="dark"] .integracao-banner--sucesso {
+  background-color: var(--color-success-bg) !important;
+  border-color: var(--color-success-border) !important;
+  color: var(--color-success) !important;
+}
+:root[data-theme="dark"] .integracao-banner--erro {
+  background-color: var(--color-danger-bg) !important;
+  border-color: var(--color-danger-border) !important;
+  color: #f87171 !important;
+}
+:root[data-theme="dark"] .integracao-banner--aviso {
+  background-color: var(--color-warning-bg) !important;
+  border-color: var(--color-warning-border) !important;
+  color: var(--color-warning) !important;
+}
 
 /* ---- FAQ (Central de Ajuda) ---- */
 :root[data-theme="dark"] .faq-item {

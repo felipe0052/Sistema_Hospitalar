@@ -380,9 +380,9 @@ export default function Diretorio() {
               <button
                 type="button"
                 onClick={() => selecionarAtalhoSetor("")}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                   !filtroSetorId
-                    ? "bg-[#800020] text-white"
+                    ? "bg-[#800020] text-white shadow-sm"
                     : "bg-slate-100 text-[#475569] hover:bg-slate-200"
                 }`}
               >
@@ -399,9 +399,9 @@ export default function Diretorio() {
                     key={nomeSetor}
                     type="button"
                     onClick={() => selecionarAtalhoSetor(nomeSetor)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                       selecionado
-                        ? "bg-[#800020] text-white"
+                        ? "bg-[#800020] text-white shadow-sm"
                         : "bg-slate-100 text-[#475569] hover:bg-slate-200"
                     }`}
                   >

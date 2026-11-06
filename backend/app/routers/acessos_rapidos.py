@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_roles
+from app.core.deps import get_optional_user, require_roles
 from app.models.usuario import Usuario
 from app.schemas.acesso_rapido import (
     AcessoRapidoAtivoIn,
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/acessos-rapidos", tags=["Acessos Rápidos"])
 @router.get("", response_model=list[AcessoRapidoOut])
 def rota_listar_acessos_rapidos(
     db: Session = Depends(get_db),
-    _usuario: Usuario = Depends(get_current_user),
+    _usuario: Usuario | None = Depends(get_optional_user),
 ):
     return listar_ativos(db)
 

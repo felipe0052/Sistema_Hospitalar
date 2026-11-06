@@ -426,15 +426,14 @@ def test_homologacao_mvp_fluxo_completo_uc01_a_uc12(
 def test_modo_visitante_restricoes_e_telas_publicas_a1(client: TestClient):
     """
     A1 — Modo visitante vs. modo logado:
-    - Visitante (sem token) recebe 401 em /aniversariantes, /reconhecimentos, /notificacoes e /acessos-rapidos.
-    - Visitante recebe 200 em /avisos, /eventos, /diretorio (sem e-mail), /documentos, /faq e /dashboard (sem dados de aniversário).
+    - Visitante (sem token) recebe 401 em /aniversariantes, /reconhecimentos e /notificacoes.
+    - Visitante recebe 200 em /avisos, /eventos, /diretorio (sem e-mail), /documentos, /faq, /acessos-rapidos e /dashboard (sem dados de aniversário).
     """
     # Endpoints restritos a usuários logados -> 401
     for rota_privada in (
         "/api/v1/aniversariantes",
         "/api/v1/reconhecimentos",
         "/api/v1/notificacoes",
-        "/api/v1/acessos-rapidos",
     ):
         res_priv = client.get(rota_privada)
         assert res_priv.status_code == 401, f"Rota {rota_privada} deveria retornar 401 para visitante"
@@ -445,6 +444,7 @@ def test_modo_visitante_restricoes_e_telas_publicas_a1(client: TestClient):
         "/api/v1/eventos",
         "/api/v1/documentos",
         "/api/v1/faq",
+        "/api/v1/acessos-rapidos",
     ):
         res_pub = client.get(rota_publica)
         assert res_pub.status_code == 200, f"Rota {rota_publica} deveria retornar 200 para visitante"

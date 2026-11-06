@@ -42,6 +42,10 @@ const VARIANTE_TIPO = {
   AGRADECIMENTO: "default",
 };
 const VARIANTE_STATUS = { PENDENTE: "warning", APROVADA: "ativo", RECUSADA: "inativo" };
+const CHIPS_TIPO_RECONHECIMENTO = [
+  { value: "", label: "Todos" },
+  ...TIPOS_RECONHECIMENTO,
+];
 
 function iniciais(nome = "") {
   return nome
@@ -110,27 +114,17 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
   }
 
   return (
-    <div className="ui-field">
-      <label htmlFor="busca-colega" className="ui-field__label">
-        <span>Buscar colega pelo nome</span>
-        <span className="ui-field__required" aria-hidden="true">
-          *
-        </span>
-      </label>
-      <input
+    <div className="space-y-1">
+      <Input
+        label="Buscar colega pelo nome"
+        required
         id="busca-colega"
         type="search"
-        className={`ui-input ${erro ? "ui-input--error" : ""}`}
         placeholder="Digite ao menos 2 letras do nome"
         value={termo}
         onChange={(e) => setTermo(e.target.value)}
-        aria-invalid={Boolean(erro)}
+        error={erro}
       />
-      {erro && (
-        <p className="ui-field__error" role="alert">
-          <span>{erro}</span>
-        </p>
-      )}
       {buscando && <p className="text-xs text-[#64748b] mt-1">Buscando…</p>}
       {!buscando && termo.trim().length >= 2 && resultados.length === 0 && (
         <p className="text-xs text-[#64748b] mt-1">Nenhum funcionário encontrado</p>
@@ -477,7 +471,7 @@ export default function Reconhecimentos() {
   ];
 
   return (
-    <div className="p-6 space-y-5 max-w-[1400px] mx-auto">
+    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       {/* Cabeçalho padronizado */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -533,36 +527,60 @@ export default function Reconhecimentos() {
 
       {aba === "mural" && (
         <section className="space-y-4" aria-label="Mural de reconhecimentos">
-          {/* Card de Filtros padronizado */}
-          <Card>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[260px_280px_auto] gap-3 items-end">
-              <Select
-                label="Tipo"
-                value={tipo}
-                onChange={(e) => {
-                  setTipo(e.target.value);
-                  setPagina(1);
-                }}
-                placeholder="Todos os tipos"
-                options={TIPOS_RECONHECIMENTO}
-              />
-              <Select
-                label="Setor"
-                value={setor}
-                onChange={(e) => {
-                  setSetor(e.target.value);
-                  setPagina(1);
-                }}
-                placeholder="Todos os setores"
-                options={setores.map((s) => ({ value: s.id_setor, label: s.nome }))}
-              />
-              {(tipo || setor) && (
-                <div className="flex items-center">
+          {/* Barra de Filtros padronizada */}
+          <Card className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div
+                role="tablist"
+                aria-label="Filtrar reconhecimentos por tipo"
+                className="flex flex-wrap items-center gap-2"
+              >
+                {CHIPS_TIPO_RECONHECIMENTO.map((chip) => {
+                  const ativo = tipo === chip.value;
+                  return (
+                    <button
+                      key={chip.value || "TODOS"}
+                      type="button"
+                      role="tab"
+                      aria-selected={ativo}
+                      onClick={() => {
+                        setTipo(chip.value);
+                        setPagina(1);
+                      }}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                        ativo
+                          ? "bg-[#800020] text-white shadow-sm"
+                          : "bg-slate-100 text-[#475569] hover:bg-slate-200"
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="w-60">
+                  <Select
+                    aria-label="Filtrar por setor"
+                    value={setor}
+                    onChange={(e) => {
+                      setSetor(e.target.value);
+                      setPagina(1);
+                    }}
+                    options={[
+                      { value: "", label: "Todos os setores" },
+                      ...setores.map((s) => ({ value: s.id_setor, label: s.nome })),
+                    ]}
+                  />
+                </div>
+
+                {(tipo || setor) && (
                   <Button variant="secondary" size="sm" onClick={limparFiltrosMural}>
                     Limpar filtros
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </Card>
 

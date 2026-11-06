@@ -41,7 +41,7 @@ export async function conteudoDisponivel(notificacao) {
 }
 
 export const TIPOS_NOTIFICACAO = {
-  NOTICIA: { icone: "📰", rotulo: "Notícia" },
+  NOTICIA: { icone: "📰", rotulo: "Notícia / Comunicado" },
   EVENTO: { icone: "📅", rotulo: "Novo evento" },
   EVENTO_DO_DIA: { icone: "⏰", rotulo: "Evento de hoje" },
   RECONHECIMENTO: { icone: "🏆", rotulo: "Reconhecimento" },

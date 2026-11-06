@@ -47,10 +47,14 @@ def test_crud_acessos_rapidos_admin_e_visibilidade_ativos(client: TestClient):
     assert r2.status_code == 201
     link2 = r2.json()
 
-    # 2. Colaborador logado lista os ativos ordenados (200)
+    # 2. Colaborador logado lista os ativos ordenados (200) e visitante também (200)
     res_lista = client.get("/api/v1/acessos-rapidos", headers=h_colab)
     assert res_lista.status_code == 200
     assert [i["id"] for i in res_lista.json()] == [link1["id"], link2["id"]]
+
+    res_visitante = client.get("/api/v1/acessos-rapidos")
+    assert res_visitante.status_code == 200
+    assert [i["id"] for i in res_visitante.json()] == [link1["id"], link2["id"]]
 
     # 3. ADMIN reordena invertendo a ordem (200)
     res_ordem = client.put(
