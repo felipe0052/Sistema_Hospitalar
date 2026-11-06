@@ -26,14 +26,15 @@ router_indicacoes = APIRouter(prefix="/indicacoes", tags=["Indicações de recon
 @router.get("", response_model=PaginadoReconhecimentosOut)
 def listar_reconhecimentos(
     tipo: str | None = Query(default=None, description="PROMOCAO, DESTAQUE, TEMPO_DE_CASA ou AGRADECIMENTO"),
-    id_setor: int | None = Query(default=None, description="Setor do colaborador reconhecido"),
+    id_setor: int | None = Query(default=None, description="Setor reconhecido ou setor do colaborador"),
+    alvo_tipo: str | None = Query(default=None, description="COLABORADOR ou SETOR"),
     pagina: int = Query(default=1, ge=1),
     tamanho: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
     _usuario_atual: Usuario = Depends(get_current_user),
 ) -> PaginadoReconhecimentosOut:
     """Lista os reconhecimentos publicados, mais recentes primeiro."""
-    return reconhecimento_service.listar_reconhecimentos(db, tipo, id_setor, pagina, tamanho)
+    return reconhecimento_service.listar_reconhecimentos(db, tipo, id_setor, alvo_tipo, pagina, tamanho)
 
 
 @router.get("/{id_reconhecimento}", response_model=ReconhecimentoOut)

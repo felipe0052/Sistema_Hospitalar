@@ -34,7 +34,7 @@ A **Intranet Hospitalar Decós Corporativa** centraliza o ecossistema de informa
 
 O planejamento do projeto está estruturado em **Fases sequenciais**, cobrindo desde a fundação da infraestrutura e regras centrais do MVP até as funcionalidades avançadas de engajamento, integrações e Inteligência Artificial.
 
-> **Status Atual:** ✅ **Fases 1 a 5 concluídas e homologadas (`v1.5-extras`)** — 100% dos 12 Casos de Uso originais (`UC01` a `UC12`), requisitos de segurança (`RNF03`), ajustes pós-entrega (Modo Visitante, Pop-up de Aniversariante, Mensagem Unificada de Login e Acessos Rápidos) e os recursos avançados da Fase 5 (Reconhecimentos, Notificações, Google Agenda, Avisos Urgentes e Base Vetorial) implementados e validados com **106 testes automatizados no back-end** e testes E2E com Playwright.
+> **Status Atual:** ✅ **Fases 1 a 5 concluídas e homologadas (`v1.5-extras`)** — 100% dos 12 Casos de Uso originais (`UC01` a `UC12`), requisitos de segurança (`RNF03`), ajustes pós-entrega (Modo Visitante, Pop-up de Aniversariante, Mensagem Unificada de Login, Acessos Rápidos e Reconhecimento por Setor/Individual) e os recursos avançados da Fase 5 (Reconhecimentos, Notificações, Google Agenda, Avisos Urgentes e Base Vetorial) implementados e validados com **113 testes automatizados no back-end** e testes E2E com Playwright.
 
 | Fase | Escopo Principal | Casos de Uso / Entregáveis | Status |
 | :--- | :--- | :--- | :---: |
@@ -109,11 +109,12 @@ Abaixo estão detalhados todos os módulos e capacidades operacionais em funcion
 - Destaque com moldura comemorativa e selo *"Aniversariante do dia!"* para os colaboradores que festejam na data atual.
 - **Privacidade por Design:** Conforme exigido pela governança de dados e pelo caso de uso `UC11`, o sistema jamais expõe o ano de nascimento ou a idade dos colaboradores. Restrito a usuários autenticados.
 
-### 🏆 3.10. Mural de Reconhecimentos e Indicações de Colegas (`/reconhecimentos`)
-- **Reconhecimentos Oficiais Concedidos pelo RH:** Publicações formais de valorização em quatro categorias (`PROMOCAO`, `DESTAQUE`, `TEMPO_DE_CASA`, `AGRADECIMENTO`), com mensagem personalizada e destaque institucional.
-- **Indicações Entre Colegas:** Qualquer colaborador autenticado pode submeter uma indicação de reconhecimento para valorizar o trabalho de um colega, com justificativa fundamentada (com validação anti-autoindicação).
-- **Painel de Triagem do RH:** Interface exclusiva para a equipe de Gestão de Pessoas analisar indicações pendentes, aprovando-as (o que gera a publicação oficial no mural e dispara notificação) ou recusando-as com registro interno.
-- **Aba "Minhas Indicações":** Espaço onde o colaborador acompanha o andamento de todas as indicações que realizou.
+### 🏆 3.10. Mural de Reconhecimentos e Indicações de Colegas e Setores (`/reconhecimentos`)
+- **Reconhecimentos Oficiais Concedidos pelo RH:** Publicações formais de valorização funcional tanto para **colaboradores individuais** quanto para **setores/equipes inteiras** (`ALVO_TIPO: 'COLABORADOR' | 'SETOR'`), em quatro categorias (`PROMOCAO`, `DESTAQUE`, `TEMPO_DE_CASA`, `AGRADECIMENTO`), com mensagem personalizada e destaque institucional.
+- **Indicações Entre Colegas e de Equipes:** Qualquer colaborador autenticado pode submeter uma indicação de reconhecimento para valorizar o trabalho de um colega ou de um setor hospitalar completo, com justificativa fundamentada (com validação anti-autoindicação).
+- **Filtros Avançados:** Filtro por público-alvo (Todos, Colaboradores, Setores), filtro por categoria de reconhecimento e filtro por setor (que reúne tanto reconhecimentos do setor quanto de colaboradores a ele vinculados).
+- **Painel de Triagem do RH:** Interface exclusiva para a equipe de Gestão de Pessoas analisar indicações pendentes (individuais ou de setores), aprovando-as com pré-preenchimento automático (o que gera a publicação oficial no mural e dispara notificação) ou recusando-as com registro interno.
+- **Aba "Minhas Indicações":** Espaço onde o colaborador acompanha o andamento de todas as indicações submetidas.
 
 ### 🔔 3.11. Central Unificada de Notificações Internas (`/notificacoes` e Dropdown no Header)
 - Sino interativo no cabeçalho com contador dinâmico de notificações não lidas.
@@ -460,7 +461,7 @@ O script `python -m scripts.seed_usuarios` configura os seguintes perfis padrão
 ## 🧪 7. Testes Automatizados e Garantia de Qualidade (QA)
 
 ### 7.1. Suíte de Testes Automatizados do Back-end (`pytest`)
-O sistema possui uma suíte completa com **106 testes automatizados** distribuídos em 16 módulos de teste, cobrindo regras de negócio, integridade referencial, contratos de entrada/saída, RBAC e segurança:
+O sistema possui uma suíte completa com **113 testes automatizados** distribuídos em 16 módulos de teste, cobrindo regras de negócio, integridade referencial, contratos de entrada/saída, RBAC e segurança:
 
 | Módulo de Teste | Quantidade | Escopo Validado |
 | :--- | :---: | :--- |
@@ -478,7 +479,7 @@ O sistema possui uma suíte completa com **106 testes automatizados** distribuí
 | `test_acessos_rapidos.py` | 2 | CRUD de atalhos externos pelo ADMIN, validação de URLs HTTP/HTTPS e bloqueio não-admin. |
 | `test_base_conhecimento.py` | 11 | Extração de texto (PDF/DOCX), divisão em trechos, embeddings e indexação vetorial. |
 | `test_notificacoes.py` | 8 | Disparo por tipo de publicação, leitura persistida individual e bloqueio de duplicatas. |
-| `test_reconhecimentos.py` | 13 | Reconhecimentos oficiais do RH, submissão de indicações, aprovação e recusa. |
+| `test_reconhecimentos.py` | 20 | Reconhecimentos oficiais do RH (individual e por setor), indicações de colegas e setores, triagem e filtros. |
 | `test_google_agenda.py` | 13 | Fluxo OAuth 2.0, criptografia de tokens, sincronização sem duplicidade e resiliência a falhas. |
 
 Para executar toda a suíte de testes do back-end:

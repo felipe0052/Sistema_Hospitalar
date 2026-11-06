@@ -60,8 +60,12 @@ if [ "$DOCKER_DISPONIVEL" = true ] && [ "$MODO_DEV" = false ]; then
     docker compose up -d --build --remove-orphans
 
     # Garante que migrações adicionais pós-MVP sejam aplicadas se o volume do Oracle já existia
-    echo -e "${YELLOW}Garantindo sincronização de tabelas no Oracle...${NC}"
-    docker compose exec -T oracle sh -c 'sqlplus -s decos/decos123@FREEPDB1' < "$ROOT_DIR/database/migrations_acesso_rapido.sql" > /dev/null 2>&1 || true
+    echo -e "${YELLOW}Garantindo sincronização de tabelas e migrações no Oracle...${NC}"
+    for mig in "$ROOT_DIR"/database/migrations_*.sql; do
+        if [ -f "$mig" ]; then
+            docker compose exec -T oracle sh -c 'sqlplus -s decos/decos123@FREEPDB1' < "$mig" > /dev/null 2>&1 || true
+        fi
+    done
 
     echo -e "${GREEN}✓ Todos os containers foram construídos e iniciados com sucesso!${NC}"
 
@@ -70,7 +74,11 @@ elif [ "$DOCKER_DISPONIVEL" = true ] && [ "$MODO_DEV" = true ]; then
     docker compose up -d oracle
     echo -e "${GREEN}✓ Container do Oracle ativo.${NC}"
 
-    docker compose exec -T oracle sh -c 'sqlplus -s decos/decos123@FREEPDB1' < "$ROOT_DIR/database/migrations_acesso_rapido.sql" > /dev/null 2>&1 || true
+    for mig in "$ROOT_DIR"/database/migrations_*.sql; do
+        if [ -f "$mig" ]; then
+            docker compose exec -T oracle sh -c 'sqlplus -s decos/decos123@FREEPDB1' < "$mig" > /dev/null 2>&1 || true
+        fi
+    done
 
     # Inicia Backend local
     echo -e "\n${YELLOW}Iniciando Back-end local (FastAPI)...${NC}"

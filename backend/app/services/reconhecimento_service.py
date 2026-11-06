@@ -1,11 +1,13 @@
-"""Reconhecimentos publicados pelo RH e indicações de colegas (S5-T3)."""
+"""Reconhecimentos publicados pelo RH e indicações de colegas/setores (S5-T3)."""
 
 from datetime import UTC, datetime
 
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import Conflito, NaoEncontrado, RegraNegocio
 from app.models.reconhecimento import IndicacaoReconhecimento, Reconhecimento
+from app.models.setor import Setor
 from app.models.usuario import Usuario
 from app.schemas.reconhecimento import (
     ColaboradorReconhecidoOut,
@@ -26,27 +28,35 @@ def _agora() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
-def _colaborador_out(u: Usuario) -> ColaboradorReconhecidoOut:
+def _colaborador_out(u: Usuario | None) -> ColaboradorReconhecidoOut | None:
+    if u is None:
+        return None
     setor = SetorResumoOut(id_setor=u.setor.id_setor, nome=u.setor.nome) if u.setor is not None else None
     return ColaboradorReconhecidoOut(id_usuario=u.id_usuario, nome=u.nome, cargo=u.cargo, setor=setor)
 
 
 def _converter_reconhecimento(r: Reconhecimento) -> ReconhecimentoOut:
+    is_setor = r.alvo_tipo == "SETOR" or (r.id_setor is not None and r.id_colaborador is None)
     return ReconhecimentoOut(
         id_reconhecimento=r.id_reconhecimento,
+        alvo_tipo="SETOR" if is_setor else "COLABORADOR",
         tipo=r.tipo,  # type: ignore[arg-type]
         titulo=r.titulo,
         mensagem=r.mensagem,
         data_criacao=r.data_criacao,
-        colaborador=_colaborador_out(r.colaborador),
+        colaborador=_colaborador_out(r.colaborador) if (not is_setor and r.colaborador is not None) else None,
+        setor=SetorResumoOut(id_setor=r.setor.id_setor, nome=r.setor.nome) if (is_setor and r.setor is not None) else None,
         autor=PessoaResumoOut(id_usuario=r.autor.id_usuario, nome=r.autor.nome) if r.autor is not None else None,
     )
 
 
 def _converter_indicacao(i: IndicacaoReconhecimento) -> IndicacaoOut:
+    is_setor = i.alvo_tipo == "SETOR" or (i.id_setor is not None and i.id_indicado is None)
     return IndicacaoOut(
         id_indicacao=i.id_indicacao,
-        indicado=_colaborador_out(i.indicado),
+        alvo_tipo="SETOR" if is_setor else "COLABORADOR",
+        indicado=_colaborador_out(i.indicado) if (not is_setor and i.indicado is not None) else None,
+        setor=SetorResumoOut(id_setor=i.setor.id_setor, nome=i.setor.nome) if (is_setor and i.setor is not None) else None,
         indicante=PessoaResumoOut(id_usuario=i.indicante.id_usuario, nome=i.indicante.nome),
         motivo=i.motivo,
         status=i.status,  # type: ignore[arg-type]
@@ -59,6 +69,7 @@ def _converter_indicacao(i: IndicacaoReconhecimento) -> IndicacaoOut:
 def _consulta_reconhecimentos(db: Session):
     return db.query(Reconhecimento).options(
         joinedload(Reconhecimento.colaborador).joinedload(Usuario.setor),
+        joinedload(Reconhecimento.setor),
         joinedload(Reconhecimento.autor),
     )
 
@@ -82,19 +93,33 @@ def _exigir_usuario_ativo(db: Session, id_usuario: int, campo: str) -> Usuario:
     return usuario
 
 
+def _exigir_setor(db: Session, id_setor: int, campo: str) -> Setor:
+    setor = db.query(Setor).filter(Setor.id_setor == id_setor).first()
+    if setor is None:
+        msg = "Setor não encontrado."
+        raise RegraNegocio(msg, erros={campo: msg})
+    return setor
+
+
 def listar_reconhecimentos(
     db: Session,
     tipo: str | None = None,
     id_setor: int | None = None,
+    alvo_tipo: str | None = None,
     pagina: int = 1,
     tamanho: int = 20,
 ) -> PaginadoReconhecimentosOut:
     query = _consulta_reconhecimentos(db)
     if tipo and tipo.strip():
         query = query.filter(Reconhecimento.tipo == tipo.strip().upper())
+    if alvo_tipo and alvo_tipo.strip():
+        query = query.filter(Reconhecimento.alvo_tipo == alvo_tipo.strip().upper())
     if id_setor is not None:
-        query = query.join(Usuario, Usuario.id_usuario == Reconhecimento.id_colaborador).filter(
-            Usuario.id_setor == id_setor
+        query = query.outerjoin(Usuario, Usuario.id_usuario == Reconhecimento.id_colaborador).filter(
+            or_(
+                Reconhecimento.id_setor == id_setor,
+                and_(Reconhecimento.id_colaborador.isnot(None), Usuario.id_setor == id_setor),
+            )
         )
     total = query.count()
     registros = (
@@ -113,8 +138,6 @@ def obter_reconhecimento(db: Session, id_reconhecimento: int) -> ReconhecimentoO
 
 
 def criar_reconhecimento(db: Session, dados: ReconhecimentoIn, autor: Usuario) -> ReconhecimentoOut:
-    _exigir_usuario_ativo(db, dados.id_colaborador, "id_colaborador")
-
     indicacao: IndicacaoReconhecimento | None = None
     if dados.id_indicacao is not None:
         indicacao = (
@@ -126,18 +149,47 @@ def criar_reconhecimento(db: Session, dados: ReconhecimentoIn, autor: Usuario) -
             raise NaoEncontrado("Indicação não encontrada.")
         if indicacao.status != "PENDENTE":
             raise Conflito("Esta indicação já foi avaliada.")
-        if indicacao.id_indicado != dados.id_colaborador:
-            msg = "A indicação pertence a outro colaborador."
-            raise RegraNegocio(msg, erros={"id_indicacao": msg})
 
-    novo = Reconhecimento(
-        id_colaborador=dados.id_colaborador,
-        tipo=dados.tipo,
-        titulo=dados.titulo,
-        mensagem=dados.mensagem,
-        id_autor=autor.id_usuario,
-        data_criacao=_agora(),
-    )
+    is_setor = dados.alvo_tipo == "SETOR" or (dados.id_setor is not None and dados.id_colaborador is None)
+    if is_setor:
+        if dados.id_setor is None:
+            msg = "Informe o setor a ser reconhecido."
+            raise RegraNegocio(msg, erros={"id_setor": msg})
+        _exigir_setor(db, dados.id_setor, "id_setor")
+        if indicacao is not None:
+            if indicacao.alvo_tipo != "SETOR" or indicacao.id_setor != dados.id_setor:
+                msg = "A indicação pertence a outro setor ou a um colaborador individual."
+                raise RegraNegocio(msg, erros={"id_indicacao": msg})
+        novo = Reconhecimento(
+            alvo_tipo="SETOR",
+            id_setor=dados.id_setor,
+            id_colaborador=None,
+            tipo=dados.tipo,
+            titulo=dados.titulo,
+            mensagem=dados.mensagem,
+            id_autor=autor.id_usuario,
+            data_criacao=_agora(),
+        )
+    else:
+        if dados.id_colaborador is None:
+            msg = "Informe o colaborador a ser reconhecido."
+            raise RegraNegocio(msg, erros={"id_colaborador": msg})
+        _exigir_usuario_ativo(db, dados.id_colaborador, "id_colaborador")
+        if indicacao is not None:
+            if indicacao.alvo_tipo != "COLABORADOR" or indicacao.id_indicado != dados.id_colaborador:
+                msg = "A indicação pertence a outro colaborador."
+                raise RegraNegocio(msg, erros={"id_indicacao": msg})
+        novo = Reconhecimento(
+            alvo_tipo="COLABORADOR",
+            id_colaborador=dados.id_colaborador,
+            id_setor=None,
+            tipo=dados.tipo,
+            titulo=dados.titulo,
+            mensagem=dados.mensagem,
+            id_autor=autor.id_usuario,
+            data_criacao=_agora(),
+        )
+
     db.add(novo)
     db.flush()
     if indicacao is not None:
@@ -177,23 +229,45 @@ def excluir_reconhecimento(db: Session, id_reconhecimento: int) -> None:
 def _consulta_indicacoes(db: Session):
     return db.query(IndicacaoReconhecimento).options(
         joinedload(IndicacaoReconhecimento.indicado).joinedload(Usuario.setor),
+        joinedload(IndicacaoReconhecimento.setor),
         joinedload(IndicacaoReconhecimento.indicante),
     )
 
 
 def criar_indicacao(db: Session, dados: IndicacaoIn, indicante: Usuario) -> IndicacaoOut:
-    if dados.id_indicado == indicante.id_usuario:
-        msg = "Você não pode indicar a si mesmo."
-        raise RegraNegocio(msg, erros={"id_indicado": msg})
-    _exigir_usuario_ativo(db, dados.id_indicado, "id_indicado")
+    is_setor = dados.alvo_tipo == "SETOR" or (dados.id_setor is not None and dados.id_indicado is None)
+    if is_setor:
+        if dados.id_setor is None:
+            msg = "Informe o setor a ser indicado."
+            raise RegraNegocio(msg, erros={"id_setor": msg})
+        _exigir_setor(db, dados.id_setor, "id_setor")
+        nova = IndicacaoReconhecimento(
+            alvo_tipo="SETOR",
+            id_setor=dados.id_setor,
+            id_indicado=None,
+            id_indicante=indicante.id_usuario,
+            motivo=dados.motivo,
+            status="PENDENTE",
+            data_indicacao=_agora(),
+        )
+    else:
+        if dados.id_indicado is None:
+            msg = "Informe o colega a ser indicado."
+            raise RegraNegocio(msg, erros={"id_indicado": msg})
+        if dados.id_indicado == indicante.id_usuario:
+            msg = "Você não pode indicar a si mesmo."
+            raise RegraNegocio(msg, erros={"id_indicado": msg})
+        _exigir_usuario_ativo(db, dados.id_indicado, "id_indicado")
+        nova = IndicacaoReconhecimento(
+            alvo_tipo="COLABORADOR",
+            id_indicado=dados.id_indicado,
+            id_setor=None,
+            id_indicante=indicante.id_usuario,
+            motivo=dados.motivo,
+            status="PENDENTE",
+            data_indicacao=_agora(),
+        )
 
-    nova = IndicacaoReconhecimento(
-        id_indicado=dados.id_indicado,
-        id_indicante=indicante.id_usuario,
-        motivo=dados.motivo,
-        status="PENDENTE",
-        data_indicacao=_agora(),
-    )
     db.add(nova)
     db.commit()
     return _converter_indicacao(_consulta_indicacoes(db).filter_by(id_indicacao=nova.id_indicacao).one())

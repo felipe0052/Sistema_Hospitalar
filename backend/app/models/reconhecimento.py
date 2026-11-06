@@ -7,17 +7,22 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.setor import Setor
     from app.models.usuario import Usuario
 
 
 class Reconhecimento(Base):
-    """Reconhecimento publicado pelo RH (ou Admin) para um colaborador."""
+    """Reconhecimento publicado pelo RH (ou Admin) para um colaborador ou setor."""
 
     __tablename__ = "RECONHECIMENTOS"
 
     id_reconhecimento: Mapped[int] = mapped_column("ID_RECONHECIMENTO", Integer, primary_key=True, autoincrement=True)
-    id_colaborador: Mapped[int] = mapped_column(
-        "ID_COLABORADOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=False
+    alvo_tipo: Mapped[str] = mapped_column("ALVO_TIPO", String(15), default="COLABORADOR", nullable=False)
+    id_colaborador: Mapped[int | None] = mapped_column(
+        "ID_COLABORADOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True
+    )
+    id_setor: Mapped[int | None] = mapped_column(
+        "ID_SETOR", Integer, ForeignKey("SETORES.ID_SETOR"), nullable=True
     )
     tipo: Mapped[str] = mapped_column("TIPO", String(20), nullable=False)
     titulo: Mapped[str] = mapped_column("TITULO", String(200), nullable=False)
@@ -25,18 +30,25 @@ class Reconhecimento(Base):
     id_autor: Mapped[int | None] = mapped_column("ID_AUTOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True)
     data_criacao: Mapped[datetime] = mapped_column("DATA_CRIACAO", DateTime, server_default=func.now())
 
-    colaborador: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[id_colaborador])
+    colaborador: Mapped["Usuario | None"] = relationship("Usuario", foreign_keys=[id_colaborador])
+    setor: Mapped["Setor | None"] = relationship("Setor", foreign_keys=[id_setor])
     autor: Mapped["Usuario | None"] = relationship("Usuario", foreign_keys=[id_autor])
 
 
 class IndicacaoReconhecimento(Base):
-    """Indicação de um colega feita por qualquer usuário e analisada pelo RH."""
+    """Indicação de colega ou setor feita por qualquer usuário e analisada pelo RH."""
 
     __tablename__ = "INDICACOES_RECONHECIMENTO"
-    __table_args__ = (CheckConstraint("ID_INDICADO <> ID_INDICANTE", name="CK_INDIC_PROPRIA"),)
+    __table_args__ = (CheckConstraint("ID_INDICADO IS NULL OR ID_INDICADO <> ID_INDICANTE", name="CK_INDIC_PROPRIA"),)
 
     id_indicacao: Mapped[int] = mapped_column("ID_INDICACAO", Integer, primary_key=True, autoincrement=True)
-    id_indicado: Mapped[int] = mapped_column("ID_INDICADO", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=False)
+    alvo_tipo: Mapped[str] = mapped_column("ALVO_TIPO", String(15), default="COLABORADOR", nullable=False)
+    id_indicado: Mapped[int | None] = mapped_column(
+        "ID_INDICADO", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True
+    )
+    id_setor: Mapped[int | None] = mapped_column(
+        "ID_SETOR", Integer, ForeignKey("SETORES.ID_SETOR"), nullable=True
+    )
     id_indicante: Mapped[int] = mapped_column(
         "ID_INDICANTE", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=False
     )
@@ -54,5 +66,6 @@ class IndicacaoReconhecimento(Base):
     data_indicacao: Mapped[datetime] = mapped_column("DATA_INDICACAO", DateTime, server_default=func.now())
     data_avaliacao: Mapped[datetime | None] = mapped_column("DATA_AVALIACAO", DateTime, nullable=True)
 
-    indicado: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[id_indicado])
+    indicado: Mapped["Usuario | None"] = relationship("Usuario", foreign_keys=[id_indicado])
+    setor: Mapped["Setor | None"] = relationship("Setor", foreign_keys=[id_setor])
     indicante: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[id_indicante])

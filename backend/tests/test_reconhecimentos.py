@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.notificacao import Notificacao
+from app.models.setor import Setor
 from app.models.usuario import Usuario
 
 
@@ -35,12 +36,26 @@ def _id(db: Session, email: str) -> int:
     return db.query(Usuario).filter(Usuario.email == email).one().id_usuario
 
 
+def _id_setor(db: Session, nome: str) -> int:
+    return db.query(Setor).filter(Setor.nome == nome).one().id_setor
+
+
 def _corpo(id_colaborador: int, **extra) -> dict:
     return {
         "id_colaborador": id_colaborador,
         "tipo": "DESTAQUE",
         "titulo": "Profissional destaque do mês",
         "mensagem": "Parabéns pela dedicação e pelo cuidado com os pacientes.",
+        **extra,
+    }
+
+
+def _corpo_setor(id_setor: int, **extra) -> dict:
+    return {
+        "id_setor": id_setor,
+        "tipo": "DESTAQUE",
+        "titulo": "Setor destaque do mês",
+        "mensagem": "Parabéns a toda a equipe pela excelência no atendimento.",
         **extra,
     }
 
@@ -220,3 +235,153 @@ def test_data_criacao_do_reconhecimento_e_preenchida(client: TestClient, db_sess
     alvo = _id(db_session, "colaborador@decos.com.br")
     criado = client.post("/api/v1/reconhecimentos", headers=_rh(client), json=_corpo(alvo)).json()
     assert datetime.fromisoformat(criado["data_criacao"]).year >= 2026
+
+
+# ===========================================================================
+# Testes de Reconhecimento por Setor e Indicação por Setor
+# ===========================================================================
+
+
+def test_reconhecimento_por_setor_criacao_e_notificacao(client: TestClient, db_session: Session):
+    id_setor = _id_setor(db_session, "UTI")
+    rh = _rh(client)
+
+    # Não autorizados recebem 403
+    assert client.post("/api/v1/reconhecimentos", headers=_marketing(client), json=_corpo_setor(id_setor)).status_code == 403
+    assert client.post("/api/v1/reconhecimentos", headers=_colab(client), json=_corpo_setor(id_setor)).status_code == 403
+
+    # RH cria reconhecimento para o setor inteiro
+    res = client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo_setor(id_setor))
+    assert res.status_code == 201
+    dados = res.json()
+    assert dados["alvo_tipo"] == "SETOR"
+    assert dados["setor"]["nome"] == "UTI"
+    assert dados["colaborador"] is None
+    assert dados["titulo"] == "Setor destaque do mês"
+
+    # Gera exatamente 1 notificação interna
+    assert db_session.query(Notificacao).filter(Notificacao.tipo == "RECONHECIMENTO").count() == 1
+
+    # Visível no mural para todos os colaboradores
+    detalhe = client.get(f"/api/v1/reconhecimentos/{dados['id_reconhecimento']}", headers=_colab(client))
+    assert detalhe.status_code == 200
+    assert detalhe.json()["alvo_tipo"] == "SETOR"
+    assert detalhe.json()["setor"]["nome"] == "UTI"
+
+
+def test_reconhecimento_por_setor_inexistente_retorna_400(client: TestClient):
+    res = client.post("/api/v1/reconhecimentos", headers=_rh(client), json=_corpo_setor(99999))
+    assert res.status_code == 400
+    assert "id_setor" in res.json()["erros"]
+
+
+def test_reconhecimento_sem_alvo_ou_com_ambos_retorna_422(client: TestClient, db_session: Session):
+    colab = _id(db_session, "colaborador@decos.com.br")
+    setor = _id_setor(db_session, "UTI")
+    rh = _rh(client)
+
+    # Sem alvo
+    assert client.post("/api/v1/reconhecimentos", headers=rh, json={"tipo": "DESTAQUE", "titulo": "Sem alvo", "mensagem": "Texto"}).status_code == 422
+
+    # Com ambos
+    assert client.post("/api/v1/reconhecimentos", headers=rh, json={"id_colaborador": colab, "id_setor": setor, "tipo": "DESTAQUE", "titulo": "Ambos", "mensagem": "Texto"}).status_code == 422
+
+
+def test_filtrar_reconhecimentos_por_alvo_tipo_e_setor(client: TestClient, db_session: Session):
+    colab = _id(db_session, "colaborador@decos.com.br")  # pertence ao setor UTI
+    setor_uti = _id_setor(db_session, "UTI")
+    setor_ti = _id_setor(db_session, "Tecnologia")
+    rh = _rh(client)
+
+    # Cria 1 individual (colab UTI), 1 setor (UTI) e 1 setor (Tecnologia)
+    client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo(colab, titulo="Colaborador UTI"))
+    client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo_setor(setor_uti, titulo="Equipe UTI"))
+    client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo_setor(setor_ti, titulo="Equipe TI"))
+
+    # Filtro por alvo_tipo: apenas colaboradores
+    res_colabs = client.get("/api/v1/reconhecimentos?alvo_tipo=COLABORADOR", headers=rh).json()
+    assert res_colabs["total"] == 1
+    assert res_colabs["itens"][0]["titulo"] == "Colaborador UTI"
+
+    # Filtro por alvo_tipo: apenas setores
+    res_setores = client.get("/api/v1/reconhecimentos?alvo_tipo=SETOR", headers=rh).json()
+    assert res_setores["total"] == 2
+
+    # Filtro por id_setor=UTI: deve retornar tanto o reconhecimento do setor UTI quanto do colaborador da UTI!
+    res_uti = client.get(f"/api/v1/reconhecimentos?id_setor={setor_uti}", headers=rh).json()
+    assert res_uti["total"] == 2
+
+
+def test_indicacao_por_setor_e_aprovacao_pelo_rh(client: TestClient, db_session: Session):
+    setor_ti = _id_setor(db_session, "Tecnologia")
+    colab = _colab(client)
+    rh = _rh(client)
+
+    # Colaborador indica o setor de TI
+    res = client.post(
+        "/api/v1/indicacoes",
+        headers=colab,
+        json={"id_setor": setor_ti, "motivo": "Atendimento rápido a chamados da emergência"}
+    )
+    assert res.status_code == 201
+    indicacao = res.json()
+    assert indicacao["alvo_tipo"] == "SETOR"
+    assert indicacao["setor"]["nome"] == "Tecnologia"
+    assert indicacao["indicado"] is None
+    assert indicacao["status"] == "PENDENTE"
+
+    # Aparece em "Minhas indicações" do colaborador
+    minhas = client.get("/api/v1/indicacoes/minhas", headers=colab).json()
+    assert len(minhas) == 1
+    assert minhas[0]["alvo_tipo"] == "SETOR"
+    assert minhas[0]["setor"]["nome"] == "Tecnologia"
+
+    # RH visualiza nas pendentes
+    pendentes = client.get("/api/v1/indicacoes?status=PENDENTE", headers=rh).json()
+    assert pendentes["total"] == 1
+    assert pendentes["itens"][0]["alvo_tipo"] == "SETOR"
+
+    # RH aprova criando o reconhecimento para o setor
+    rec = client.post(
+        "/api/v1/reconhecimentos",
+        headers=rh,
+        json=_corpo_setor(setor_ti, id_indicacao=indicacao["id_indicacao"], titulo="Destaque TI")
+    )
+    assert rec.status_code == 201
+    assert rec.json()["alvo_tipo"] == "SETOR"
+    assert rec.json()["setor"]["nome"] == "Tecnologia"
+
+    # Indicação vira APROVADA
+    minhas_pos = client.get("/api/v1/indicacoes/minhas", headers=colab).json()
+    assert minhas_pos[0]["status"] == "APROVADA"
+    assert minhas_pos[0]["id_reconhecimento"] == rec.json()["id_reconhecimento"]
+
+
+def test_indicacao_por_setor_inexistente_retorna_400(client: TestClient):
+    colab = _colab(client)
+    res = client.post(
+        "/api/v1/indicacoes",
+        headers=colab,
+        json={"id_setor": 99999, "motivo": "Setor fantasma"}
+    )
+    assert res.status_code == 400
+    assert "id_setor" in res.json()["erros"]
+
+
+def test_recusar_indicacao_de_setor(client: TestClient, db_session: Session):
+    setor_ti = _id_setor(db_session, "Tecnologia")
+    colab = _colab(client)
+    rh = _rh(client)
+
+    ind = client.post(
+        "/api/v1/indicacoes",
+        headers=colab,
+        json={"id_setor": setor_ti, "motivo": "Muito bom trabalho"}
+    ).json()
+
+    res = client.post(f"/api/v1/indicacoes/{ind['id_indicacao']}/recusar", headers=rh)
+    assert res.status_code == 200
+    assert res.json()["status"] == "RECUSADA"
+
+    minhas = client.get("/api/v1/indicacoes/minhas", headers=colab).json()
+    assert minhas[0]["status"] == "RECUSADA"

@@ -541,7 +541,9 @@ export default function Dashboard() {
                         to={`/reconhecimentos?reconhecimento=${r.id_reconhecimento}`}
                         className="block rounded-lg p-2 hover:bg-slate-50 no-underline"
                       >
-                        <span className="block text-xs font-semibold text-[#1e293b]">{r.colaborador.nome}</span>
+                        <span className="block text-xs font-semibold text-[#1e293b]">
+                          {r.alvo_tipo === "SETOR" ? `🏢 Setor: ${r.setor?.nome || "Setor"}` : (r.colaborador?.nome || r.setor?.nome || "Reconhecimento")}
+                        </span>
                         <span className="block text-xs text-[#475569]">
                           {ROTULO_TIPO_RECONHECIMENTO[r.tipo] || r.tipo} · {r.titulo}
                         </span>

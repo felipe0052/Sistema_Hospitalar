@@ -11,6 +11,16 @@ export const ROTULO_TIPO_RECONHECIMENTO = Object.fromEntries(
   TIPOS_RECONHECIMENTO.map((t) => [t.value, t.label]),
 );
 
+export const ALVOS_RECONHECIMENTO = [
+  { value: "COLABORADOR", label: "Colaborador individual" },
+  { value: "SETOR", label: "Setor / Equipe inteira" },
+];
+
+export const ROTULO_ALVO_RECONHECIMENTO = {
+  COLABORADOR: "Colaborador",
+  SETOR: "Setor",
+};
+
 export const ROTULO_STATUS_INDICACAO = {
   PENDENTE: "Pendente",
   APROVADA: "Aprovada",

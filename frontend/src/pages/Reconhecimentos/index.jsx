@@ -43,8 +43,13 @@ const VARIANTE_TIPO = {
 };
 const VARIANTE_STATUS = { PENDENTE: "warning", APROVADA: "ativo", RECUSADA: "inativo" };
 const CHIPS_TIPO_RECONHECIMENTO = [
-  { value: "", label: "Todos" },
+  { value: "", label: "Todos os tipos" },
   ...TIPOS_RECONHECIMENTO,
+];
+const CHIPS_ALVO = [
+  { value: "", label: "Todos os públicos" },
+  { value: "COLABORADOR", label: "👤 Colaboradores" },
+  { value: "SETOR", label: "🏢 Setores" },
 ];
 
 function iniciais(nome = "") {
@@ -81,7 +86,7 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
   if (selecionado) {
     return (
       <div className="ui-field">
-        <span className="ui-field__label">Colega</span>
+        <span className="ui-field__label">Colaborador</span>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
@@ -116,7 +121,7 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
   return (
     <div className="space-y-1">
       <Input
-        label="Buscar colega pelo nome"
+        label="Buscar colaborador pelo nome"
         required
         id="busca-colega"
         type="search"
@@ -171,6 +176,7 @@ export default function Reconhecimentos() {
 
   // Mural
   const [tipo, setTipo] = useState("");
+  const [alvoTipo, setAlvoTipo] = useState("");
   const [setor, setSetor] = useState("");
   const [setores, setSetores] = useState([]);
   const [pagina, setPagina] = useState(1);
@@ -186,9 +192,11 @@ export default function Reconhecimentos() {
   const [carregandoInd, setCarregandoInd] = useState(false);
   const [erroInd, setErroInd] = useState("");
 
-  // Modal de indicar colega
+  // Modal de indicação (colega ou setor)
   const [indicarAberto, setIndicarAberto] = useState(false);
+  const [alvoTipoIndicar, setAlvoTipoIndicar] = useState("COLABORADOR");
   const [colegaIndicado, setColegaIndicado] = useState(null);
+  const [setorIndicado, setSetorIndicado] = useState("");
   const [motivo, setMotivo] = useState("");
   const [errosIndicar, setErrosIndicar] = useState({});
   const [enviandoIndicacao, setEnviandoIndicacao] = useState(false);
@@ -196,7 +204,9 @@ export default function Reconhecimentos() {
   // Modal de reconhecimento (RH/Admin)
   const [formAberto, setFormAberto] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [formAlvoTipo, setFormAlvoTipo] = useState("COLABORADOR");
   const [colaborador, setColaborador] = useState(null);
+  const [formSetor, setFormSetor] = useState("");
   const [formTipo, setFormTipo] = useState("DESTAQUE");
   const [formTitulo, setFormTitulo] = useState("");
   const [formMensagem, setFormMensagem] = useState("");
@@ -215,6 +225,7 @@ export default function Reconhecimentos() {
       const dados = await listarReconhecimentos({
         tipo: tipo || undefined,
         id_setor: setor || undefined,
+        alvo_tipo: alvoTipo || undefined,
         pagina,
         tamanho: TAMANHO,
       });
@@ -224,7 +235,7 @@ export default function Reconhecimentos() {
     } finally {
       setCarregando(false);
     }
-  }, [tipo, setor, pagina]);
+  }, [tipo, setor, alvoTipo, pagina]);
 
   const carregarIndicacoes = useCallback(async () => {
     setCarregandoInd(true);
@@ -267,7 +278,9 @@ export default function Reconhecimentos() {
   }, [destacado]);
 
   function abrirIndicar() {
+    setAlvoTipoIndicar("COLABORADOR");
     setColegaIndicado(null);
+    setSetorIndicado("");
     setMotivo("");
     setErrosIndicar({});
     setIndicarAberto(true);
@@ -275,13 +288,26 @@ export default function Reconhecimentos() {
 
   async function enviarIndicacao() {
     const erros = {};
-    if (!colegaIndicado) erros.id_indicado = "Selecione o colega que deseja indicar.";
-    if (motivo.trim().length < 3) erros.motivo = "Conte o motivo da indicação.";
+    if (alvoTipoIndicar === "COLABORADOR" && !colegaIndicado) {
+      erros.id_indicado = "Selecione o colega que deseja indicar.";
+    }
+    if (alvoTipoIndicar === "SETOR" && !setorIndicado) {
+      erros.id_setor = "Selecione o setor que deseja indicar.";
+    }
+    if (motivo.trim().length < 3) {
+      erros.motivo = "Conte o motivo da indicação.";
+    }
     setErrosIndicar(erros);
     if (Object.keys(erros).length) return;
+
     setEnviandoIndicacao(true);
     try {
-      await criarIndicacao({ id_indicado: colegaIndicado.id_usuario, motivo: motivo.trim() });
+      await criarIndicacao({
+        alvo_tipo: alvoTipoIndicar,
+        id_indicado: alvoTipoIndicar === "COLABORADOR" ? colegaIndicado.id_usuario : undefined,
+        id_setor: alvoTipoIndicar === "SETOR" ? Number(setorIndicado) : undefined,
+        motivo: motivo.trim(),
+      });
       sucesso("Indicação enviada ao RH.");
       setIndicarAberto(false);
       if (aba === "minhas") carregarIndicacoes();
@@ -295,18 +321,40 @@ export default function Reconhecimentos() {
 
   function abrirNovoReconhecimento(indicacao = null) {
     setEditando(null);
-    setColaborador(indicacao ? indicacao.indicado : null);
+    if (indicacao) {
+      const isSetor = indicacao.alvo_tipo === "SETOR" || (!indicacao.indicado && indicacao.setor);
+      if (isSetor) {
+        setFormAlvoTipo("SETOR");
+        setFormSetor(indicacao.setor ? String(indicacao.setor.id_setor) : "");
+        setColaborador(null);
+        setFormTitulo(`Reconhecimento ao Setor ${indicacao.setor?.nome || ""}`);
+      } else {
+        setFormAlvoTipo("COLABORADOR");
+        setColaborador(indicacao.indicado);
+        setFormSetor("");
+        setFormTitulo("");
+      }
+      setFormMensagem(indicacao.motivo);
+      setIdIndicacao(indicacao.id_indicacao);
+    } else {
+      setFormAlvoTipo("COLABORADOR");
+      setColaborador(null);
+      setFormSetor("");
+      setFormTitulo("");
+      setFormMensagem("");
+      setIdIndicacao(null);
+    }
     setFormTipo("DESTAQUE");
-    setFormTitulo("");
-    setFormMensagem(indicacao ? indicacao.motivo : "");
-    setIdIndicacao(indicacao ? indicacao.id_indicacao : null);
     setErrosForm({});
     setFormAberto(true);
   }
 
   function abrirEdicao(r) {
     setEditando(r);
+    const isSetor = r.alvo_tipo === "SETOR" || (!r.colaborador && r.setor);
+    setFormAlvoTipo(isSetor ? "SETOR" : "COLABORADOR");
     setColaborador(r.colaborador);
+    setFormSetor(r.setor ? String(r.setor.id_setor) : "");
     setFormTipo(r.tipo);
     setFormTitulo(r.titulo);
     setFormMensagem(r.mensagem);
@@ -317,9 +365,18 @@ export default function Reconhecimentos() {
 
   async function salvarReconhecimento() {
     const erros = {};
-    if (!colaborador) erros.id_colaborador = "Selecione o colaborador.";
-    if (formTitulo.trim().length < 3) erros.titulo = "Informe o título (mín. 3 caracteres).";
-    if (formMensagem.trim().length < 3) erros.mensagem = "Escreva a mensagem do reconhecimento.";
+    if (formAlvoTipo === "COLABORADOR" && !colaborador) {
+      erros.id_colaborador = "Selecione o colaborador.";
+    }
+    if (formAlvoTipo === "SETOR" && !formSetor) {
+      erros.id_setor = "Selecione o setor a ser reconhecido.";
+    }
+    if (formTitulo.trim().length < 3) {
+      erros.titulo = "Informe o título (mín. 3 caracteres).";
+    }
+    if (formMensagem.trim().length < 3) {
+      erros.mensagem = "Escreva a mensagem do reconhecimento.";
+    }
     setErrosForm(erros);
     if (Object.keys(erros).length) return;
 
@@ -334,13 +391,15 @@ export default function Reconhecimentos() {
         sucesso("Reconhecimento atualizado.");
       } else {
         await criarReconhecimento({
-          id_colaborador: colaborador.id_usuario,
+          alvo_tipo: formAlvoTipo,
+          id_colaborador: formAlvoTipo === "COLABORADOR" ? colaborador.id_usuario : undefined,
+          id_setor: formAlvoTipo === "SETOR" ? Number(formSetor) : undefined,
           tipo: formTipo,
           titulo: formTitulo.trim(),
           mensagem: formMensagem.trim(),
           id_indicacao: idIndicacao || undefined,
         });
-        sucesso("Reconhecimento publicado.");
+        sucesso(formAlvoTipo === "SETOR" ? "Reconhecimento do setor publicado." : "Reconhecimento publicado.");
       }
       setFormAberto(false);
       await carregarMural();
@@ -390,12 +449,16 @@ export default function Reconhecimentos() {
 
   function limparFiltrosMural() {
     setTipo("");
+    setAlvoTipo("");
     setSetor("");
     setPagina(1);
   }
 
   function CartaoReconhecimento({ r, realce = false }) {
+    const isSetor = r.alvo_tipo === "SETOR" || (!r.colaborador && r.setor);
     const c = r.colaborador || {};
+    const s = r.setor || {};
+
     return (
       <Card
         ref={realce ? refDestaque : undefined}
@@ -405,19 +468,40 @@ export default function Reconhecimentos() {
         aria-label={`Reconhecimento: ${r.titulo}`}
       >
         <div className="space-y-3">
-          {/* Topo: Avatar + Dados do colaborador + Badge de Tipo */}
+          {/* Topo: Avatar/Ícone + Dados do alvo + Badge de Tipo */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div
-                aria-hidden="true"
-                className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
-              >
-                {iniciais(c.nome)}
-              </div>
+              {isSetor ? (
+                <div
+                  aria-hidden="true"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe] shrink-0 shadow-xs"
+                  title="Reconhecimento ao Setor"
+                >
+                  🏢
+                </div>
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+                >
+                  {iniciais(c.nome)}
+                </div>
+              )}
               <div className="min-w-0">
-                <p className="text-sm font-bold text-[#1e293b] truncate">{c.nome}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-sm font-bold text-[#1e293b] truncate">
+                    {isSetor ? s.nome || "Setor Hospitalar" : c.nome}
+                  </p>
+                  {isSetor && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      Setor
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[#64748b] mt-0.5 truncate">
-                  {c.cargo || "Cargo não informado"} · {c.setor?.nome || "Setor não informado"}
+                  {isSetor
+                    ? "Reconhecimento à equipe inteira"
+                    : `${c.cargo || "Cargo não informado"} · ${c.setor?.nome || "Setor não informado"}`}
                 </p>
               </div>
             </div>
@@ -477,12 +561,12 @@ export default function Reconhecimentos() {
         <div>
           <h1 className="text-xl font-bold text-[#1e293b]">Reconhecimentos</h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Celebre as conquistas de quem faz o Hospital Decós acontecer
+            Celebre as conquistas de quem faz o Hospital Decós acontecer — individualmente e em equipe
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button variant="secondary" onClick={abrirIndicar}>
-            Indicar um colega
+            Indicar colega ou setor
           </Button>
           {podeGerir && (
             <Button variant="primary" onClick={() => abrirNovoReconhecimento()}>
@@ -530,33 +614,66 @@ export default function Reconhecimentos() {
           {/* Barra de Filtros padronizada */}
           <Card className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div
-                role="tablist"
-                aria-label="Filtrar reconhecimentos por tipo"
-                className="flex flex-wrap items-center gap-2"
-              >
-                {CHIPS_TIPO_RECONHECIMENTO.map((chip) => {
-                  const ativo = tipo === chip.value;
-                  return (
-                    <button
-                      key={chip.value || "TODOS"}
-                      type="button"
-                      role="tab"
-                      aria-selected={ativo}
-                      onClick={() => {
-                        setTipo(chip.value);
-                        setPagina(1);
-                      }}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-                        ativo
-                          ? "bg-[#800020] text-white shadow-sm"
-                          : "bg-slate-100 text-[#475569] hover:bg-slate-200"
-                      }`}
-                    >
-                      {chip.label}
-                    </button>
-                  );
-                })}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Filtro por tipo de alvo (Público) */}
+                <div
+                  role="tablist"
+                  aria-label="Filtrar reconhecimentos por público"
+                  className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 border border-slate-200 rounded-full"
+                >
+                  {CHIPS_ALVO.map((chip) => {
+                    const ativo = alvoTipo === chip.value;
+                    return (
+                      <button
+                        key={chip.value || "TODOS_ALVOS"}
+                        type="button"
+                        role="tab"
+                        aria-selected={ativo}
+                        onClick={() => {
+                          setAlvoTipo(chip.value);
+                          setPagina(1);
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                          ativo
+                            ? "bg-[#800020] text-white shadow-xs"
+                            : "text-[#475569] hover:bg-slate-200"
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Filtro por tipo (Promoção, Destaque, etc) */}
+                <div
+                  role="tablist"
+                  aria-label="Filtrar reconhecimentos por tipo"
+                  className="flex flex-wrap items-center gap-1.5"
+                >
+                  {CHIPS_TIPO_RECONHECIMENTO.map((chip) => {
+                    const ativo = tipo === chip.value;
+                    return (
+                      <button
+                        key={chip.value || "TODOS_TIPOS"}
+                        type="button"
+                        role="tab"
+                        aria-selected={ativo}
+                        onClick={() => {
+                          setTipo(chip.value);
+                          setPagina(1);
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                          ativo
+                            ? "bg-[#1e293b] text-white shadow-sm"
+                            : "bg-slate-100 text-[#475569] hover:bg-slate-200"
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -575,7 +692,7 @@ export default function Reconhecimentos() {
                   />
                 </div>
 
-                {(tipo || setor) && (
+                {(tipo || setor || alvoTipo) && (
                   <Button variant="secondary" size="sm" onClick={limparFiltrosMural}>
                     Limpar filtros
                   </Button>
@@ -661,45 +778,64 @@ export default function Reconhecimentos() {
           ) : minhas.length === 0 ? (
             <Card>
               <EmptyState
-                title="Você ainda não indicou ninguém"
-                description="Use “Indicar um colega” para sugerir um reconhecimento ao RH."
+                title="Você ainda não indicou ninguém ou setor"
+                description="Use “Indicar colega ou setor” para sugerir um reconhecimento ao RH."
               />
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-              {minhas.map((i) => (
-                <Card
-                  key={i.id_indicacao}
-                  className="flex flex-col justify-between h-full space-y-3"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          aria-hidden="true"
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
-                        >
-                          {iniciais(i.indicado?.nome)}
+              {minhas.map((i) => {
+                const isSetor = i.alvo_tipo === "SETOR" || (!i.indicado && i.setor);
+                return (
+                  <Card
+                    key={i.id_indicacao}
+                    className="flex flex-col justify-between h-full space-y-3"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {isSetor ? (
+                            <div
+                              aria-hidden="true"
+                              className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe] shrink-0"
+                            >
+                              🏢
+                            </div>
+                          ) : (
+                            <div
+                              aria-hidden="true"
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+                            >
+                              {iniciais(i.indicado?.nome)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-bold text-[#1e293b] truncate">
+                                {isSetor ? i.setor?.nome : i.indicado?.nome}
+                              </p>
+                              {isSetor && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  Setor
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-[#64748b]">
+                              {isSetor ? "Indicação de Setor" : i.indicado?.cargo || "Colaborador"} · Enviada em {formatarData(i.data_indicacao)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-[#1e293b] truncate">
-                            {i.indicado?.nome}
-                          </p>
-                          <p className="text-xs text-[#64748b]">
-                            Enviada em {formatarData(i.data_indicacao)}
-                          </p>
-                        </div>
+                        <Badge variant={VARIANTE_STATUS[i.status] || "default"}>
+                          {ROTULO_STATUS_INDICACAO[i.status]}
+                        </Badge>
                       </div>
-                      <Badge variant={VARIANTE_STATUS[i.status] || "default"}>
-                        {ROTULO_STATUS_INDICACAO[i.status]}
-                      </Badge>
+                      <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
+                        {i.motivo}
+                      </p>
                     </div>
-                    <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
-                      {i.motivo}
-                    </p>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </section>
@@ -724,61 +860,80 @@ export default function Reconhecimentos() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-              {recebidas.itens.map((i) => (
-                <Card
-                  key={i.id_indicacao}
-                  className="flex flex-col justify-between h-full space-y-3"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          aria-hidden="true"
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
-                        >
-                          {iniciais(i.indicado?.nome)}
+              {recebidas.itens.map((i) => {
+                const isSetor = i.alvo_tipo === "SETOR" || (!i.indicado && i.setor);
+                return (
+                  <Card
+                    key={i.id_indicacao}
+                    className="flex flex-col justify-between h-full space-y-3"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {isSetor ? (
+                            <div
+                              aria-hidden="true"
+                              className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe] shrink-0"
+                            >
+                              🏢
+                            </div>
+                          ) : (
+                            <div
+                              aria-hidden="true"
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold bg-[#fff5f5] text-[#800020] border border-[#f1c5cf] shrink-0"
+                            >
+                              {iniciais(i.indicado?.nome)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-bold text-[#1e293b] truncate">
+                                {isSetor ? i.setor?.nome : i.indicado?.nome}
+                              </p>
+                              {isSetor && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                  Setor
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-[#64748b] truncate">
+                              Indicado por {i.indicante?.nome} · {formatarData(i.data_indicacao)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-[#1e293b] truncate">
-                            {i.indicado?.nome}
-                          </p>
-                          <p className="text-xs text-[#64748b] truncate">
-                            Indicado por {i.indicante?.nome} · {formatarData(i.data_indicacao)}
-                          </p>
-                        </div>
+                        <Badge variant="warning">Pendente</Badge>
                       </div>
-                      <Badge variant="warning">Pendente</Badge>
+
+                      <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
+                        {i.motivo}
+                      </p>
                     </div>
 
-                    <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
-                      {i.motivo}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => abrirNovoReconhecimento(i)}
-                    >
-                      Criar reconhecimento
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => setRecusando(i)}>
-                      Recusar
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => abrirNovoReconhecimento(i)}
+                      >
+                        Criar reconhecimento
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => setRecusando(i)}>
+                        Recusar
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </section>
       )}
 
-      {/* Indicar um colega */}
+      {/* Modal: Indicar um colega ou setor */}
       <Modal
         open={indicarAberto}
         onClose={enviandoIndicacao ? undefined : () => setIndicarAberto(false)}
-        title="Indicar um colega"
+        title="Indicar colega ou setor"
         footer={
           <>
             <Button
@@ -796,13 +951,63 @@ export default function Reconhecimentos() {
       >
         <div className="space-y-4">
           <p className="text-sm text-[#475569]">
-            Sua indicação não é publicada: ela vai para análise do RH.
+            Sua indicação não é publicada imediatamente: ela vai para a avaliação da equipe de RH.
           </p>
-          <SeletorColega
-            selecionado={colegaIndicado}
-            onSelecionar={setColegaIndicado}
-            erro={errosIndicar.id_indicado}
-          />
+
+          <div className="space-y-1.5">
+            <span className="ui-field__label">Quem você quer indicar?</span>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setAlvoTipoIndicar("COLABORADOR");
+                  setErrosIndicar({});
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  alvoTipoIndicar === "COLABORADOR"
+                    ? "bg-[#800020] text-white shadow-sm"
+                    : "text-[#475569] hover:text-[#1e293b]"
+                }`}
+              >
+                <span>👤</span> Um colega
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAlvoTipoIndicar("SETOR");
+                  setErrosIndicar({});
+                }}
+                className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  alvoTipoIndicar === "SETOR"
+                    ? "bg-[#800020] text-white shadow-sm"
+                    : "text-[#475569] hover:text-[#1e293b]"
+                }`}
+              >
+                <span>🏢</span> Um setor / equipe
+              </button>
+            </div>
+          </div>
+
+          {alvoTipoIndicar === "COLABORADOR" ? (
+            <SeletorColega
+              selecionado={colegaIndicado}
+              onSelecionar={setColegaIndicado}
+              erro={errosIndicar.id_indicado}
+            />
+          ) : (
+            <Select
+              label="Setor a indicar"
+              required
+              value={setorIndicado}
+              onChange={(e) => setSetorIndicado(e.target.value)}
+              error={errosIndicar.id_setor}
+              options={[
+                { value: "", label: "Selecione o setor da equipe" },
+                ...setores.map((s) => ({ value: s.id_setor, label: s.nome })),
+              ]}
+            />
+          )}
+
           <Textarea
             label="Motivo"
             required
@@ -811,12 +1016,16 @@ export default function Reconhecimentos() {
             value={motivo}
             error={errosIndicar.motivo}
             onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Por que esse colega merece ser reconhecido?"
+            placeholder={
+              alvoTipoIndicar === "SETOR"
+                ? "Por que essa equipe / setor merece ser reconhecido?"
+                : "Por que esse colega merece ser reconhecido?"
+            }
           />
         </div>
       </Modal>
 
-      {/* Criar / editar reconhecimento (RH e Admin) */}
+      {/* Modal: Criar / editar reconhecimento (RH e Admin) */}
       <Modal
         open={formAberto}
         onClose={salvando ? undefined : () => setFormAberto(false)}
@@ -837,11 +1046,75 @@ export default function Reconhecimentos() {
         }
       >
         <div className="space-y-4">
-          <SeletorColega
-            selecionado={colaborador}
-            onSelecionar={editando || idIndicacao ? undefined : setColaborador}
-            erro={errosForm.id_colaborador}
-          />
+          {!editando && !idIndicacao && (
+            <div className="space-y-1.5">
+              <span className="ui-field__label">Público do reconhecimento</span>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormAlvoTipo("COLABORADOR");
+                    setErrosForm({});
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    formAlvoTipo === "COLABORADOR"
+                      ? "bg-[#800020] text-white shadow-sm"
+                      : "text-[#475569] hover:text-[#1e293b]"
+                  }`}
+                >
+                  <span>👤</span> Colaborador individual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormAlvoTipo("SETOR");
+                    setErrosForm({});
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    formAlvoTipo === "SETOR"
+                      ? "bg-[#800020] text-white shadow-sm"
+                      : "text-[#475569] hover:text-[#1e293b]"
+                  }`}
+                >
+                  <span>🏢</span> Setor / Equipe inteira
+                </button>
+              </div>
+            </div>
+          )}
+
+          {(editando || idIndicacao) && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-[#475569]">
+              <strong>Alvo do reconhecimento: </strong>
+              {formAlvoTipo === "SETOR"
+                ? `🏢 Setor: ${setores.find((s) => String(s.id_setor) === String(formSetor))?.nome || editando?.setor?.nome || "Setor"}`
+                : `👤 Colaborador: ${colaborador?.nome || editando?.colaborador?.nome}`}
+            </div>
+          )}
+
+          {!editando && !idIndicacao && (
+            <>
+              {formAlvoTipo === "COLABORADOR" ? (
+                <SeletorColega
+                  selecionado={colaborador}
+                  onSelecionar={setColaborador}
+                  erro={errosForm.id_colaborador}
+                />
+              ) : (
+                <Select
+                  label="Setor a reconhecer"
+                  required
+                  value={formSetor}
+                  onChange={(e) => setFormSetor(e.target.value)}
+                  error={errosForm.id_setor}
+                  options={[
+                    { value: "", label: "Selecione o setor da equipe" },
+                    ...setores.map((s) => ({ value: s.id_setor, label: s.nome })),
+                  ]}
+                />
+              )}
+            </>
+          )}
+
           <Select
             label="Tipo"
             required
@@ -856,7 +1129,11 @@ export default function Reconhecimentos() {
             value={formTitulo}
             error={errosForm.titulo}
             onChange={(e) => setFormTitulo(e.target.value)}
-            placeholder="Ex.: Profissional destaque do mês"
+            placeholder={
+              formAlvoTipo === "SETOR"
+                ? "Ex.: Setor Destaque do Mês / Parabéns à Equipe"
+                : "Ex.: Profissional destaque do mês"
+            }
           />
           <Textarea
             label="Mensagem"
@@ -883,7 +1160,7 @@ export default function Reconhecimentos() {
       <ConfirmDialog
         open={Boolean(recusando)}
         title="Recusar indicação"
-        message={`Recusar a indicação de ${recusando?.indicado?.nome}? O indicante verá o status "Recusada".`}
+        message={`Recusar a indicação de ${recusando?.alvo_tipo === "SETOR" ? `Setor: ${recusando?.setor?.nome}` : recusando?.indicado?.nome}? O indicante verá o status "Recusada".`}
         confirmLabel="Recusar"
         variant="danger"
         loading={processando}
