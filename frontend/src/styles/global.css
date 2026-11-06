@@ -89,6 +89,65 @@ body {
 :root:not([data-theme="dark"]) .destaque-banner button.bg-\[\#800020\] { background-color: #fff; }
 :root:not([data-theme="dark"]) .destaque-banner button.bg-\[\#800020\]\/25 { background-color: rgba(255, 255, 255, 0.45); }
 
+/* Controles de navegação (anterior/próximo) e transição do carrossel de destaques */
+.destaque-banner__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: bold;
+  line-height: 1;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+}
+:root:not([data-theme="dark"]) .destaque-banner__nav-btn {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+:root:not([data-theme="dark"]) .destaque-banner__nav-btn:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+:root[data-theme="dark"] .destaque-banner__nav-btn {
+  color: #f08aa0;
+  background: rgba(240, 138, 160, 0.14);
+}
+:root[data-theme="dark"] .destaque-banner__nav-btn:hover {
+  background: rgba(240, 138, 160, 0.28);
+}
+
+.destaque-banner__conteudo {
+  animation: destaqueFadeIn 0.3s ease-in-out;
+}
+@keyframes destaqueFadeIn {
+  from {
+    opacity: 0.35;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tamanho vertical ampliado e distribuição interna do carrossel na página inicial */
+.destaque-banner--carousel {
+  min-height: 235px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+@media (min-width: 640px) {
+  .destaque-banner--carousel {
+    min-height: 255px;
+    padding: 1.75rem 1.75rem;
+  }
+}
+
 /* Cards de "Avisos em Destaque" (mural) reutilizam o visual do banner */
 .destaque-banner__title { color: var(--color-text-primary); }
 .destaque-banner__footer { border-top: 1px solid rgba(128, 0, 32, 0.15); }

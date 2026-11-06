@@ -88,6 +88,7 @@ export default function Dashboard() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [indiceDestaque, setIndiceDestaque] = useState(0);
+  const [destaquePausado, setDestaquePausado] = useState(false);
   const aniversariantesMes = useAniversariantesMes(autenticado);
   const [diaAniv, setDiaAniv] = useState(null);
   const hojeCal = new Date();
@@ -139,7 +140,20 @@ export default function Dashboard() {
       ? dados.total_aniversariantes_mes
       : aniversariantesHoje.length;
 
-  const destaqueAtual = avisosDestaque[indiceDestaque] || avisosDestaque[0] || null;
+  const totalDestaques = avisosDestaque.length;
+  const destaqueAtual =
+    totalDestaques > 0 ? avisosDestaque[indiceDestaque % totalDestaques] : null;
+
+  // Rotação automática do carrossel de destaques a cada 5 segundos
+  useEffect(() => {
+    if (totalDestaques <= 1 || destaquePausado) return;
+
+    const temporizador = setInterval(() => {
+      setIndiceDestaque((prev) => (prev + 1) % totalDestaques);
+    }, 5000);
+
+    return () => clearInterval(temporizador);
+  }, [totalDestaques, destaquePausado, indiceDestaque]);
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -181,13 +195,28 @@ export default function Dashboard() {
           {/* Bloco de Destaques */}
           <section aria-label="Destaques corporativos" className="space-y-2.5">
             {carregando ? (
-              <Card className="space-y-3">
-                <Skeleton width="160px" height="1.25rem" />
-                <Skeleton width="80%" height="1.75rem" />
-                <Skeleton width="100%" height="3rem" />
+              <Card className="destaque-banner destaque-banner--carousel">
+                <div className="flex items-center justify-between">
+                  <Skeleton width="160px" height="1.5rem" />
+                  <Skeleton width="60px" height="1rem" />
+                </div>
+                <div className="space-y-3 my-auto py-2">
+                  <Skeleton width="75%" height="2rem" />
+                  <Skeleton width="100%" height="3.5rem" />
+                </div>
+                <div className="pt-3 flex items-center justify-between border-t border-slate-100/30">
+                  <Skeleton width="140px" height="1rem" />
+                  <Skeleton width="120px" height="1.5rem" />
+                </div>
               </Card>
             ) : destaqueAtual ? (
-              <Card className="destaque-banner space-y-3">
+              <Card
+                className="destaque-banner destaque-banner--carousel"
+                onMouseEnter={() => setDestaquePausado(true)}
+                onMouseLeave={() => setDestaquePausado(false)}
+                onFocus={() => setDestaquePausado(true)}
+                onBlur={() => setDestaquePausado(false)}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold px-2.5 py-0.5 rounded-full destaque-banner__pill">
@@ -201,41 +230,80 @@ export default function Dashboard() {
                     </span>
                   </div>
                   {avisosDestaque.length > 1 && (
-                    <div className="flex items-center gap-1.5">
-                      {avisosDestaque.map((item, idx) => (
-                        <button
-                          key={item.id_aviso}
-                          type="button"
-                          onClick={() => setIndiceDestaque(idx)}
-                          aria-label={`Ver destaque ${idx + 1}`}
-                          className={`w-2.5 h-2.5 rounded-full transition-all ${
-                            idx === indiceDestaque ? "bg-[#800020] scale-110" : "bg-[#800020]/25"
-                          }`}
-                        />
-                      ))}
+                    <div className="flex items-center gap-1.5" aria-label="Navegação do carrossel">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIndiceDestaque(
+                            (prev) => (prev - 1 + avisosDestaque.length) % avisosDestaque.length
+                          )
+                        }
+                        aria-label="Destaque anterior"
+                        title="Destaque anterior"
+                        className="destaque-banner__nav-btn"
+                      >
+                        ‹
+                      </button>
+                      {avisosDestaque.map((item, idx) => {
+                        const ativo = idx === (indiceDestaque % avisosDestaque.length);
+                        return (
+                          <button
+                            key={item.id_aviso}
+                            type="button"
+                            onClick={() => setIndiceDestaque(idx)}
+                            aria-label={`Ver destaque ${idx + 1}`}
+                            aria-current={ativo ? "true" : undefined}
+                            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                              ativo
+                                ? "w-6 bg-[#800020]"
+                                : "w-2.5 bg-[#800020]/25 hover:bg-[#800020]/50"
+                            }`}
+                          />
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIndiceDestaque((prev) => (prev + 1) % avisosDestaque.length)
+                        }
+                        aria-label="Próximo destaque"
+                        title="Próximo destaque"
+                        className="destaque-banner__nav-btn"
+                      >
+                        ›
+                      </button>
                     </div>
                   )}
                 </div>
 
-                <h2 className="text-lg font-bold text-[#1e293b] leading-snug">
-                  <Link
-                    to={`/avisos/${destaqueAtual.id_aviso}`}
-                    className="hover:underline text-[#1e293b]"
-                  >
-                    {destaqueAtual.titulo}
-                  </Link>
-                </h2>
+                <div
+                  key={destaqueAtual.id_aviso}
+                  className="destaque-banner__conteudo flex-1 flex flex-col justify-between mt-3 space-y-3"
+                >
+                  <div className="space-y-2.5">
+                    <h2 className="text-lg md:text-xl font-bold text-[#1e293b] leading-snug">
+                      <Link
+                        to={`/avisos/${destaqueAtual.id_aviso}`}
+                        className="hover:underline text-[#1e293b]"
+                      >
+                        {destaqueAtual.titulo}
+                      </Link>
+                    </h2>
 
-                <p className="text-sm text-[#475569] leading-relaxed">{destaqueAtual.resumo}</p>
+                    <p className="text-sm text-[#475569] leading-relaxed line-clamp-3">
+                      {destaqueAtual.resumo}
+                    </p>
+                  </div>
 
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748b]">
-                  <span>Por {destaqueAtual.autor?.nome || "Comunicação Institucional"}</span>
-                  <Link
-                    to={`/avisos/${destaqueAtual.id_aviso}`}
-                    className="inline-flex items-center gap-1 destaque-banner__cta"
-                  >
-                    Ler comunicado completo →
-                  </Link>
+                  <div className="pt-3.5 flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748b] destaque-banner__footer">
+                    <span>Por {destaqueAtual.autor?.nome || "Comunicação Institucional"}</span>
+                    <Link
+                      to={`/avisos/${destaqueAtual.id_aviso}`}
+                      className="inline-flex items-center gap-1 destaque-banner__cta"
+                    >
+                      Ler comunicado completo →
+                    </Link>
+                  </div>
                 </div>
               </Card>
             ) : null}
