@@ -8,6 +8,7 @@ from app.models.google_agenda import EventoGoogle, IntegracaoGoogle
 from app.models.historico_acesso import HistoricoAcesso
 from app.models.log_ia import LogIA
 from app.models.notificacao import Notificacao, NotificacaoLida
+from app.models.onboarding import OnboardingContato, OnboardingItem, OnboardingProgresso
 from app.models.ramal import Ramal
 from app.models.reconhecimento import IndicacaoReconhecimento, Reconhecimento
 from app.models.setor import Setor
@@ -31,4 +32,7 @@ __all__ = [
     "NotificacaoLida",
     "LogIA",
     "AcessoRapido",
+    "OnboardingItem",
+    "OnboardingProgresso",
+    "OnboardingContato",
 ]

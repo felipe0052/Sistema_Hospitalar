@@ -10,6 +10,7 @@ from app.core.security import gerar_hash_senha
 from app.models.aviso import Aviso
 from app.models.evento import Evento
 from app.models.faq import Faq
+from app.models.onboarding import OnboardingContato, OnboardingItem
 from app.models.ramal import Ramal
 from app.models.reconhecimento import IndicacaoReconhecimento, Reconhecimento
 from app.models.setor import Setor
@@ -574,6 +575,69 @@ def _seed_extras(db, mapa_usuarios: dict[str, int]) -> None:
         notificacao_service.registrar(db, "RECONHECIMENTO", rec.id_reconhecimento, rec.titulo)
 
 
+# Conteúdo inicial do Onboarding Digital (mesmo de database/migrations_onboarding.sql)
+ONBOARDING_CHECKLIST = [
+    ("Entregar documentos admissionais no RH", "Leve RG, CPF, carteira de trabalho, comprovante de residência e registro no conselho de classe (quando houver) ao RH no 4º andar."),
+    ("Retirar crachá e uniforme", "O crachá é retirado no RH e o uniforme com a coordenação do seu setor. Use o crachá visível durante todo o expediente."),
+    ("Fazer o exame admissional e conferir a vacinação", "Apresente a carteira de vacinação atualizada (hepatite B, tétano, influenza e COVID-19)."),
+    ("Ativar login e senha dos sistemas", "O Service Desk (ramal 4201) libera seu acesso à intranet, ao e-mail e ao prontuário eletrônico."),
+    ("Assinar o termo de confidencialidade (LGPD)", "Os dados de pacientes e colaboradores são sigilosos. Leia e assine o termo no RH."),
+    ("Conhecer o seu setor e a sua escala", "Converse com a coordenação do setor sobre horários, escala de plantão e regras de troca."),
+    ("Ler os POPs do seu setor", "Os Procedimentos Operacionais Padrão vigentes ficam no menu Documentos (POPs)."),
+    ("Conhecer as rotas de fuga e os extintores", "Peça à coordenação para mostrar as saídas de emergência e os pontos de encontro do seu andar."),
+    ("Participar do treinamento de integração", "Veja a próxima turma no menu Eventos."),
+]
+
+ONBOARDING_ATENDIMENTOS = [
+    ("Higienize as mãos", "Antes e depois de cada contato com o paciente, use álcool 70% ou água e sabão (os 5 momentos da higiene das mãos)."),
+    ("Apresente-se e confirme a identificação do paciente", "Diga seu nome e função. Confira nome completo e data de nascimento na pulseira antes de qualquer procedimento."),
+    ("Verifique alergias e riscos", "Confira no prontuário alergias, risco de queda e de lesão por pressão."),
+    ("Siga o POP do procedimento", "Na dúvida, consulte o POP vigente ou chame o profissional de referência do seu turno."),
+    ("Registre tudo no prontuário", "Anote o que foi feito, o horário e as intercorrências logo após o atendimento."),
+    ("Em emergência, acione a equipe", "Peça ajuda imediatamente e ligue para a Sala de Emergência (ramal 1003)."),
+    ("Passe o plantão com clareza", "Informe ao próximo turno o estado do paciente, pendências e cuidados especiais."),
+]
+
+# (situação, quem procurar, setor, ramal, observação)
+ONBOARDING_CONTATOS = [
+    ("Dúvidas sobre salário, holerite, férias ou benefícios", "Departamento Pessoal", "RH", "4102", None),
+    ("Documentos, crachá ou dúvidas da admissão", "Atendimento ao Colaborador", "RH", "4101", None),
+    ("Problema com login, senha, computador ou impressora", "Service Desk", "Tecnologia", "4201", None),
+    ("Paciente em situação de emergência", "Sala de Emergência", "Pronto-Socorro", "1003", None),
+    ("Medicamentos, dispensação ou controlados", "Farmácia Clínica", "Farmácia", "1202", None),
+    ("Coleta de exames e resultados", "Coleta e Recepção de Amostras", "Laboratório", "1301", None),
+    ("Internação, altas e informações para familiares", "Internação e Altas", "Recepção", "1005", None),
+    (
+        "Escala, trocas de plantão e rotina do setor",
+        "Coordenação do seu setor",
+        None,
+        None,
+        "Consulte o ramal da coordenação no Diretório e Ramais.",
+    ),
+]
+
+
+def _seed_onboarding(db, mapa_setores: dict[str, int]) -> None:
+    """Insere o conteúdo inicial do onboarding apenas se ainda não houver nada cadastrado."""
+    if db.query(OnboardingItem).count() == 0:
+        for tipo, lista in (("CHECKLIST", ONBOARDING_CHECKLIST), ("ATENDIMENTO", ONBOARDING_ATENDIMENTOS)):
+            for ordem, (titulo, descricao) in enumerate(lista, start=1):
+                db.add(OnboardingItem(tipo=tipo, titulo=titulo, descricao=descricao, ordem=ordem))
+    if db.query(OnboardingContato).count() == 0:
+        for ordem, (situacao, responsavel, setor, ramal, obs) in enumerate(ONBOARDING_CONTATOS, start=1):
+            db.add(
+                OnboardingContato(
+                    situacao=situacao,
+                    responsavel=responsavel,
+                    id_setor=mapa_setores.get(setor) if setor else None,
+                    ramal=ramal,
+                    observacao=obs,
+                    ordem=ordem,
+                )
+            )
+    db.commit()
+
+
 def executar_seed() -> None:
     if settings.DATABASE_URL.startswith("sqlite"):
         Base.metadata.create_all(bind=engine)
@@ -661,6 +725,9 @@ def executar_seed() -> None:
 
         # 5. Extras da Semana 5: urgentes, evento de hoje, reconhecimentos, indicações e notificações
         _seed_extras(db, mapa_usuarios)
+
+        # 6. Conteúdo inicial do Onboarding Digital
+        _seed_onboarding(db, mapa_setores)
 
         total_usuarios = db.query(Usuario).count()
         total_setores = db.query(Setor).count()

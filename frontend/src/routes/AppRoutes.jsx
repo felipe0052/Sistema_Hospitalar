@@ -17,6 +17,7 @@ import Integracoes from "../pages/Integracoes";
 import Login from "../pages/Login";
 import NaoEncontrada from "../pages/NaoEncontrada";
 import Notificacoes from "../pages/Notificacoes";
+import Onboarding from "../pages/Onboarding";
 import Reconhecimentos from "../pages/Reconhecimentos";
 import SemPermissao from "../pages/SemPermissao";
 import PermissaoRoute from "./PermissaoRoute";
@@ -87,6 +88,15 @@ export const TELAS_PRINCIPAIS = [
     component: Faq,
     publica: true,
   },
+  {
+    path: "/onboarding",
+    label: "Onboarding",
+    descricao: "Checklist, mapa do hospital, contatos e primeiros atendimentos",
+    grupo: "Portal do Colaborador",
+    icon: "clipboard",
+    component: Onboarding,
+    publica: false,
+  },
 ];
 
 export function AppRoutes() {
@@ -108,6 +118,7 @@ export function AppRoutes() {
               <Route path="/aniversariantes" element={<Aniversariantes />} />
               <Route path="/reconhecimentos" element={<Reconhecimentos />} />
               <Route path="/notificacoes" element={<Notificacoes />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/perfil/integracoes" element={<Integracoes />} />
             </Route>
             <Route path="/_componentes" element={<ComponentesDemo />} />

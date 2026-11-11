@@ -13,6 +13,7 @@ from app.routers import (
     google_agenda,
     ia,
     notificacoes,
+    onboarding,
     reconhecimentos,
     setores,
     usuarios,
@@ -35,3 +36,4 @@ api_router.include_router(reconhecimentos.router)
 api_router.include_router(reconhecimentos.router_indicacoes)
 api_router.include_router(ia.router)
 api_router.include_router(acessos_rapidos.router)
+api_router.include_router(onboarding.router)

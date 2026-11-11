@@ -14,6 +14,7 @@ const ICONS = {
   shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   building: "M3 21h18 M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16 M9 9h2 M13 9h2 M9 13h2 M13 13h2",
   compass: "M12 22a10 10 0 100-20 10 10 0 000 20z M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z",
+  clipboard: "M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2 M9 2h6v4H9z M9 14l2 2 4-4",
   logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9",
   login: "M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4 M10 17l5-5-5-5 M15 12H3",
 };
@@ -46,6 +47,7 @@ const MENU_PRINCIPAL = [
   { to: "/documentos", label: "Documentos (POPs)", icon: ICONS.folder },
   { to: "/faq", label: "FAQ (Central de Ajuda)", icon: ICONS.chat },
   { to: "/reconhecimentos", label: "Reconhecimentos", icon: ICONS.award, requerLogin: true },
+  { to: "/onboarding", label: "Onboarding", icon: ICONS.clipboard, requerLogin: true },
 ];
 
 export function Sidebar() {
