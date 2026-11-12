@@ -196,6 +196,9 @@ O esquema do banco de dados cobre todas as áreas do sistema:
 15. `EVENTOS_GOOGLE`: Mapeamento de eventos sincronizados para o Google Calendar.
 16. `ACESSOS_RAPIDOS`: Catálogo de sistemas externos gerenciados pelo administrador.
 17. `LOG_IA`: Auditoria operacional de requisições de Inteligência Artificial, latências e feedbacks.
+18. `ONBOARDING_ITENS`: Checklist do novo colaborador e orientações de primeiros atendimentos (gerenciados por ADMIN/RH).
+19. `ONBOARDING_PROGRESSO`: Itens do onboarding concluídos por cada colaborador.
+20. `ONBOARDING_CONTATOS`: Guia "quem procurar em cada situação" (responsável, setor e ramal).
 - `VW_DIRETORIO`: View relacional otimizada para consulta pública e interna de colaboradores ativos e seus ramais.
 
 ---
@@ -221,6 +224,7 @@ Sistema_Hospitalar/
 │   ├── migrations_documentos_versionamento.sql    # Ajustes no versionamento de POPs
 │   ├── migrations_google_agenda.sql               # Migrações da integração com Google Calendar
 │   ├── migrations_google_receber_todos.sql        # Ajustes de parâmetros da sincronização Google
+│   ├── migrations_onboarding.sql                  # Tabelas e conteúdo inicial do Onboarding Digital
 │   └── 99_reset.sql                # Script manual para DROP total e limpeza do banco
 ├── docs/                           # Documentação técnica, arquitetura, QA e coleções
 │   ├── banco.md                    # Dicionário de dados, ER e documentação das tabelas
