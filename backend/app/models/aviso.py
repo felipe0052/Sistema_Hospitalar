@@ -25,5 +25,7 @@ class Aviso(Base):
     data_expiracao: Mapped[date | None] = mapped_column("DATA_EXPIRACAO", Date, nullable=True)
     data_atualizacao: Mapped[datetime | None] = mapped_column("DATA_ATUALIZACAO", DateTime, nullable=True)
     id_autor: Mapped[int | None] = mapped_column("ID_AUTOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True)
+    imagem_chave: Mapped[str | None] = mapped_column("IMAGEM_CHAVE", String(300), nullable=True)
+    imagem_alt: Mapped[str | None] = mapped_column("IMAGEM_ALT", String(200), nullable=True)
 
     autor: Mapped["Usuario | None"] = relationship("Usuario")
