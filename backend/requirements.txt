@@ -15,3 +15,4 @@ pypdf
 python-docx
 google-genai
 cryptography
+pillow
