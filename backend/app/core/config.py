@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     UPLOAD_MAX_MB: int = 20
     DOCUMENTOS_MAX_MB: int = 10
+    AVISOS_IMAGEM_MAX_MB: int = 5
     STORAGE_BACKEND: str = "local"
 
     # Integração Google Agenda (OAuth 2.0). O secret também é lido da variável legada "chave_google".

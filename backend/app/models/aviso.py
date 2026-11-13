@@ -29,6 +29,8 @@ class Aviso(Base):
     id_setor: Mapped[int | None] = mapped_column("ID_SETOR", Integer, ForeignKey("SETORES.ID_SETOR"), nullable=True)
     imagem_caminho: Mapped[str | None] = mapped_column("IMAGEM_CAMINHO", String(300), nullable=True)
     imagem_mime: Mapped[str | None] = mapped_column("IMAGEM_MIME", String(50), nullable=True)
+    imagem_chave: Mapped[str | None] = mapped_column("IMAGEM_CHAVE", String(300), nullable=True)
+    imagem_alt: Mapped[str | None] = mapped_column("IMAGEM_ALT", String(200), nullable=True)
 
     autor: Mapped["Usuario | None"] = relationship("Usuario")
     setor: Mapped["Setor | None"] = relationship("Setor")
