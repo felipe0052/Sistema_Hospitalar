@@ -6,6 +6,7 @@ from app.models.evento import Evento
 from app.models.faq import Faq
 from app.models.google_agenda import EventoGoogle, IntegracaoGoogle
 from app.models.historico_acesso import HistoricoAcesso
+from app.models.link_aniversario import LinkAniversario
 from app.models.log_ia import LogIA
 from app.models.notificacao import Notificacao, NotificacaoLida
 from app.models.onboarding import OnboardingContato, OnboardingItem, OnboardingProgresso
@@ -35,4 +36,5 @@ __all__ = [
     "OnboardingItem",
     "OnboardingProgresso",
     "OnboardingContato",
+    "LinkAniversario",
 ]

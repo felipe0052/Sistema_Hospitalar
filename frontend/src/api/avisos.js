@@ -163,3 +163,27 @@ export async function excluirAviso(id) {
 
   await apiClient.delete(`/avisos/${id}`);
 }
+
+export function urlImagemAviso(aviso) {
+  const versao = encodeURIComponent(aviso?.data_atualizacao || aviso?.data_publicacao || "");
+  return `${apiClient.defaults.baseURL}/avisos/${aviso?.id_aviso}/imagem?v=${versao}`;
+}
+
+export async function enviarImagemAviso(id, arquivo) {
+  if (useMocks) {
+    return obterAviso(id);
+  }
+  const form = new FormData();
+  form.append("imagem", arquivo);
+  const { data } = await apiClient.post(`/avisos/${id}/imagem`, form, {
+    headers: { "Content-Type": null },
+  });
+  return data;
+}
+
+export async function removerImagemAviso(id) {
+  if (useMocks) {
+    return;
+  }
+  await apiClient.delete(`/avisos/${id}/imagem`);
+}

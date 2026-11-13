@@ -37,7 +37,7 @@ def get_current_user(
         raise NaoAutorizado("Sessão expirada. Faça login novamente.")
 
     if usuario.status == "INATIVO":
-        raise Proibido("Usuário inativo. Procure o administrador.")
+        raise NaoAutorizado("E-mail ou senha inválidos. Procure o ADMIN.")
 
     if payload.get("ver") != usuario.versao_token:
         raise NaoAutorizado("Sessão expirada. Faça login novamente.")

@@ -189,6 +189,22 @@ export default function Dashboard() {
       {/* Banner de Erro com botão Tentar novamente */}
       {erro && <ErrorBanner message={erro} onRetry={carregarDashboard} />}
 
+      {!autenticado && (
+        <Card className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-[#1e293b]">Você está vendo apenas as informações públicas</p>
+            <p className="text-xs text-[#64748b] mt-0.5">
+              Faça login para acessar o diretório e ramais, os documentos (POPs), aniversariantes, reconhecimentos e o onboarding.
+            </p>
+          </div>
+          <Link to="/login">
+            <Button variant="primary" size="sm">
+              Entrar no sistema
+            </Button>
+          </Link>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
         {/* Coluna Esquerda: Bloco de Destaques + Feed de Notícias Recentes */}
         <div className="space-y-6">

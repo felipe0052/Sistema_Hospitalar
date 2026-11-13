@@ -49,6 +49,7 @@ class OnboardingContato(Base):
     id_contato: Mapped[int] = mapped_column("ID_CONTATO", Integer, primary_key=True, autoincrement=True)
     situacao: Mapped[str] = mapped_column("SITUACAO", String(200), nullable=False)
     responsavel: Mapped[str] = mapped_column("RESPONSAVEL", String(150), nullable=False)
+    cargo: Mapped[str | None] = mapped_column("CARGO", String(100), nullable=True)
     id_setor: Mapped[int | None] = mapped_column(
         "ID_SETOR", Integer, ForeignKey("SETORES.ID_SETOR", ondelete="SET NULL"), nullable=True
     )

@@ -97,6 +97,7 @@ def test_quem_procurar_crud_com_setor(client: TestClient):
         json={
             "situacao": "Dúvidas sobre holerite e benefícios",
             "responsavel": "Patrícia Nunes",
+            "cargo": "Analista de Departamento Pessoal",
             "id_setor": id_rh,
             "ramal": "4010",
             "ordem": 1,
@@ -105,6 +106,7 @@ def test_quem_procurar_crud_com_setor(client: TestClient):
     assert res.status_code == 201
     contato = res.json()
     assert contato["setor"]["nome"] == "RH"
+    assert contato["cargo"] == "Analista de Departamento Pessoal"
 
     res = client.put(
         f"/api/v1/onboarding/contatos/{contato['id_contato']}",
@@ -113,6 +115,7 @@ def test_quem_procurar_crud_com_setor(client: TestClient):
     )
     assert res.status_code == 200
     assert res.json()["setor"] is None and res.json()["ramal"] is None
+    assert res.json()["cargo"] is None
 
     dados = client.get("/api/v1/onboarding", headers=headers_colab).json()
     assert dados["contatos"][0]["responsavel"] == "Equipe de RH"

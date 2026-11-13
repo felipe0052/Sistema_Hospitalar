@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { listarRamaisPorAndar } from "../../api/diretorio";
+import { listarEventos } from "../../api/eventos";
 import {
   atualizarContatoOnboarding,
   atualizarItemOnboarding,
@@ -27,18 +28,21 @@ import {
   useToast,
 } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatarDataHora } from "../../utils/date";
 
 const ABAS = [
   { id: "checklist", label: "✅ Checklist" },
   { id: "mapa", label: "🗺️ Mapa do Hospital" },
   { id: "contatos", label: "📞 Quem Procurar" },
   { id: "atendimentos", label: "🩺 Primeiros Atendimentos" },
+  { id: "treinamentos", label: "🎓 Primeiros Treinamentos" },
 ];
 
 const ITEM_VAZIO = { tipo: "CHECKLIST", titulo: "", descricao: "", ordem: "1" };
 const CONTATO_VAZIO = {
   situacao: "",
   responsavel: "",
+  cargo: "",
   id_setor: "",
   ramal: "",
   observacao: "",
@@ -133,6 +137,10 @@ export default function Onboarding() {
 
   const [setores, setSetores] = useState([]);
 
+  const [treinamentos, setTreinamentos] = useState([]);
+  const [carregandoTreinamentos, setCarregandoTreinamentos] = useState(false);
+  const [erroTreinamentos, setErroTreinamentos] = useState("");
+
   // Modal de item (checklist / primeiros atendimentos)
   const [modalItemOpen, setModalItemOpen] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
@@ -176,9 +184,28 @@ export default function Onboarding() {
     }
   }, []);
 
+  const carregarTreinamentos = useCallback(async () => {
+    setCarregandoTreinamentos(true);
+    setErroTreinamentos("");
+    try {
+      const lista = await listarEventos({ categoria: "TREINAMENTO" });
+      setTreinamentos(Array.isArray(lista) ? lista : []);
+    } catch (err) {
+      setErroTreinamentos(err?.mensagem || "Não foi possível carregar os treinamentos.");
+    } finally {
+      setCarregandoTreinamentos(false);
+    }
+  }, []);
+
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    if (abaAtiva === "treinamentos") {
+      carregarTreinamentos();
+    }
+  }, [abaAtiva, carregarTreinamentos]);
 
   useEffect(() => {
     if (abaAtiva === "mapa" && andares.length === 0 && !erroMapa) {
@@ -288,6 +315,7 @@ export default function Onboarding() {
     setFormContato({
       situacao: contato.situacao || "",
       responsavel: contato.responsavel || "",
+      cargo: contato.cargo || "",
       id_setor: contato.setor ? String(contato.setor.id_setor) : "",
       ramal: contato.ramal || "",
       observacao: contato.observacao || "",
@@ -312,6 +340,7 @@ export default function Onboarding() {
       const payload = {
         situacao: formContato.situacao.trim(),
         responsavel: formContato.responsavel.trim(),
+        cargo: formContato.cargo.trim() || null,
         id_setor: formContato.id_setor ? Number(formContato.id_setor) : null,
         ramal: formContato.ramal.trim() || null,
         observacao: formContato.observacao.trim() || null,
@@ -481,6 +510,55 @@ export default function Onboarding() {
     );
   }
 
+  function renderTreinamentos() {
+    if (erroTreinamentos) {
+      return <ErrorBanner message={erroTreinamentos} onRetry={carregarTreinamentos} />;
+    }
+    return (
+      <Card className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+          <div>
+            <h2 className="text-base font-bold text-[#800020]">Primeiros Treinamentos</h2>
+            <p className="text-xs text-[#64748b] mt-0.5">
+              Próximos treinamentos da agenda do hospital. Participe dos que forem do seu setor.
+            </p>
+          </div>
+          <Link to="/eventos" className="text-xs font-semibold text-[#800020] hover:underline">
+            Ver agenda completa →
+          </Link>
+        </div>
+
+        {carregandoTreinamentos ? (
+          <div className="space-y-2" aria-busy="true">
+            <Skeleton height="44px" width="100%" />
+            <Skeleton height="44px" width="100%" />
+          </div>
+        ) : treinamentos.length === 0 ? (
+          <EmptyState
+            title="Nenhum treinamento agendado"
+            description="Quando o RH cadastrar treinamentos na agenda de eventos, eles aparecem aqui."
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {treinamentos.map((ev) => (
+              <div
+                key={ev.id_evento}
+                className="rounded-xl border bg-slate-50 border-slate-200 p-3.5 space-y-1.5"
+              >
+                <div className="text-sm font-semibold text-[#1e293b]">{ev.titulo}</div>
+                <div className="text-xs text-[#475569]">{formatarDataHora(ev.data_inicio)}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {ev.local && <span className="text-xs text-[#64748b]">📍 {ev.local}</span>}
+                  {ev.setor && <Badge variant="default">{ev.setor.nome}</Badge>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    );
+  }
+
   function renderContatos() {
     const contatos = dados?.contatos || [];
     return (
@@ -515,6 +593,7 @@ export default function Onboarding() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-[#475569]">
                     Procure: <span className="font-bold text-[#1e293b]">{c.responsavel}</span>
+                    {c.cargo && <span className="text-[#64748b]"> — {c.cargo}</span>}
                   </span>
                   {c.setor && (
                     <Badge variant="default">
@@ -560,7 +639,7 @@ export default function Onboarding() {
         <div>
           <h1 className="text-xl font-bold text-[#1e293b]">Onboarding do Colaborador</h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Seu guia de integração: checklist, mapa do hospital, contatos de referência e primeiros atendimentos
+            Seu guia de integração: checklist, mapa do hospital, contatos de referência, primeiros atendimentos e treinamentos
           </p>
         </div>
 
@@ -650,6 +729,7 @@ export default function Onboarding() {
           {abaAtiva === "mapa" && renderMapa()}
           {abaAtiva === "contatos" && renderContatos()}
           {abaAtiva === "atendimentos" && renderListaItens(dados?.atendimentos || [], "ATENDIMENTO")}
+          {abaAtiva === "treinamentos" && renderTreinamentos()}
         </>
       )}
 
@@ -758,6 +838,13 @@ export default function Onboarding() {
             }}
             placeholder="Ex.: Service Desk"
             error={errosContato.responsavel}
+          />
+          <Input
+            label="Função"
+            value={formContato.cargo}
+            onChange={(e) => setFormContato((f) => ({ ...f, cargo: e.target.value }))}
+            placeholder="Ex.: Analista de Suporte"
+            error={errosContato.cargo}
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">

@@ -3,11 +3,15 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   atualizarAviso,
   criarAviso,
+  enviarImagemAviso,
   excluirAviso,
   listarAvisos,
   listarAvisosGestao,
   obterAviso,
+  removerImagemAviso,
+  urlImagemAviso,
 } from "../../api/avisos";
+import { listarSetores } from "../../api/setores";
 import {
   Badge,
   Button,
@@ -92,6 +96,8 @@ export default function Avisos() {
   // Filtros e paginação do mural
   const [busca, setBusca] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("");
+  const [setorFiltro, setSetorFiltro] = useState("");
+  const [setores, setSetores] = useState([]);
   const [incluirExpirados, setIncluirExpirados] = useState(false);
   const [pagina, setPagina] = useState(1);
   const tamanho = 12;
@@ -118,7 +124,10 @@ export default function Avisos() {
     destaque: false,
     prioridade: "NORMAL",
     data_expiracao: "",
+    id_setor: "",
   });
+  const [imagemArquivo, setImagemArquivo] = useState(null);
+  const [removerImagem, setRemoverImagem] = useState(false);
   const [errosForm, setErrosForm] = useState({});
   const [salvandoForm, setSalvandoForm] = useState(false);
   const conteudoRef = useRef(null);
@@ -127,6 +136,12 @@ export default function Avisos() {
   const [avisoExcluindo, setAvisoExcluindo] = useState(null);
   const [excluindo, setExcluindo] = useState(false);
 
+  useEffect(() => {
+    listarSetores()
+      .then((lista) => setSetores(lista || []))
+      .catch(() => {});
+  }, []);
+
   const carregarMural = useCallback(async () => {
     setCarregandoLista(true);
     setErroLista("");
@@ -134,6 +149,7 @@ export default function Avisos() {
       const params = {
         busca: busca || undefined,
         categoria: categoriaAtiva || undefined,
+        id_setor: setorFiltro ? Number(setorFiltro) : undefined,
         pagina,
         tamanho,
       };
@@ -154,7 +170,7 @@ export default function Avisos() {
     } finally {
       setCarregandoLista(false);
     }
-  }, [busca, categoriaAtiva, incluirExpirados, pagina, podeGerir, tamanho]);
+  }, [busca, categoriaAtiva, incluirExpirados, pagina, podeGerir, setorFiltro, tamanho]);
 
   const carregarDetalhe = useCallback(async (idAviso) => {
     setCarregandoDetalhe(true);
@@ -194,7 +210,10 @@ export default function Avisos() {
       destaque: false,
       prioridade: "NORMAL",
       data_expiracao: "",
+      id_setor: "",
     });
+    setImagemArquivo(null);
+    setRemoverImagem(false);
     setErrosForm({});
     setModalFormOpen(true);
   }
@@ -213,7 +232,10 @@ export default function Avisos() {
         destaque: Boolean(completo.destaque),
         prioridade: completo.prioridade || "NORMAL",
         data_expiracao: completo.data_expiracao ? String(completo.data_expiracao).slice(0, 10) : "",
+        id_setor: completo.setor?.id_setor ? String(completo.setor.id_setor) : "",
       });
+      setImagemArquivo(null);
+      setRemoverImagem(false);
       setModalFormOpen(true);
     } catch (err) {
       toastErro(err?.mensagem || "Não foi possível carregar os dados do aviso para edição.");
@@ -262,6 +284,14 @@ export default function Avisos() {
       }
     }
 
+    if (imagemArquivo) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(imagemArquivo.type)) {
+        problemas.imagem = "Formato de imagem não aceito. Envie JPG, PNG ou WEBP.";
+      } else if (imagemArquivo.size > 5 * 1024 * 1024) {
+        problemas.imagem = "A imagem deve ter no máximo 5 MB.";
+      }
+    }
+
     if (Object.keys(problemas).length > 0) {
       setErrosForm(problemas);
       return;
@@ -277,16 +307,26 @@ export default function Avisos() {
         destaque: Boolean(formDados.destaque),
         prioridade: formDados.prioridade || "NORMAL",
         data_expiracao: formDados.data_expiracao || null,
+        id_setor: formDados.id_setor ? Number(formDados.id_setor) : null,
       };
 
       if (avisoEditando) {
-        const atualizado = await atualizarAviso(avisoEditando.id_aviso, payload);
+        let atualizado = await atualizarAviso(avisoEditando.id_aviso, payload);
+        if (imagemArquivo) {
+          atualizado = await enviarImagemAviso(avisoEditando.id_aviso, imagemArquivo);
+        } else if (removerImagem && avisoEditando.tem_imagem) {
+          await removerImagemAviso(avisoEditando.id_aviso);
+          atualizado = await obterAviso(avisoEditando.id_aviso);
+        }
         sucesso("Aviso atualizado com sucesso!");
         if (idParam && Number(idParam) === Number(avisoEditando.id_aviso)) {
           setAvisoDetalhe(atualizado);
         }
       } else {
-        await criarAviso(payload);
+        const novo = await criarAviso(payload);
+        if (imagemArquivo) {
+          await enviarImagemAviso(novo.id_aviso, imagemArquivo);
+        }
         sucesso("Aviso publicado no mural com sucesso!");
       }
 
@@ -324,6 +364,11 @@ export default function Avisos() {
       setExcluindo(false);
     }
   }
+
+  const opcoesSetores = setores.map((s) => ({
+    value: String(s.id_setor),
+    label: s.nome,
+  }));
 
   // ─── VISÃO DE DETALHE (/avisos/:id) ──────────────────────────────────────
   if (idParam) {
@@ -379,6 +424,7 @@ export default function Avisos() {
                 {avisoDetalhe.prioridade === "URGENTE" && <Badge variant="inativo">⚠ URGENTE</Badge>}
                 {avisoDetalhe.destaque && <Badge variant="primary">★ Destaque</Badge>}
                 {avisoDetalhe.expirado && <Badge variant="inativo">Expirado</Badge>}
+                {avisoDetalhe.setor && <Badge variant="info">{avisoDetalhe.setor.nome}</Badge>}
               </div>
 
               <h1 className="text-2xl font-bold text-[#1e293b] leading-snug">
@@ -399,6 +445,14 @@ export default function Avisos() {
                 )}
               </div>
             </div>
+
+            {avisoDetalhe.tem_imagem && (
+              <img
+                src={urlImagemAviso(avisoDetalhe)}
+                alt={avisoDetalhe.titulo}
+                className="w-full max-h-[420px] object-cover rounded-lg"
+              />
+            )}
 
             <div
               className="prose prose-sm max-w-none text-sm text-[#334155] leading-relaxed space-y-3"
@@ -565,6 +619,59 @@ export default function Avisos() {
               ]}
             />
 
+            <Select
+              label="Setor"
+              value={formDados.id_setor}
+              error={errosForm.id_setor}
+              placeholder="Todos os setores"
+              options={opcoesSetores}
+              onChange={(e) => {
+                setFormDados((prev) => ({ ...prev, id_setor: e.target.value }));
+                setErrosForm((prev) => ({ ...prev, id_setor: undefined, geral: undefined }));
+              }}
+            />
+
+            <div className="ui-field">
+              <label htmlFor="aviso-imagem" className="ui-field__label">
+                <span>Imagem da notícia (opcional)</span>
+              </label>
+              {avisoEditando?.tem_imagem && !imagemArquivo && !removerImagem && (
+                <img
+                  src={urlImagemAviso(avisoEditando)}
+                  alt="Imagem atual do aviso"
+                  className="w-full max-h-40 object-cover rounded-lg mb-2"
+                />
+              )}
+              <input
+                id="aviso-imagem"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                aria-invalid={Boolean(errosForm.imagem)}
+                onChange={(e) => {
+                  setImagemArquivo(e.target.files?.[0] || null);
+                  setErrosForm((prev) => ({ ...prev, imagem: undefined, geral: undefined }));
+                }}
+                className="ui-input"
+              />
+              <p className="text-xs text-[#64748b] mt-1">JPG, PNG ou WEBP de até 5 MB.</p>
+              {errosForm.imagem && (
+                <p className="ui-field__error" role="alert">
+                  <span>{errosForm.imagem}</span>
+                </p>
+              )}
+              {avisoEditando?.tem_imagem && !imagemArquivo && (
+                <label className="flex items-center gap-2 text-xs text-[#334155] cursor-pointer mt-2">
+                  <input
+                    type="checkbox"
+                    checked={removerImagem}
+                    onChange={(e) => setRemoverImagem(e.target.checked)}
+                    className="w-4 h-4 accent-[#800020] rounded"
+                  />
+                  <span>Remover a imagem atual</span>
+                </label>
+              )}
+            </div>
+
             <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
               <input
                 type="checkbox"
@@ -615,7 +722,7 @@ export default function Avisos() {
       </div>
 
       {/* Faixa de Avisos em Destaque */}
-      {!carregandoLista && !erroLista && destaques.length > 0 && !busca && !categoriaAtiva && (
+      {!carregandoLista && !erroLista && destaques.length > 0 && !busca && !categoriaAtiva && !setorFiltro && (
         <section aria-label="Avisos em destaque" className="space-y-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#800020]">
@@ -713,13 +820,23 @@ export default function Avisos() {
           )}
         </div>
 
-        <div className="max-w-md">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl">
           <SearchInput
             value={busca}
             onChange={handleBusca}
             onSearch={handleBusca}
             placeholder="Buscar avisos por título ou palavra-chave..."
             ariaLabel="Buscar avisos e comunicados"
+          />
+          <Select
+            value={setorFiltro}
+            onChange={(e) => {
+              setSetorFiltro(e.target.value);
+              setPagina(1);
+            }}
+            placeholder="Todos os setores"
+            options={opcoesSetores}
+            aria-label="Filtrar avisos por setor"
           />
         </div>
       </Card>
@@ -770,11 +887,19 @@ export default function Avisos() {
                 }`}
               >
                 <div className="space-y-2">
+                  {aviso.tem_imagem && (
+                    <img
+                      src={urlImagemAviso(aviso)}
+                      alt={aviso.titulo}
+                      className="w-full h-44 object-cover rounded-lg"
+                    />
+                  )}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant={CATEGORIA_BADGE_VARIANT[aviso.categoria] || "default"}>
                         {CATEGORIA_LABELS[aviso.categoria] || aviso.categoria}
                       </Badge>
+                      {aviso.setor && <Badge variant="info">{aviso.setor.nome}</Badge>}
                       {aviso.prioridade === "URGENTE" && <Badge variant="inativo">⚠ URGENTE</Badge>}
                       {aviso.destaque && <Badge variant="primary">Destaque</Badge>}
                       {aviso.expirado && <Badge variant="inativo">Expirado</Badge>}

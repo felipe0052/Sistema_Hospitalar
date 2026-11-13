@@ -26,7 +26,7 @@
 |---|---|---|---|
 | **CT-UC01-01** | Login válido com os 4 perfis ativos | 1. Acessar `/login`.<br>2. Informar credenciais válidas de Admin, RH, Marketing ou Colaborador e clicar em **Entrar**. | Redireciona para `/` (Dashboard), armazena token JWT no `localStorage` e exibe nome, cargo e badge do perfil no Header. |
 | **CT-UC01-02** | Senha incorreta ou e-mail inexistente | 1. Informar e-mail válido e senha errada.<br>2. Clicar em **Entrar**. | HTTP 401 — Exibe alerta `"E-mail ou senha inválidos"` sem recarregar a página. |
-| **CT-UC01-03** | Tentativa de login de usuário inativo | 1. Informar `inativo@decos.com.br` / `Inativo@123`.<br>2. Clicar em **Entrar**. | HTTP 403 — Exibe alerta `"Usuário inativo. Procure o administrador."`. |
+| **CT-UC01-03** | Tentativa de login de usuário inativo | 1. Informar `inativo@decos.com.br` / `Inativo@123`.<br>2. Clicar em **Entrar**. | HTTP 401 — Exibe a mesma mensagem de credenciais inválidas: `"E-mail ou senha inválidos. Procure o ADMIN."`. |
 | **CT-UC01-04** | Proteção contra força bruta (RNF03) | 1. Realizar 5 tentativas consecutivas com senha incorreta para o mesmo e-mail em menos de 15 minutos.<br>2. Tentar uma 6ª vez. | HTTP 429 — Bloqueia novas tentativas por 15 minutos com mensagem explicativa. |
 
 ---

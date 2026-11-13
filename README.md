@@ -221,9 +221,12 @@ Sistema_Hospitalar/
 │   │   └── 04_ddl_extras.sql       # DDL dos Extras (Reconhecimentos, Notificações, Google, Vetores)
 │   ├── migrations_acesso_rapido.sql # Migração da tabela ACESSOS_RAPIDOS
 │   ├── migrations_avisos_destaque_corporativo.sql # Atualização de categorias de avisos
+│   ├── migrations_avisos_imagem_setor.sql         # Imagem e setor nas notícias/avisos
+│   ├── migrations_contatos_cargo.sql              # Função (cargo) no "Quem Procurar" do Onboarding
 │   ├── migrations_documentos_versionamento.sql    # Ajustes no versionamento de POPs
 │   ├── migrations_google_agenda.sql               # Migrações da integração com Google Calendar
 │   ├── migrations_google_receber_todos.sql        # Ajustes de parâmetros da sincronização Google
+│   ├── migrations_links_aniversario.sql           # Links do pop-up de aniversário cadastrados pelo ADMIN
 │   ├── migrations_onboarding.sql                  # Tabelas e conteúdo inicial do Onboarding Digital
 │   └── 99_reset.sql                # Script manual para DROP total e limpeza do banco
 ├── docs/                           # Documentação técnica, arquitetura, QA e coleções
@@ -554,6 +557,9 @@ Projeto desenvolvido pelo **Squad 49** no âmbito do programa **RiseUp — Resid
 - **George Delgado Gioseffi da Gama** — Engenharia de Back-end & Banco de Dados
 - **João Gabriel Mendonça Ribeiro** — Engenharia de Back-end & Banco de Dados
 - **João Vitor Nunes Oliveira Alves** — Engenharia de Front-end, UX/UI & QA
+- **Reinaldo Henrique de Brito Antunes**
+- **Guilherme Menezes Haji Antoniou**
+- **Carlos Vinicius Góis da Silva**
 
 ---
 

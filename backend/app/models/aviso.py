@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.setor import Setor
     from app.models.usuario import Usuario
 
 
@@ -25,5 +26,9 @@ class Aviso(Base):
     data_expiracao: Mapped[date | None] = mapped_column("DATA_EXPIRACAO", Date, nullable=True)
     data_atualizacao: Mapped[datetime | None] = mapped_column("DATA_ATUALIZACAO", DateTime, nullable=True)
     id_autor: Mapped[int | None] = mapped_column("ID_AUTOR", Integer, ForeignKey("USUARIOS.ID_USUARIO"), nullable=True)
+    id_setor: Mapped[int | None] = mapped_column("ID_SETOR", Integer, ForeignKey("SETORES.ID_SETOR"), nullable=True)
+    imagem_caminho: Mapped[str | None] = mapped_column("IMAGEM_CAMINHO", String(300), nullable=True)
+    imagem_mime: Mapped[str | None] = mapped_column("IMAGEM_MIME", String(50), nullable=True)
 
     autor: Mapped["Usuario | None"] = relationship("Usuario")
+    setor: Mapped["Setor | None"] = relationship("Setor")

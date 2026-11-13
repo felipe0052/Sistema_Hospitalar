@@ -156,6 +156,7 @@ def criar_contato(db: Session, dados: OnboardingContatoIn) -> OnboardingContatoO
     novo = OnboardingContato(
         situacao=dados.situacao,
         responsavel=dados.responsavel,
+        cargo=dados.cargo,
         id_setor=dados.id_setor,
         ramal=dados.ramal,
         observacao=dados.observacao,
@@ -173,6 +174,7 @@ def atualizar_contato(db: Session, id_contato: int, dados: OnboardingContatoIn) 
     _validar_setor(db, dados.id_setor)
     contato.situacao = dados.situacao
     contato.responsavel = dados.responsavel
+    contato.cargo = dados.cargo
     contato.id_setor = dados.id_setor
     contato.ramal = dados.ramal
     contato.observacao = dados.observacao

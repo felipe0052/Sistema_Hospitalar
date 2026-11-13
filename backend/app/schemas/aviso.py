@@ -132,6 +132,13 @@ class AutorAvisoOut(BaseModel):
     nome: str
 
 
+class SetorAvisoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_setor: int
+    nome: str
+
+
 class AvisoIn(BaseModel):
     titulo: str = Field(min_length=3, max_length=200)
     conteudo: str = Field(min_length=1)
@@ -139,6 +146,14 @@ class AvisoIn(BaseModel):
     destaque: bool = False
     prioridade: PrioridadeAvisoLiteral = "NORMAL"
     data_expiracao: date | None = None
+    id_setor: int | None = None
+
+    @field_validator("id_setor", mode="before")
+    @classmethod
+    def _limpar_setor(cls, v):
+        if v == "":
+            return None
+        return v
 
     @model_validator(mode="after")
     def _destaque_corporativo_implica_destaque(self):
@@ -193,6 +208,8 @@ class AvisoResumo(BaseModel):
     prioridade: PrioridadeAvisoLiteral = "NORMAL"
     data_publicacao: datetime
     autor: AutorAvisoOut | None = None
+    setor: SetorAvisoOut | None = None
+    tem_imagem: bool = False
 
 
 class AvisoOut(AvisoResumo):

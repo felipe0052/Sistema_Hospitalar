@@ -47,12 +47,13 @@ class OnboardingItemOut(BaseModel):
 class OnboardingContatoIn(BaseModel):
     situacao: str = Field(min_length=3, max_length=200)
     responsavel: str = Field(min_length=2, max_length=150)
+    cargo: str | None = Field(default=None, max_length=100)
     id_setor: int | None = None
     ramal: str | None = Field(default=None, max_length=20)
     observacao: str | None = Field(default=None, max_length=300)
     ordem: int = Field(default=0, ge=0)
 
-    @field_validator("situacao", "responsavel", "ramal", "observacao", mode="before")
+    @field_validator("situacao", "responsavel", "cargo", "ramal", "observacao", mode="before")
     @classmethod
     def _limpar_texto(cls, v):
         return _limpar(v)
@@ -79,6 +80,7 @@ class OnboardingContatoOut(BaseModel):
     id_contato: int
     situacao: str
     responsavel: str
+    cargo: str | None = None
     ramal: str | None = None
     observacao: str | None = None
     ordem: int

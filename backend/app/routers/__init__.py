@@ -12,6 +12,7 @@ from app.routers import (
     faq,
     google_agenda,
     ia,
+    links_aniversario,
     notificacoes,
     onboarding,
     reconhecimentos,
@@ -37,3 +38,4 @@ api_router.include_router(reconhecimentos.router_indicacoes)
 api_router.include_router(ia.router)
 api_router.include_router(acessos_rapidos.router)
 api_router.include_router(onboarding.router)
+api_router.include_router(links_aniversario.router)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -23,6 +23,7 @@ def listar_avisos(
         description="Filtro por categoria (NOTICIA, COMUNICADO, PROMOCAO, MUDANCA_SETOR, DESTAQUE_CORPORATIVO)",
     ),
     destaque: bool | None = Query(default=None, description="Filtro por destaque (true/false)"),
+    id_setor: int | None = Query(default=None, description="Filtro por ID do setor"),
     pagina: int = Query(default=1, ge=1, description="Número da página"),
     tamanho: int = Query(default=20, ge=1, le=100, description="Itens por página (máx. 100)"),
     db: Session = Depends(get_db),
@@ -36,6 +37,7 @@ def listar_avisos(
         destaque=destaque,
         pagina=pagina,
         tamanho=tamanho,
+        id_setor=id_setor,
     )
 
 
@@ -51,6 +53,7 @@ def listar_avisos_gestao(
         default=False,
         description="Se true, inclui avisos cuja data de expiração já venceu",
     ),
+    id_setor: int | None = Query(default=None, description="Filtro por ID do setor"),
     pagina: int = Query(default=1, ge=1, description="Número da página"),
     tamanho: int = Query(default=20, ge=1, le=100, description="Itens por página (máx. 100)"),
     db: Session = Depends(get_db),
@@ -65,6 +68,7 @@ def listar_avisos_gestao(
         incluir_expirados=incluir_expirados,
         pagina=pagina,
         tamanho=tamanho,
+        id_setor=id_setor,
     )
 
 
@@ -107,4 +111,34 @@ def excluir_aviso(
 ) -> Response:
     """Exclui fisicamente um aviso do mural (UC04)."""
     aviso_service.excluir_aviso(db, id_aviso)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{id_aviso}/imagem", response_model=AvisoOut)
+async def enviar_imagem_aviso(
+    id_aviso: int,
+    imagem: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(require_roles("ADMIN", "RH", "MARKETING")),
+) -> AvisoOut:
+    conteudo = await imagem.read()
+    return aviso_service.salvar_imagem_aviso(db, id_aviso, conteudo, usuario_atual)
+
+
+@router.get("/{id_aviso}/imagem")
+def obter_imagem_aviso(
+    id_aviso: int,
+    db: Session = Depends(get_db),
+) -> Response:
+    conteudo, mime = aviso_service.abrir_imagem_aviso(db, id_aviso)
+    return Response(content=conteudo, media_type=mime)
+
+
+@router.delete("/{id_aviso}/imagem", status_code=status.HTTP_204_NO_CONTENT)
+def remover_imagem_aviso(
+    id_aviso: int,
+    db: Session = Depends(get_db),
+    _usuario_atual: Usuario = Depends(require_roles("ADMIN", "RH", "MARKETING")),
+) -> Response:
+    aviso_service.remover_imagem_aviso(db, id_aviso)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
