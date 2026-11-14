@@ -5,7 +5,19 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import Conflito, NaoEncontrado, Proibido, RegraNegocio
 from app.core.security import gerar_hash_senha
+from app.models.acesso_rapido import AcessoRapido
+from app.models.aviso import Aviso
+from app.models.configuracao_aniversario import ConfiguracaoAniversario
+from app.models.documento import Documento
+from app.models.evento import Evento
+from app.models.faq import Faq
+from app.models.google_agenda import EventoGoogle, IntegracaoGoogle
 from app.models.historico_acesso import HistoricoAcesso
+from app.models.link_aniversario import LinkAniversario
+from app.models.log_ia import LogIA
+from app.models.notificacao import NotificacaoLida
+from app.models.onboarding import OnboardingItem, OnboardingProgresso
+from app.models.reconhecimento import IndicacaoReconhecimento, Reconhecimento
 from app.models.setor import Setor
 from app.models.usuario import Usuario
 from app.schemas.usuario import (
@@ -141,12 +153,18 @@ def atualizar_usuario(db: Session, id_usuario: int, dados: UsuarioUpdate, autor:
 
     _validar_setor(db, dados.id_setor)
 
+    trocou_setor = dados.id_setor != usuario.id_setor
     usuario.nome = dados.nome.strip()
     usuario.email = email_norm
     usuario.data_nascimento = dados.data_nascimento
     usuario.cargo = dados.cargo
     usuario.id_setor = dados.id_setor
     usuario.data_atualizacao = datetime.now(UTC)
+
+    if trocou_setor:
+        db.query(Setor).filter(Setor.id_lider == usuario.id_usuario).update(
+            {Setor.id_lider: None}, synchronize_session=False
+        )
 
     db.commit()
     db.refresh(usuario)
@@ -200,6 +218,10 @@ def alterar_acesso(db: Session, id_usuario: int, dados: AcessoUpdate, admin: Usu
         )
         db.add(historico_status)
         usuario.status = dados.status
+        if dados.status == "INATIVO":
+            db.query(Setor).filter(Setor.id_lider == usuario.id_usuario).update(
+                {Setor.id_lider: None}, synchronize_session=False
+            )
         alterou_acesso = True
 
     if alterou_acesso:
@@ -221,3 +243,59 @@ def listar_historico_acesso(db: Session, id_usuario: int) -> list[HistoricoAcess
         .all()
     )
     return [HistoricoAcessoOut.model_validate(r) for r in registros]
+
+
+def excluir_usuario_inativo(db: Session, id_usuario: int, admin: Usuario) -> None:
+    """Exclui permanentemente um usuário com status INATIVO, limpando vínculos e histórico."""
+    usuario = obter_usuario(db, id_usuario)
+
+    if usuario.id_usuario == admin.id_usuario:
+        raise RegraNegocio("Você não pode excluir sua própria conta.")
+
+    if usuario.status != "INATIVO":
+        raise RegraNegocio("Apenas usuários com status INATIVO podem ser excluídos.")
+
+    # Anula referências opcionais para preservar conteúdos publicados (avisos, eventos, POPs, etc.)
+    referencias_anulaveis = (
+        (Setor, Setor.id_lider),
+        (Documento, Documento.id_autor),
+        (Aviso, Aviso.id_autor),
+        (Evento, Evento.id_autor),
+        (Faq, Faq.id_autor),
+        (AcessoRapido, AcessoRapido.criado_por),
+        (LinkAniversario, LinkAniversario.criado_por),
+        (ConfiguracaoAniversario, ConfiguracaoAniversario.atualizado_por),
+        (OnboardingItem, OnboardingItem.criado_por),
+        (LogIA, LogIA.id_usuario),
+        (Reconhecimento, Reconhecimento.id_colaborador),
+        (Reconhecimento, Reconhecimento.id_autor),
+        (IndicacaoReconhecimento, IndicacaoReconhecimento.id_indicado),
+        (IndicacaoReconhecimento, IndicacaoReconhecimento.id_avaliador),
+    )
+    for modelo, coluna in referencias_anulaveis:
+        db.query(modelo).filter(coluna == id_usuario).update(
+            {coluna: None}, synchronize_session=False
+        )
+
+    # Remove registros dependentes cuja FK é obrigatória (NOT NULL) ou exclusiva do usuário
+    db.query(HistoricoAcesso).filter(
+        or_(HistoricoAcesso.id_usuario == id_usuario, HistoricoAcesso.id_admin == id_usuario)
+    ).delete(synchronize_session=False)
+    db.query(IndicacaoReconhecimento).filter(
+        IndicacaoReconhecimento.id_indicante == id_usuario
+    ).delete(synchronize_session=False)
+    db.query(OnboardingProgresso).filter(OnboardingProgresso.id_usuario == id_usuario).delete(
+        synchronize_session=False
+    )
+    db.query(NotificacaoLida).filter(NotificacaoLida.id_usuario == id_usuario).delete(
+        synchronize_session=False
+    )
+    db.query(EventoGoogle).filter(EventoGoogle.id_usuario == id_usuario).delete(
+        synchronize_session=False
+    )
+    db.query(IntegracaoGoogle).filter(IntegracaoGoogle.id_usuario == id_usuario).delete(
+        synchronize_session=False
+    )
+
+    db.delete(usuario)
+    db.commit()

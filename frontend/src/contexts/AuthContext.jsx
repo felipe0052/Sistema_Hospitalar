@@ -123,6 +123,8 @@ export function AuthProvider({ children }) {
   const modoLeitura = !autenticado;
   const perfilEfetivo = usuario?.perfil || "COLABORADOR";
   const isAdmin = Boolean(usuario && usuario.perfil === "ADMIN");
+  const setoresLiderados = Array.isArray(usuario?.setores_liderados) ? usuario.setores_liderados : [];
+  const ehLider = setoresLiderados.length > 0;
 
   const temPerfil = useCallback(
     (...perfis) => {
@@ -152,6 +154,8 @@ export function AuthProvider({ children }) {
     signOut: sair,
     isAdmin,
     temPerfil,
+    setoresLiderados,
+    ehLider,
   };
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;

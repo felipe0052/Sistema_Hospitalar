@@ -286,3 +286,47 @@ def test_redefinir_senha_invalida_sessao_anterior(client: TestClient):
         json={"email": "colaborador@decos.com.br", "senha": "NovaSenha@99"},
     )
     assert novo_login.status_code == 200
+
+
+def test_excluir_usuario_inativo_e_bloqueio_para_ativos_e_nao_admin(client: TestClient):
+    headers_admin = _obter_headers(client, "admin@decos.com.br", "Admin@123")
+    headers_rh = _obter_headers(client, "rh@decos.com.br", "Rh@12345")
+
+    usuarios = client.get("/api/v1/usuarios", headers=headers_admin).json()["itens"]
+    inativo = next(u for u in usuarios if u["email"] == "inativo@decos.com.br")
+    ativo = next(u for u in usuarios if u["email"] == "colaborador@decos.com.br")
+    admin = next(u for u in usuarios if u["email"] == "admin@decos.com.br")
+
+    # RH não pode excluir usuário -> 403
+    assert (
+        client.delete(f"/api/v1/usuarios/{inativo['id_usuario']}", headers=headers_rh).status_code
+        == 403
+    )
+
+    # Admin não pode excluir usuário ATIVO -> 400
+    res_ativo = client.delete(f"/api/v1/usuarios/{ativo['id_usuario']}", headers=headers_admin)
+    assert res_ativo.status_code == 400
+    assert res_ativo.json()["detail"] == "Apenas usuários com status INATIVO podem ser excluídos."
+
+    # Admin não pode excluir a própria conta -> 400
+    res_self = client.delete(f"/api/v1/usuarios/{admin['id_usuario']}", headers=headers_admin)
+    assert res_self.status_code == 400
+
+    # Inativa o colaborador (gera HistoricoAcesso) e depois exclui permanentemente -> 204
+    assert (
+        client.patch(
+            f"/api/v1/usuarios/{ativo['id_usuario']}/acesso",
+            headers=headers_admin,
+            json={"status": "INATIVO"},
+        ).status_code
+        == 200
+    )
+    res_del = client.delete(f"/api/v1/usuarios/{ativo['id_usuario']}", headers=headers_admin)
+    assert res_del.status_code == 204
+    assert client.get(f"/api/v1/usuarios/{ativo['id_usuario']}", headers=headers_admin).status_code == 404
+
+    # Também exclui o usuário inativo de seed -> 204
+    assert (
+        client.delete(f"/api/v1/usuarios/{inativo['id_usuario']}", headers=headers_admin).status_code
+        == 204
+    )

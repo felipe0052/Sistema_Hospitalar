@@ -4,6 +4,7 @@ import {
   alterarAcesso,
   atualizarUsuario,
   criarUsuario,
+  excluirUsuario,
   listarHistoricoAcesso,
   listarUsuarios,
   redefinirSenha,
@@ -108,6 +109,10 @@ export default function AdminUsuarios() {
   const [modalSenhaOpen, setModalSenhaOpen] = useState(false);
   const [usuarioSenha, setUsuarioSenha] = useState(null);
   const [novaSenha, setNovaSenha] = useState("");
+
+  // Confirmação de Exclusão de Usuário Inativo
+  const [usuarioExcluindo, setUsuarioExcluindo] = useState(null);
+  const [excluindoUsuario, setExcluindoUsuario] = useState(false);
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [errosSenha, setErrosSenha] = useState({});
   const [salvandoSenha, setSalvandoSenha] = useState(false);
@@ -431,6 +436,15 @@ export default function AdminUsuarios() {
                       >
                         Redefinir senha
                       </Button>
+                      {u.status === "INATIVO" && u.id_usuario !== usuarioLogado?.id_usuario && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setUsuarioExcluindo(u)}
+                        >
+                          Excluir
+                        </Button>
+                      )}
                     </>
                   )}
                 </div>
@@ -783,6 +797,31 @@ export default function AdminUsuarios() {
         loading={salvandoAcesso}
         onCancel={() => setConfirmAcessoOpen(false)}
         onConfirm={confirmarAlteracaoAcesso}
+      />
+
+      <ConfirmDialog
+        open={Boolean(usuarioExcluindo)}
+        title="Excluir usuário inativo"
+        message={`Tem certeza que deseja excluir permanentemente o usuário inativo "${usuarioExcluindo?.nome}" (${usuarioExcluindo?.email})? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir permanentemente"
+        variant="danger"
+        loading={excluindoUsuario}
+        onCancel={() => setUsuarioExcluindo(null)}
+        onConfirm={async () => {
+          if (!usuarioExcluindo) return;
+          setExcluindoUsuario(true);
+          try {
+            await excluirUsuario(usuarioExcluindo.id_usuario);
+            sucesso(`Usuário "${usuarioExcluindo.nome}" excluído com sucesso.`);
+            setUsuarioExcluindo(null);
+            await carregarUsuarios();
+          } catch (err) {
+            toastErro(err?.mensagem || "Não foi possível excluir o usuário.");
+            setUsuarioExcluindo(null);
+          } finally {
+            setExcluindoUsuario(false);
+          }
+        }}
       />
 
       {/* ── MODAL REDEFINIR SENHA ── */}

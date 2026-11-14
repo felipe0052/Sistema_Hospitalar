@@ -60,6 +60,6 @@ def excluir_setor(
     db: Session = Depends(get_db),
     _usuario_atual: Usuario = Depends(require_roles("ADMIN")),
 ) -> Response:
-    """Exclui um setor caso não possua colaboradores vinculados (UC08 — apenas ADMIN)."""
+    """Exclui um setor e seus ramais, desvinculando eventuais colaboradores e registros associados (UC08 — apenas ADMIN)."""
     setor_service.excluir_setor(db, id_setor)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

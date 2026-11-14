@@ -26,4 +26,6 @@ class Usuario(Base):
     data_criacao: Mapped[datetime] = mapped_column("DATA_CRIACAO", DateTime, server_default=func.now())
     data_atualizacao: Mapped[datetime | None] = mapped_column("DATA_ATUALIZACAO", DateTime, nullable=True)
 
-    setor: Mapped["Setor | None"] = relationship("Setor", back_populates="usuarios")
+    setor: Mapped["Setor | None"] = relationship(
+        "Setor", back_populates="usuarios", foreign_keys=[id_setor]
+    )

@@ -107,3 +107,14 @@ def listar_historico_acesso(
 ) -> list[HistoricoAcessoOut]:
     """Lista o histórico de alterações de perfil e status de um usuário (UC03)."""
     return usuario_service.listar_historico_acesso(db, id_usuario)
+
+
+@router.delete("/{id_usuario}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir_usuario_inativo(
+    id_usuario: int,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(require_roles("ADMIN")),
+) -> Response:
+    """Exclui permanentemente um usuário com status INATIVO (exclusivo ADMIN)."""
+    usuario_service.excluir_usuario_inativo(db, id_usuario, admin)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

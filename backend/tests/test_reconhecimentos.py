@@ -81,15 +81,19 @@ def test_reconhecimento_gera_exatamente_uma_notificacao_e_e_visivel_a_todos(clie
     criado = client.post("/api/v1/reconhecimentos", headers=_rh(client), json=_corpo(alvo)).json()
     assert db_session.query(Notificacao).filter(Notificacao.tipo == "RECONHECIMENTO").count() == 1
 
-    for headers in (_colab(client), _marketing(client)):
-        lista = client.get("/api/v1/reconhecimentos", headers=headers).json()
-        assert lista["total"] == 1
-        item = lista["itens"][0]
-        assert item["colaborador"]["nome"] == "Carlos Menezes"
-        assert item["colaborador"]["setor"]["nome"] == "UTI"
-        assert item["autor"]["nome"] == "Patrícia Nunes"
+    lista_colab = client.get("/api/v1/reconhecimentos", headers=_colab(client)).json()
+    assert lista_colab["total"] == 1
+    item = lista_colab["itens"][0]
+    assert item["colaborador"]["nome"] == "Carlos Menezes"
+    assert item["colaborador"]["setor"]["nome"] == "UTI"
+    assert item["autor"]["nome"] == "Patrícia Nunes"
+
+    lista_mkt = client.get("/api/v1/reconhecimentos", headers=_marketing(client)).json()
+    assert lista_mkt["total"] == 0
+
     detalhe = client.get(f"/api/v1/reconhecimentos/{criado['id_reconhecimento']}", headers=_colab(client))
     assert detalhe.status_code == 200
+    assert client.get(f"/api/v1/reconhecimentos/{criado['id_reconhecimento']}", headers=_marketing(client)).status_code == 404
     assert client.get("/api/v1/reconhecimentos/999", headers=_colab(client)).status_code == 404
 
 
@@ -138,7 +142,10 @@ def test_colaborador_indica_colega_sem_gerar_notificacao(client: TestClient, db_
 
     minhas = client.get("/api/v1/indicacoes/minhas", headers=colab).json()
     assert len(minhas) == 1 and minhas[0]["indicado"]["nome"] == "Maria Silva"
-    assert client.get("/api/v1/indicacoes/minhas", headers=_marketing(client)).json() == []
+    recebidas_mkt = client.get("/api/v1/indicacoes/minhas", headers=_marketing(client)).json()
+    assert len(recebidas_mkt) == 1
+    assert recebidas_mkt[0]["indicado"]["nome"] == "Maria Silva"
+    assert recebidas_mkt[0]["indicante"] is None
 
 
 def test_autoindicacao_e_indicado_inativo_retornam_400(client: TestClient, db_session: Session):
@@ -385,3 +392,182 @@ def test_recusar_indicacao_de_setor(client: TestClient, db_session: Session):
 
     minhas = client.get("/api/v1/indicacoes/minhas", headers=colab).json()
     assert minhas[0]["status"] == "RECUSADA"
+
+
+# ----------------------------- Líder de setor e Cadeia de comando -----------------------------
+
+
+def _admin(client: TestClient) -> dict[str, str]:
+    token = client.post(
+        "/api/v1/auth/login", json={"email": "admin@decos.com.br", "senha": "Admin@123"}
+    ).json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _criar_colaborador(
+    db_session: Session, nome: str, email: str, id_setor: int, perfil: str = "COLABORADOR"
+) -> Usuario:
+    from datetime import date
+    from app.core.security import gerar_hash_senha
+
+    u = Usuario(
+        nome=nome,
+        email=email,
+        senha_hash=gerar_hash_senha("Colab@123"),
+        id_setor=id_setor,
+        cargo="Enfermeiro",
+        data_nascimento=date(1995, 5, 10),
+        perfil=perfil,
+        status="ATIVO",
+        versao_token=0,
+    )
+    db_session.add(u)
+    db_session.commit()
+    db_session.refresh(u)
+    return u
+
+
+def _definir_lider_api(client: TestClient, id_setor: int, id_lider: int | None, setor_obj) -> any:
+    ramais = [{"numero": r.numero, "descricao": r.descricao} for r in setor_obj.ramais]
+    if not ramais:
+        ramais = [{"numero": f"9{id_setor}01", "descricao": "Ramal teste"}]
+    return client.put(
+        f"/api/v1/setores/{id_setor}",
+        headers=_admin(client),
+        json={
+            "nome": setor_obj.nome,
+            "andar": setor_obj.andar,
+            "id_lider": id_lider,
+            "ramais": ramais,
+        },
+    )
+
+
+def test_definir_lider_outro_setor_falha_e_inativar_ou_trocar_setor_limpa_lider(
+    client: TestClient, db_session: Session
+):
+    from app.models.setor import Setor
+
+    setor_uti = db_session.query(Setor).filter(Setor.nome == "UTI").one()
+    setor_ti = db_session.query(Setor).filter(Setor.nome == "Tecnologia").one()
+    colab_uti = db_session.query(Usuario).filter(Usuario.email == "colaborador@decos.com.br").one()
+    admin_ti = db_session.query(Usuario).filter(Usuario.email == "admin@decos.com.br").one()
+
+    # Definir como líder alguém de outro setor falha (400 RegraNegocio com erro em id_lider)
+    res_outro = _definir_lider_api(client, setor_uti.id_setor, admin_ti.id_usuario, setor_uti)
+    assert res_outro.status_code == 400
+    assert "id_lider" in res_outro.json()["erros"]
+
+    # Definir colaborador do próprio setor funciona
+    res_ok = _definir_lider_api(client, setor_uti.id_setor, colab_uti.id_usuario, setor_uti)
+    assert res_ok.status_code == 200
+    assert res_ok.json()["lider"]["id_usuario"] == colab_uti.id_usuario
+
+    # /auth/me expõe setores_liderados
+    me = client.get("/api/v1/auth/me", headers=_colab(client)).json()
+    assert me["setores_liderados"] == [{"id_setor": setor_uti.id_setor, "nome": "UTI"}]
+
+    # Trocar usuário de setor limpa ID_LIDER
+    res_troca = client.put(
+        f"/api/v1/usuarios/{colab_uti.id_usuario}",
+        headers=_admin(client),
+        json={
+            "nome": colab_uti.nome,
+            "email": colab_uti.email,
+            "cargo": colab_uti.cargo,
+            "id_setor": setor_ti.id_setor,
+        },
+    )
+    assert res_troca.status_code == 200
+    db_session.expire_all()
+    assert db_session.query(Setor).filter(Setor.id_setor == setor_uti.id_setor).one().id_lider is None
+
+    # Reatribuir à TI e definir como líder da TI; depois inativar limpa ID_LIDER
+    res_ti = _definir_lider_api(client, setor_ti.id_setor, colab_uti.id_usuario, setor_ti)
+    assert res_ti.status_code == 200
+    res_inativar = client.patch(
+        f"/api/v1/usuarios/{colab_uti.id_usuario}/acesso",
+        headers=_admin(client),
+        json={"status": "INATIVO"},
+    )
+    assert res_inativar.status_code == 200
+    db_session.expire_all()
+    assert db_session.query(Setor).filter(Setor.id_setor == setor_ti.id_setor).one().id_lider is None
+
+
+def test_escopo_colaborador_vs_setor_vs_lider_e_filtros(client: TestClient, db_session: Session):
+    from app.models.setor import Setor
+
+    setor_uti = db_session.query(Setor).filter(Setor.nome == "UTI").one()
+    setor_ti = db_session.query(Setor).filter(Setor.nome == "Tecnologia").one()
+    colab_a = db_session.query(Usuario).filter(Usuario.email == "colaborador@decos.com.br").one()
+    colab_b = _criar_colaborador(db_session, "Beatriz UTI", "beatriz@decos.com.br", setor_uti.id_setor)
+    admin_ti = db_session.query(Usuario).filter(Usuario.email == "admin@decos.com.br").one()
+
+    rh = _rh(client)
+    rec_a = client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo(colab_a.id_usuario, titulo="Rec A")).json()
+    rec_b = client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo(colab_b.id_usuario, titulo="Rec B")).json()
+    rec_ti = client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo(admin_ti.id_usuario, titulo="Rec TI")).json()
+    rec_setor_uti = client.post("/api/v1/reconhecimentos", headers=rh, json=_corpo_setor(setor_uti.id_setor, titulo="Rec Setor UTI")).json()
+
+    headers_a = _colab(client)
+    token_b = client.post("/api/v1/auth/login", json={"email": "beatriz@decos.com.br", "senha": "Colab@123"}).json()["access_token"]
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    # Colaborador A vê o próprio + do seu setor, mas não vê o individual de B nem o da TI
+    lista_a = client.get("/api/v1/reconhecimentos", headers=headers_a).json()
+    ids_a = {r["id_reconhecimento"] for r in lista_a["itens"]}
+    assert ids_a == {rec_a["id_reconhecimento"], rec_setor_uti["id_reconhecimento"]}
+    assert client.get(f"/api/v1/reconhecimentos/{rec_b['id_reconhecimento']}", headers=headers_a).status_code == 404
+    assert client.get(f"/api/v1/reconhecimentos/{rec_ti['id_reconhecimento']}", headers=headers_a).status_code == 404
+
+    # Colaborador não-líder não acessa colaboradores-filtro (403) e tem filtros ignorados
+    assert client.get("/api/v1/reconhecimentos/colaboradores-filtro", headers=headers_a).status_code == 403
+    lista_a_tentando_filtrar = client.get(
+        f"/api/v1/reconhecimentos?id_colaborador={colab_b.id_usuario}&id_setor={setor_ti.id_setor}",
+        headers=headers_a,
+    ).json()
+    assert {r["id_reconhecimento"] for r in lista_a_tentando_filtrar["itens"]} == {
+        rec_a["id_reconhecimento"],
+        rec_setor_uti["id_reconhecimento"],
+    }
+
+    # Tornar Beatriz líder da UTI
+    assert _definir_lider_api(client, setor_uti.id_setor, colab_b.id_usuario, setor_uti).status_code == 200
+
+    # Beatriz líder vê todos da UTI (A, B, setor UTI), mas não vê TI
+    lista_b = client.get("/api/v1/reconhecimentos", headers=headers_b).json()
+    ids_b = {r["id_reconhecimento"] for r in lista_b["itens"]}
+    assert ids_b == {rec_a["id_reconhecimento"], rec_b["id_reconhecimento"], rec_setor_uti["id_reconhecimento"]}
+
+    # Filtro id_colaborador funciona para líder
+    filtrado_b = client.get(
+        f"/api/v1/reconhecimentos?id_colaborador={colab_a.id_usuario}", headers=headers_b
+    ).json()
+    assert [r["id_reconhecimento"] for r in filtrado_b["itens"]] == [rec_a["id_reconhecimento"]]
+
+    # colaboradores-filtro: líder vê só ativos do seu setor
+    colab_filtro_b = client.get("/api/v1/reconhecimentos/colaboradores-filtro", headers=headers_b).json()
+    nomes_filtro_b = {c["nome"] for c in colab_filtro_b}
+    assert nomes_filtro_b == {"Carlos Menezes", "Beatriz UTI"}
+
+    # Indicações: Beatriz líder vê indicações da UTI, mas recebe 403 ao tentar recusar
+    ind_uti = client.post(
+        "/api/v1/indicacoes",
+        headers=headers_a,
+        json={"id_indicado": colab_b.id_usuario, "motivo": "Excelente plantão"},
+    ).json()
+    inds_b = client.get("/api/v1/indicacoes", headers=headers_b).json()
+    assert inds_b["total"] == 1 and inds_b["itens"][0]["id_indicacao"] == ind_uti["id_indicacao"]
+    assert client.post(f"/api/v1/indicacoes/{ind_uti['id_indicacao']}/recusar", headers=headers_b).status_code == 403
+
+    # RH continua vendo tudo (mesmo se também for líder)
+    assert client.get("/api/v1/reconhecimentos", headers=rh).json()["total"] == 4
+
+    # Remover liderança de Beatriz -> perde visão do setor
+    assert _definir_lider_api(client, setor_uti.id_setor, None, setor_uti).status_code == 200
+    lista_b_sem_lider = client.get("/api/v1/reconhecimentos", headers=headers_b).json()
+    assert {r["id_reconhecimento"] for r in lista_b_sem_lider["itens"]} == {
+        rec_b["id_reconhecimento"],
+        rec_setor_uti["id_reconhecimento"],
+    }

@@ -83,7 +83,7 @@ export default function Dashboard() {
     listarReconhecimentos({ tamanho: 3 })
       .then((dados) => setReconhecimentosRecentes(dados?.itens || []))
       .catch(() => setReconhecimentosRecentes([]));
-  }, [autenticado]);
+  }, [autenticado, usuario?.id_usuario]);
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");

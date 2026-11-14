@@ -28,6 +28,9 @@ def login(
 
 
 @router.get("/me", response_model=UsuarioOut)
-def me(usuario_atual: Usuario = Depends(get_current_user)) -> UsuarioOut:
+def me(
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user),
+) -> UsuarioOut:
     """Retorna os dados e o perfil do usuário autenticado."""
-    return UsuarioOut.model_validate(usuario_atual)
+    return auth_service.montar_usuario_out(db, usuario_atual)

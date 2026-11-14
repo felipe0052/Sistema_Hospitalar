@@ -127,16 +127,25 @@ def test_setor_nome_duplicado_e_ramal_conflitante_retornam_409_e_ramal_com_letra
     assert res_ramal_repetido_req.status_code == 409
 
 
-def test_exclusao_setor_com_colaboradores_bloqueada_409_e_sem_colaboradores_204(
+def test_exclusao_setor_com_e_sem_colaboradores_retorna_204_e_desvincula_usuarios(
     client: TestClient,
 ):
-    """Impede exclusão de setor com usuários vinculados retornando 409 'Existem usuários vinculados a este setor'."""
+    """Permite exclusão de setor mesmo com usuários vinculados, desvinculando-os (id_setor=None)."""
     headers_admin = _obter_headers(client, "admin@decos.com.br", "Admin@123")
 
-    # 1. Tenta excluir setor UTI (id_setor=1, possui usuários vinculados) -> 409
-    res_conflito = client.delete("/api/v1/setores/1", headers=headers_admin)
-    assert res_conflito.status_code == 409
-    assert res_conflito.json()["detail"] == "Existem usuários vinculados a este setor"
+    # 1. Exclui setor UTI (id_setor=1, possui colaboradores vinculados) -> 204
+    res_del_uti = client.delete("/api/v1/setores/1", headers=headers_admin)
+    assert res_del_uti.status_code == 204
+    assert client.get("/api/v1/setores/1", headers=headers_admin).status_code == 404
+
+    # Colaborador que pertencia à UTI continua existindo, agora sem setor vinculado
+    lista_colabs = client.get(
+        "/api/v1/usuarios",
+        headers=headers_admin,
+        params={"busca": "colaborador@decos.com.br"},
+    ).json()
+    assert len(lista_colabs["itens"]) == 1
+    assert lista_colabs["itens"][0]["setor"] is None
 
     # 2. Cria setor sem colaboradores e o exclui com sucesso -> 204
     novo = client.post(

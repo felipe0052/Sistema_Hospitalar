@@ -2,10 +2,11 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, aliased, joinedload
 
-from app.core.exceptions import Conflito, NaoEncontrado, RegraNegocio
+from app.core.escopo import PERFIS_VISAO_TOTAL, setores_liderados
+from app.core.exceptions import Conflito, NaoEncontrado, Proibido, RegraNegocio
 from app.models.reconhecimento import IndicacaoReconhecimento, Reconhecimento
 from app.models.setor import Setor
 from app.models.usuario import Usuario
@@ -50,14 +51,17 @@ def _converter_reconhecimento(r: Reconhecimento) -> ReconhecimentoOut:
     )
 
 
-def _converter_indicacao(i: IndicacaoReconhecimento) -> IndicacaoOut:
+def _converter_indicacao(
+    i: IndicacaoReconhecimento,
+    ocultar_indicante: bool = False,
+) -> IndicacaoOut:
     is_setor = i.alvo_tipo == "SETOR" or (i.id_setor is not None and i.id_indicado is None)
     return IndicacaoOut(
         id_indicacao=i.id_indicacao,
         alvo_tipo="SETOR" if is_setor else "COLABORADOR",
         indicado=_colaborador_out(i.indicado) if (not is_setor and i.indicado is not None) else None,
         setor=SetorResumoOut(id_setor=i.setor.id_setor, nome=i.setor.nome) if (is_setor and i.setor is not None) else None,
-        indicante=PessoaResumoOut(id_usuario=i.indicante.id_usuario, nome=i.indicante.nome),
+        indicante=None if ocultar_indicante else PessoaResumoOut(id_usuario=i.indicante.id_usuario, nome=i.indicante.nome),
         motivo=i.motivo,
         status=i.status,  # type: ignore[arg-type]
         id_reconhecimento=i.id_reconhecimento,
@@ -101,26 +105,50 @@ def _exigir_setor(db: Session, id_setor: int, campo: str) -> Setor:
     return setor
 
 
+def _aplicar_escopo(db: Session, query, usuario: Usuario):
+    """Restringe a consulta conforme a cadeia de comando."""
+    if usuario.perfil in PERFIS_VISAO_TOTAL:
+        return query
+    liderados = setores_liderados(db, usuario)
+    colab_escopo = aliased(Usuario)
+    query = query.outerjoin(colab_escopo, colab_escopo.id_usuario == Reconhecimento.id_colaborador)
+    condicoes = [Reconhecimento.id_colaborador == usuario.id_usuario]
+    if usuario.id_setor is not None:
+        condicoes.append(and_(Reconhecimento.alvo_tipo == "SETOR", Reconhecimento.id_setor == usuario.id_setor))
+    if liderados:
+        condicoes += [Reconhecimento.id_setor.in_(liderados), colab_escopo.id_setor.in_(liderados)]
+    return query.filter(or_(*condicoes))
+
+
 def listar_reconhecimentos(
     db: Session,
+    usuario: Usuario,
     tipo: str | None = None,
     id_setor: int | None = None,
     alvo_tipo: str | None = None,
+    id_colaborador: int | None = None,
     pagina: int = 1,
     tamanho: int = 20,
 ) -> PaginadoReconhecimentosOut:
-    query = _consulta_reconhecimentos(db)
+    query = _aplicar_escopo(db, _consulta_reconhecimentos(db), usuario)
+    eh_visao_total = usuario.perfil in PERFIS_VISAO_TOTAL
+    pode_filtrar = eh_visao_total or len(setores_liderados(db, usuario)) > 0
+
     if tipo and tipo.strip():
         query = query.filter(Reconhecimento.tipo == tipo.strip().upper())
     if alvo_tipo and alvo_tipo.strip():
         query = query.filter(Reconhecimento.alvo_tipo == alvo_tipo.strip().upper())
-    if id_setor is not None:
-        query = query.outerjoin(Usuario, Usuario.id_usuario == Reconhecimento.id_colaborador).filter(
-            or_(
-                Reconhecimento.id_setor == id_setor,
-                and_(Reconhecimento.id_colaborador.isnot(None), Usuario.id_setor == id_setor),
+    if pode_filtrar:
+        if id_setor is not None:
+            colab_filtro = aliased(Usuario)
+            query = query.outerjoin(colab_filtro, colab_filtro.id_usuario == Reconhecimento.id_colaborador).filter(
+                or_(
+                    Reconhecimento.id_setor == id_setor,
+                    and_(Reconhecimento.id_colaborador.isnot(None), colab_filtro.id_setor == id_setor),
+                )
             )
-        )
+        if id_colaborador is not None:
+            query = query.filter(Reconhecimento.id_colaborador == id_colaborador)
     total = query.count()
     registros = (
         query.order_by(Reconhecimento.data_criacao.desc(), Reconhecimento.id_reconhecimento.desc())
@@ -133,8 +161,40 @@ def listar_reconhecimentos(
     )
 
 
-def obter_reconhecimento(db: Session, id_reconhecimento: int) -> ReconhecimentoOut:
-    return _converter_reconhecimento(_obter_reconhecimento(db, id_reconhecimento))
+def obter_reconhecimento(db: Session, id_reconhecimento: int, usuario: Usuario) -> ReconhecimentoOut:
+    r = (
+        _aplicar_escopo(db, _consulta_reconhecimentos(db), usuario)
+        .filter(Reconhecimento.id_reconhecimento == id_reconhecimento)
+        .first()
+    )
+    if r is None:
+        raise NaoEncontrado("Reconhecimento não encontrado.")
+    return _converter_reconhecimento(r)
+
+
+def listar_colaboradores_filtro(
+    db: Session,
+    usuario: Usuario,
+    id_setor: int | None = None,
+) -> list[PessoaResumoOut]:
+    eh_visao_total = usuario.perfil in PERFIS_VISAO_TOTAL
+    liderados = [] if eh_visao_total else setores_liderados(db, usuario)
+    if not eh_visao_total and not liderados:
+        raise Proibido("Permissão insuficiente.")
+
+    query = db.query(Usuario).filter(Usuario.status == "ATIVO")
+    if not eh_visao_total:
+        if id_setor is not None:
+            if id_setor not in liderados:
+                return []
+            query = query.filter(Usuario.id_setor == id_setor)
+        else:
+            query = query.filter(Usuario.id_setor.in_(liderados))
+    elif id_setor is not None:
+        query = query.filter(Usuario.id_setor == id_setor)
+
+    usuarios = query.order_by(func.lower(Usuario.nome).asc(), Usuario.id_usuario.asc()).all()
+    return [PessoaResumoOut(id_usuario=u.id_usuario, nome=u.nome) for u in usuarios]
 
 
 def criar_reconhecimento(db: Session, dados: ReconhecimentoIn, autor: Usuario) -> ReconhecimentoOut:
@@ -200,7 +260,7 @@ def criar_reconhecimento(db: Session, dados: ReconhecimentoIn, autor: Usuario) -
     db.commit()
 
     notificacao_service.registrar(db, "RECONHECIMENTO", novo.id_reconhecimento, novo.titulo)
-    return obter_reconhecimento(db, novo.id_reconhecimento)
+    return _converter_reconhecimento(_obter_reconhecimento(db, novo.id_reconhecimento))
 
 
 def atualizar_reconhecimento(db: Session, id_reconhecimento: int, dados: ReconhecimentoUpdate) -> ReconhecimentoOut:
@@ -209,7 +269,7 @@ def atualizar_reconhecimento(db: Session, id_reconhecimento: int, dados: Reconhe
     r.titulo = dados.titulo
     r.mensagem = dados.mensagem
     db.commit()
-    return obter_reconhecimento(db, id_reconhecimento)
+    return _converter_reconhecimento(_obter_reconhecimento(db, id_reconhecimento))
 
 
 def excluir_reconhecimento(db: Session, id_reconhecimento: int) -> None:
@@ -276,19 +336,52 @@ def criar_indicacao(db: Session, dados: IndicacaoIn, indicante: Usuario) -> Indi
 def listar_minhas_indicacoes(db: Session, usuario: Usuario) -> list[IndicacaoOut]:
     registros = (
         _consulta_indicacoes(db)
-        .filter(IndicacaoReconhecimento.id_indicante == usuario.id_usuario)
+        .filter(
+            or_(
+                IndicacaoReconhecimento.id_indicante == usuario.id_usuario,
+                IndicacaoReconhecimento.id_indicado == usuario.id_usuario,
+            )
+        )
         .order_by(IndicacaoReconhecimento.data_indicacao.desc(), IndicacaoReconhecimento.id_indicacao.desc())
         .all()
     )
-    return [_converter_indicacao(i) for i in registros]
+    return [
+        _converter_indicacao(
+            i,
+            ocultar_indicante=(i.id_indicado == usuario.id_usuario and i.id_indicante != usuario.id_usuario),
+        )
+        for i in registros
+    ]
 
 
 def listar_indicacoes(
-    db: Session, status: str | None = None, pagina: int = 1, tamanho: int = 20
+    db: Session,
+    usuario: Usuario,
+    status: str | None = None,
+    id_colaborador: int | None = None,
+    pagina: int = 1,
+    tamanho: int = 20,
 ) -> PaginadoIndicacoesOut:
+    eh_visao_total = usuario.perfil in PERFIS_VISAO_TOTAL
+    liderados = [] if eh_visao_total else setores_liderados(db, usuario)
+    if not eh_visao_total and not liderados:
+        raise Proibido("Permissão insuficiente.")
+
     query = _consulta_indicacoes(db)
+    if not eh_visao_total:
+        indicado_escopo = aliased(Usuario)
+        query = query.outerjoin(
+            indicado_escopo, indicado_escopo.id_usuario == IndicacaoReconhecimento.id_indicado
+        ).filter(
+            or_(
+                IndicacaoReconhecimento.id_setor.in_(liderados),
+                indicado_escopo.id_setor.in_(liderados),
+            )
+        )
     if status and status.strip():
         query = query.filter(IndicacaoReconhecimento.status == status.strip().upper())
+    if id_colaborador is not None:
+        query = query.filter(IndicacaoReconhecimento.id_indicado == id_colaborador)
     total = query.count()
     registros = (
         query.order_by(IndicacaoReconhecimento.data_indicacao.desc(), IndicacaoReconhecimento.id_indicacao.desc())

@@ -142,7 +142,7 @@ class IndicacaoOut(BaseModel):
     alvo_tipo: AlvoReconhecimentoLiteral = "COLABORADOR"
     indicado: ColaboradorReconhecidoOut | None = None
     setor: SetorResumoOut | None = None
-    indicante: PessoaResumoOut
+    indicante: PessoaResumoOut | None = None
     motivo: str
     status: StatusIndicacaoLiteral
     id_reconhecimento: int | None = None

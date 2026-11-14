@@ -4,11 +4,12 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.escopo import listar_setores_liderados
 from app.core.exceptions import MuitasTentativas, NaoAutorizado
 from app.core.security import criar_token, verificar_senha
 from app.models.usuario import Usuario
 from app.schemas.auth import LoginRequest, TokenResponse
-from app.schemas.usuario import UsuarioOut
+from app.schemas.usuario import SetorLideradoOut, UsuarioOut
 
 MSG_LOGIN_INVALIDO = "E-mail ou senha inválidos. Procure o ADMIN."
 MAX_TENTATIVAS_LOGIN = 5
@@ -57,6 +58,14 @@ def _limpar_falhas_chave(chave: str) -> None:
         _tentativas_falhas.pop(chave, None)
 
 
+def montar_usuario_out(db: Session, usuario: Usuario) -> UsuarioOut:
+    out = UsuarioOut.model_validate(usuario)
+    out.setores_liderados = [
+        SetorLideradoOut.model_validate(s) for s in listar_setores_liderados(db, usuario)
+    ]
+    return out
+
+
 def login(
     db: Session,
     dados: LoginRequest,
@@ -90,5 +99,5 @@ def login(
     return TokenResponse(
         access_token=token,
         token_type="bearer",
-        usuario=UsuarioOut.model_validate(usuario),
+        usuario=montar_usuario_out(db, usuario),
     )

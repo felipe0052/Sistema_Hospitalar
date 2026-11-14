@@ -9,6 +9,7 @@ import {
   criarIndicacao,
   criarReconhecimento,
   excluirReconhecimento,
+  listarColaboradoresFiltro,
   listarIndicacoes,
   listarMinhasIndicacoes,
   listarReconhecimentos,
@@ -47,9 +48,9 @@ const CHIPS_TIPO_RECONHECIMENTO = [
   ...TIPOS_RECONHECIMENTO,
 ];
 const CHIPS_ALVO = [
-  { value: "", label: "Todos os públicos" },
-  { value: "COLABORADOR", label: "👤 Colaboradores" },
-  { value: "SETOR", label: "🏢 Setores" },
+  { value: "", label: "Tudo" },
+  { value: "COLABORADOR", label: "👤 Colaborador" },
+  { value: "SETOR", label: "🏢 Setor" },
 ];
 
 function iniciais(nome = "") {
@@ -62,7 +63,7 @@ function iniciais(nome = "") {
 }
 
 /** Campo de busca de colega (usa o diretório) com lista de resultados selecionável. */
-function SeletorColega({ selecionado, onSelecionar, erro }) {
+function SeletorColega({ selecionado, onSelecionar, erro, excluirIdUsuario = null }) {
   const [termo, setTermo] = useState("");
   const [resultados, setResultados] = useState([]);
   const [buscando, setBuscando] = useState(false);
@@ -75,13 +76,19 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
     let cancelado = false;
     setBuscando(true);
     listarDiretorio({ busca: termo.trim(), tamanho: 8 })
-      .then((dados) => !cancelado && setResultados(dados?.itens || []))
+      .then((dados) => {
+        if (cancelado) return;
+        const itens = dados?.itens || [];
+        setResultados(
+          excluirIdUsuario ? itens.filter((u) => u.id_usuario !== excluirIdUsuario) : itens,
+        );
+      })
       .catch(() => !cancelado && setResultados([]))
       .finally(() => !cancelado && setBuscando(false));
     return () => {
       cancelado = true;
     };
-  }, [termo]);
+  }, [termo, excluirIdUsuario]);
 
   if (selecionado) {
     return (
@@ -166,8 +173,10 @@ function SeletorColega({ selecionado, onSelecionar, erro }) {
 }
 
 export default function Reconhecimentos() {
-  const { temPerfil } = useAuth();
+  const { usuario: usuarioLogado, temPerfil, ehLider, setoresLiderados } = useAuth();
   const podeGerir = temPerfil("ADMIN", "RH");
+  const ehLiderSemVisaoTotal = ehLider && !podeGerir;
+  const podeFiltrarEscopo = podeGerir || ehLider;
   const { sucesso, erro: toastErro } = useToast();
   const [params, setParams] = useSearchParams();
   const idDestaque = Number(params.get("reconhecimento")) || null;
@@ -178,7 +187,9 @@ export default function Reconhecimentos() {
   const [tipo, setTipo] = useState("");
   const [alvoTipo, setAlvoTipo] = useState("");
   const [setor, setSetor] = useState("");
+  const [idColaborador, setIdColaborador] = useState("");
   const [setores, setSetores] = useState([]);
+  const [colaboradoresFiltro, setColaboradoresFiltro] = useState([]);
   const [pagina, setPagina] = useState(1);
   const [lista, setLista] = useState({ itens: [], total: 0 });
   const [carregando, setCarregando] = useState(true);
@@ -226,6 +237,7 @@ export default function Reconhecimentos() {
         tipo: tipo || undefined,
         id_setor: setor || undefined,
         alvo_tipo: alvoTipo || undefined,
+        id_colaborador: idColaborador || undefined,
         pagina,
         tamanho: TAMANHO,
       });
@@ -235,20 +247,24 @@ export default function Reconhecimentos() {
     } finally {
       setCarregando(false);
     }
-  }, [tipo, setor, alvoTipo, pagina]);
+  }, [tipo, setor, alvoTipo, idColaborador, pagina]);
 
   const carregarIndicacoes = useCallback(async () => {
     setCarregandoInd(true);
     setErroInd("");
     try {
       setMinhas(await listarMinhasIndicacoes());
-      if (podeGerir) setRecebidas(await listarIndicacoes({ status: "PENDENTE", tamanho: 50 }));
+      if (podeGerir) {
+        setRecebidas(await listarIndicacoes({ status: "PENDENTE", tamanho: 50 }));
+      } else if (ehLiderSemVisaoTotal) {
+        setRecebidas(await listarIndicacoes({ tamanho: 50 }));
+      }
     } catch (err) {
       setErroInd(err?.mensagem || "Não foi possível carregar as indicações.");
     } finally {
       setCarregandoInd(false);
     }
-  }, [podeGerir]);
+  }, [podeGerir, ehLiderSemVisaoTotal]);
 
   useEffect(() => {
     carregarMural();
@@ -259,6 +275,16 @@ export default function Reconhecimentos() {
       .then((dados) => setSetores(Array.isArray(dados) ? dados : dados?.itens || []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!podeFiltrarEscopo) {
+      setColaboradoresFiltro([]);
+      return;
+    }
+    listarColaboradoresFiltro({ id_setor: setor || undefined })
+      .then((dados) => setColaboradoresFiltro(Array.isArray(dados) ? dados : []))
+      .catch(() => setColaboradoresFiltro([]));
+  }, [podeFiltrarEscopo, setor]);
 
   useEffect(() => {
     if (aba !== "mural") carregarIndicacoes();
@@ -290,6 +316,11 @@ export default function Reconhecimentos() {
     const erros = {};
     if (alvoTipoIndicar === "COLABORADOR" && !colegaIndicado) {
       erros.id_indicado = "Selecione o colega que deseja indicar.";
+    } else if (
+      alvoTipoIndicar === "COLABORADOR" &&
+      colegaIndicado?.id_usuario === usuarioLogado?.id_usuario
+    ) {
+      erros.id_indicado = "Você não pode indicar a si mesmo.";
     }
     if (alvoTipoIndicar === "SETOR" && !setorIndicado) {
       erros.id_setor = "Selecione o setor que deseja indicar.";
@@ -451,6 +482,7 @@ export default function Reconhecimentos() {
     setTipo("");
     setAlvoTipo("");
     setSetor("");
+    setIdColaborador("");
     setPagina(1);
   }
 
@@ -542,7 +574,14 @@ export default function Reconhecimentos() {
   }
 
   const abas = [
-    { id: "mural", rotulo: "Mural" },
+    {
+      id: "mural",
+      rotulo: !podeFiltrarEscopo
+        ? "Meus reconhecimentos"
+        : ehLiderSemVisaoTotal
+          ? "Meus reconhecimentos · Meu setor"
+          : "Mural",
+    },
     { id: "minhas", rotulo: "Minhas indicações" },
     ...(podeGerir
       ? [
@@ -551,17 +590,31 @@ export default function Reconhecimentos() {
             rotulo: `Indicações recebidas${recebidas.total ? ` (${recebidas.total})` : ""}`,
           },
         ]
-      : []),
+      : ehLiderSemVisaoTotal
+        ? [
+            {
+              id: "recebidas",
+              rotulo: `Indicações do setor${recebidas.total ? ` (${recebidas.total})` : ""}`,
+            },
+          ]
+        : []),
   ];
+
+  const opcoesSetoresFiltro = podeGerir ? setores : setoresLiderados;
+  const exibirFiltroSetor = podeGerir || (ehLiderSemVisaoTotal && setoresLiderados.length > 1);
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       {/* Cabeçalho padronizado */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#1e293b]">Reconhecimentos</h1>
+          <h1 className="text-xl font-bold text-[#1e293b]">
+            {!podeFiltrarEscopo ? "Meus reconhecimentos" : "Reconhecimentos"}
+          </h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Celebre as conquistas de quem faz o Hospital Decós acontecer — individualmente e em equipe
+            {ehLiderSemVisaoTotal
+              ? "Acompanhe seus reconhecimentos e os do setor que você lidera"
+              : "Celebre as conquistas de quem faz o Hospital Decós acontecer — individualmente e em equipe"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -677,22 +730,48 @@ export default function Reconhecimentos() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <div className="w-60">
-                  <Select
-                    aria-label="Filtrar por setor"
-                    value={setor}
-                    onChange={(e) => {
-                      setSetor(e.target.value);
-                      setPagina(1);
-                    }}
-                    options={[
-                      { value: "", label: "Todos os setores" },
-                      ...setores.map((s) => ({ value: s.id_setor, label: s.nome })),
-                    ]}
-                  />
-                </div>
+                {exibirFiltroSetor && (
+                  <div className="w-60">
+                    <Select
+                      aria-label="Filtrar por setor"
+                      value={setor}
+                      onChange={(e) => {
+                        setSetor(e.target.value);
+                        setIdColaborador("");
+                        setPagina(1);
+                      }}
+                      options={[
+                        { value: "", label: "Todos os setores" },
+                        ...opcoesSetoresFiltro.map((s) => ({ value: s.id_setor, label: s.nome })),
+                      ]}
+                    />
+                  </div>
+                )}
 
-                {(tipo || setor || alvoTipo) && (
+                {podeFiltrarEscopo && (
+                  <div className="w-60">
+                    <Select
+                      aria-label="Filtrar por colaborador"
+                      value={idColaborador}
+                      onChange={(e) => {
+                        setIdColaborador(e.target.value);
+                        setPagina(1);
+                      }}
+                      options={[
+                        {
+                          value: "",
+                          label: ehLiderSemVisaoTotal ? "Todos do setor" : "Todos os colaboradores",
+                        },
+                        ...colaboradoresFiltro.map((c) => ({
+                          value: String(c.id_usuario),
+                          label: c.nome,
+                        })),
+                      ]}
+                    />
+                  </div>
+                )}
+
+                {(tipo || setor || alvoTipo || idColaborador) && (
                   <Button variant="secondary" size="sm" onClick={limparFiltrosMural}>
                     Limpar filtros
                   </Button>
@@ -739,7 +818,13 @@ export default function Reconhecimentos() {
             </div>
           ) : lista.itens.length === 0 ? (
             <Card>
-              <EmptyState title="Nenhum reconhecimento publicado ainda" />
+              <EmptyState
+                title={
+                  !podeFiltrarEscopo
+                    ? "Você ainda não recebeu reconhecimentos."
+                    : "Nenhum reconhecimento publicado ainda"
+                }
+              />
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
@@ -841,8 +926,11 @@ export default function Reconhecimentos() {
         </section>
       )}
 
-      {aba === "recebidas" && podeGerir && (
-        <section className="space-y-4" aria-label="Indicações recebidas">
+      {aba === "recebidas" && (podeGerir || ehLiderSemVisaoTotal) && (
+        <section
+          className="space-y-4"
+          aria-label={podeGerir ? "Indicações recebidas" : "Indicações do setor"}
+        >
           {erroInd ? (
             <ErrorBanner message={erroInd} onRetry={carregarIndicacoes} />
           ) : carregandoInd ? (
@@ -901,7 +989,9 @@ export default function Reconhecimentos() {
                             </p>
                           </div>
                         </div>
-                        <Badge variant="warning">Pendente</Badge>
+                        <Badge variant={VARIANTE_STATUS[i.status] || "default"}>
+                          {ROTULO_STATUS_INDICACAO[i.status] || i.status}
+                        </Badge>
                       </div>
 
                       <p className="text-sm text-[#475569] leading-relaxed rounded-lg bg-slate-50 border border-slate-100 p-3 whitespace-pre-line">
@@ -909,18 +999,20 @@ export default function Reconhecimentos() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => abrirNovoReconhecimento(i)}
-                      >
-                        Criar reconhecimento
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={() => setRecusando(i)}>
-                        Recusar
-                      </Button>
-                    </div>
+                    {podeGerir && i.status === "PENDENTE" && (
+                      <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => abrirNovoReconhecimento(i)}
+                        >
+                          Criar reconhecimento
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => setRecusando(i)}>
+                          Recusar
+                        </Button>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
@@ -993,6 +1085,7 @@ export default function Reconhecimentos() {
               selecionado={colegaIndicado}
               onSelecionar={setColegaIndicado}
               erro={errosIndicar.id_indicado}
+              excluirIdUsuario={usuarioLogado?.id_usuario}
             />
           ) : (
             <Select

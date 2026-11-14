@@ -5,7 +5,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Oracle](https://img.shields.io/badge/Oracle%20Database-23ai%20Free%20%7C%20Vector%20Search-F80000?style=for-the-badge&logo=oracle&logoColor=white)
+![Oracle](https://img.shields.io/badge/Oracle%20Database-23ai%20Free-F80000?style=for-the-badge&logo=oracle&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 Plataforma web corporativa desenvolvida pelo **Squad 49** para o **Hospital Decós**, projetada para centralizar a comunicação interna, a gestão e consulta de Procedimentos Operacionais Padrão (POPs), a agenda institucional, a central de dúvidas (FAQ), o mural de reconhecimentos, a central de notificações, a integração opcional com o Google Agenda e o diretório de colaboradores e ramais telefônicos organizados por setor e andar.
@@ -23,7 +23,7 @@ A comunicação interna no ambiente hospitalar enfrentava sérios desafios opera
 
 ### A Solução
 A **Intranet Hospitalar Decós Corporativa** centraliza o ecossistema de informações do hospital em uma aplicação web moderna, segura, responsiva e de alta performance:
-- **Repositório Confiável de Protocolos e POPs:** Upload com validação de formato e assinatura de bytes (Magic Bytes), controle rigoroso de versões ativas e arquivadas, leitor embutido de PDF e preparação para busca semântica por Inteligência Artificial (Oracle Vector Search).
+- **Repositório Confiável de Protocolos e POPs:** Upload com validação de formato e assinatura de bytes (Magic Bytes), controle rigoroso de versões ativas e arquivadas e leitor embutido de PDF.
 - **Comunicação Unificada e Engajamento:** Mural de notícias e comunicados com categorização, avisos urgentes em destaque, agenda de eventos institucionais com calendário interativo, central de notificações em tempo real e mural de reconhecimentos corporativos entre colegas.
 - **Agilidade Operacional no Atendimento:** Diretório completo de colaboradores ativos com busca instantânea e guia telefônico de ramais estruturado por andar e setor hospitalar.
 - **Governança, Privacidade e Segurança (RBAC):** Controle de acesso baseado em 4 perfis (`ADMIN`, `RH`, `MARKETING` e `COLABORADOR`), proteção contra ataques de força bruta, revogação instantânea de sessões e suporte transparente a **Modo Leitura (Visitante)** para terminais compartilhados no hospital.
@@ -32,9 +32,9 @@ A **Intranet Hospitalar Decós Corporativa** centraliza o ecossistema de informa
 
 ## 📊 2. Status do Projeto e Progresso das Entregas
 
-O planejamento do projeto está estruturado em **Fases sequenciais**, cobrindo desde a fundação da infraestrutura e regras centrais do MVP até as funcionalidades avançadas de engajamento, integrações e Inteligência Artificial.
+O planejamento do projeto está estruturado em **Fases sequenciais**, cobrindo desde a fundação da infraestrutura e regras centrais do MVP até as funcionalidades avançadas de engajamento e integrações.
 
-> **Status Atual:** ✅ **Fases 1 a 5 concluídas e homologadas (`v1.5-extras`)** — 100% dos 12 Casos de Uso originais (`UC01` a `UC12`), requisitos de segurança (`RNF03`), ajustes pós-entrega (Modo Visitante, Pop-up de Aniversariante, Mensagem Unificada de Login, Acessos Rápidos e Reconhecimento por Setor/Individual) e os recursos avançados da Fase 5 (Reconhecimentos, Notificações, Google Agenda, Avisos Urgentes e Base Vetorial) implementados e validados com **113 testes automatizados no back-end** e testes E2E com Playwright.
+> **Status Atual:** ✅ **Fases 1 a 5 concluídas e homologadas (`v1.5-extras`)** — 100% dos 12 Casos de Uso originais (`UC01` a `UC12`), requisitos de segurança (`RNF03`), ajustes pós-entrega (Modo Visitante, Pop-up de Aniversariante, Mensagem Unificada de Login, Acessos Rápidos e Reconhecimento por Setor/Individual) e os recursos avançados da Fase 5 (Reconhecimentos, Notificações, Google Agenda e Avisos Urgentes) implementados e validados com suíte de testes automatizados no back-end e testes E2E com Playwright.
 
 | Fase | Escopo Principal | Casos de Uso / Entregáveis | Status |
 | :--- | :--- | :--- | :---: |
@@ -42,8 +42,7 @@ O planejamento do projeto está estruturado em **Fases sequenciais**, cobrindo d
 | **Fase 2** | **Comunicação Corporativa e Visão Geral:** Mural de Avisos e Notícias Corporativas, Agenda de Eventos (Lista e Calendário Mensal), Endpoint consolidado e Tela do Dashboard Integrado, Consultas Analíticas SQL. | `UC04`, `UC05`, `UC12`, Dashboard (`/`) | ✅ **Concluída** |
 | **Fase 3** | **Gestão do Conhecimento e Estrutura Física:** Central de POPs e Documentos com Upload Seguro (`StorageService`, Magic Bytes, Versionamento, Leitor PDF), Central de Dúvidas (FAQ), Gestão Administrativa de Setores e múltiplos Ramais. | `UC06`, `UC07`, `UC08`, `UC09`, Coleção Postman | ✅ **Concluída** |
 | **Fase 4** | **Diretório, Engajamento e Blindagem do MVP:** Diretório de Colaboradores e Guia Telefônico de Ramais por Andar, Mural de Aniversariantes com Privacidade por Design, Proteção Anti-Força Bruta (`RNF03`), Homologação e Conclusão do MVP. | `UC10`, `UC11`, `RNF03`, Release `v1.0-mvp` | ✅ **Concluída** |
-| **Fase 5** | **Extras e Integrações (Parte 1):** Mural de Reconhecimentos (criação pelo RH e indicação entre colegas), Central de Notificações Internas (sino no cabeçalho, leitura persistida), Avisos Urgentes, Integração com Google Agenda (OAuth 2.0 criptografado), Pop-up de Aniversário, Gestão de Acessos Rápidos externos, DDL `04_ddl_extras.sql`, Extração de Texto e Indexação Vetorial (`Oracle VECTOR` + `sentence-transformers`). | Reconhecimentos, Notificações, Google Agenda, Acessos Rápidos, Base RAG | ✅ **Concluída** |
-| **Fase 6** | **Inteligência Artificial Generativa e Entrega Final (Parte 2):** Assistente de IA Generativa com Google Gemini em arquitetura RAG para POPs hospitalares (respostas estritamente fundamentadas na base vigente, citações de página, guardrails anti-alucinação com checagem numérica e fallback gracioso), Análise e Sugestão Automática de Metadados no Upload, Acessibilidade WCAG 2.1 AA e Homologação Final. | Assistente RAG com Gemini, Análise de POPs, Release Final `v2.0` | 🔜 *Roadmap Final* |
+| **Fase 5** | **Extras e Integrações:** Mural de Reconhecimentos (criação pelo RH e indicação entre colegas), Central de Notificações Internas (sino no cabeçalho, leitura persistida), Avisos Urgentes, Integração com Google Agenda (OAuth 2.0 criptografado), Pop-up de Aniversário, Gestão de Acessos Rápidos externos e DDL `04_ddl_extras.sql`. | Reconhecimentos, Notificações, Google Agenda, Acessos Rápidos | ✅ **Concluída** |
 
 ---
 
@@ -98,7 +97,7 @@ Abaixo estão detalhados todos os módulos e capacidades operacionais em funcion
 ### 🏢 3.7. Gestão Administrativa de Setores e Ramais (`/admin/setores` — `UC08`)
 - Gestão centralizada da estrutura predial e organizacional do Hospital Decós.
 - Cadastro e edição de setores associados ao respectivo andar hospitalar (`Térreo`, `1º andar`, `2º andar`, etc.) e com **múltiplos ramais telefônicos** vinculados (garantindo unicidade global de ramais no hospital).
-- Proteção de integridade referencial: impede a exclusão acidental de setores que possuam colaboradores vinculados (`HTTP 409 Conflict`).
+- Exclusão segura de setores: exibe aviso quando há colaboradores vinculados e, caso confirmada, remove o setor e seus ramais desvinculando os colaboradores associados.
 
 ### ☎️ 3.8. Diretório de Colaboradores e Guia Telefônico (`/diretorio` — `UC10`)
 - **Aba Colaboradores:** Consulta paginada alimentada pela view otimizada `VW_DIRETORIO`, exibindo apenas colaboradores com status `ATIVO`, com filtros por setor, andar e busca por nome ou cargo. Conta com modal de detalhes e atalhos rápidos **"Copiar Ramal"** e **"Copiar E-mail"**. No Modo Visitante, e-mails são protegidos para resguardar a privacidade.
@@ -137,13 +136,7 @@ Abaixo estão detalhados todos os módulos e capacidades operacionais em funcion
 - **Gestão Exclusiva para Administradores (`/admin/acesso-rapido`):** Painel para cadastrar novos atalhos com validação de URL segura (`http://` ou `https://`), descrição, ícone e reordenação com botões de subir/descer prioridade.
 - Atualização em tempo real: o menu recarrega os itens ativos ao ser aberto, refletindo alterações administrativas sem necessidade de recarregar a página.
 
-### 🧠 3.14. Preparação da Base Vetorial e Inteligência Artificial RAG
-- **Extração Automatizada de Conteúdo:** Serviços em Python (`pypdf` e `python-docx`) para extração de texto estruturado página a página dos arquivos PDF e DOCX enviados.
-- **Geração de Embeddings Locais:** Módulo de vetorização com o modelo `all-MiniLM-L6-v2` (`sentence-transformers`), gerando vetores densos de 384 dimensões em ambiente local (sem dependência de APIs externas pagas).
-- **Armazenamento Nativo em Oracle AI Vector Search:** Tabela `DOCUMENTO_TRECHOS` utilizando o tipo nativo `VECTOR(384, FLOAT32)` do Oracle Database 23ai Free, com indexação e busca por similaridade de cosseno (`VECTOR_DISTANCE(..., COSINE)`).
-- **Pronto para o Assistente RAG:** Estrutura pronta para conexão com o Google Gemini na Fase 6, garantindo que o modelo consuma apenas os trechos de documentos com status `VIGENTE`.
-
-### 🎨 3.15. Experiência de Interface, Modo Escuro e Design System
+### 🎨 3.14. Experiência de Interface, Modo Escuro e Design System
 - **Tema Claro e Escuro (`Light / Dark Mode`):** Gerenciado com hook reativo `useTheme`, classes CSS dedicadas (`styles/dark.css`), sincronização entre abas do navegador e persistência no `localStorage`.
 - **Paleta Visual Corporativa:** Identidade visual alinhada às diretrizes do Hospital Decós, priorizando os tons bordô/vinho corporativo (`#800020`), contrastes confortáveis e tipografia padronizada.
 - **Biblioteca de 16 Componentes Modulares (`src/components/ui/`):** `Button`, `Input`, `Textarea`, `Select`, `DateInput` (seletor customizado), `SearchInput`, `Modal`, `ConfirmDialog`, `Table`, `Pagination`, `Badge`, `Card`, `Skeleton`, `EmptyState`, `ErrorBanner` e `Toast`.
@@ -168,16 +161,14 @@ O sistema adota uma arquitetura em camadas orientada a serviços no back-end e a
 - **Validação de Contratos:** Pydantic v2 + `pydantic-settings` para gestão robusta de variáveis de ambiente.
 - **Segurança Criptográfica:** Hashing de senhas com `bcrypt`, tokens `PyJWT` (algoritmo `HS256`), criptografia simétrica `cryptography.fernet` para tokens de integrações externas e middleware de cabeçalhos de segurança HTTP.
 - **Processamento de Arquivos:** `python-multipart`, `pypdf`, `python-docx` e abstração de storage isolada (`StorageService`).
-- **Engenharia de IA e Vetores:** `sentence-transformers` (modelo `all-MiniLM-L6-v2`) e SDK oficial `google-genai` para integração com o Google Gemini.
-- **Garantia de Qualidade:** Suíte de **106 testes automatizados** com `pytest`, cliente assíncrono `httpx` e análise estática com `Ruff`.
+- **Garantia de Qualidade:** Suíte de testes automatizados com `pytest`, cliente assíncrono `httpx` e análise estática com `Ruff`.
 
 ### Banco de Dados e Infraestrutura (`database/` & Docker)
 - **Banco de Dados Principal:** **Oracle Database 23ai Free** (`gvenzl/oracle-free:23-slim`) configurado com collation insensível a maiúsculas e acentos (`NLS_COMP=LINGUISTIC`, `NLS_SORT=BINARY_AI`) e fuso horário `America/Sao_Paulo`.
-- **Suporte Nativo a Vetores:** Recursos de ponta do Oracle 23ai com colunas `VECTOR(384, FLOAT32)` e funções de distância vetorial `VECTOR_DISTANCE`.
 - **Fallback Local SQLite:** Mecanismo inteligente no back-end que permite desenvolvimento e execução de testes em SQLite (`hospital.db`) com registro de funções equivalentes (`SEM_ACENTOS` e busca linguística).
 - **Containerização Total:** Orquestração via `docker-compose.yml` integrando banco de dados Oracle, back-end FastAPI e front-end React, com scripts de automação `iniciar.sh` e `parar.sh`.
 
-### Modelagem do Banco de Dados (17 Tabelas + 1 View)
+### Modelagem do Banco de Dados (18 Tabelas + 1 View)
 O esquema do banco de dados cobre todas as áreas do sistema:
 1. `SETORES`: Cadastro de departamentos, andares prediais e datas de criação.
 2. `RAMAIS`: Ramais telefônicos hospitalares com vínculo por chave estrangeira a setores.
@@ -186,19 +177,17 @@ O esquema do banco de dados cobre todas as áreas do sistema:
 5. `AVISOS`: Mural corporativo com controle de vigência, categorias, prioridades (`NORMAL`/`URGENTE`) e destaques.
 6. `EVENTOS`: Cronograma de ações internas e treinamentos hospitalares.
 7. `DOCUMENTOS`: Metadados e versionamento de POPs e protocolos com controle de vigência (`VIGENTE`/`ARQUIVADO`).
-8. `DOCUMENTO_TRECHOS`: Fragmentos de documentos com páginas, textos e coluna vetorial `VECTOR(384, FLOAT32)`.
-9. `FAQS`: Banco de dúvidas frequentes com categorias e ordenação.
-10. `RECONHECIMENTOS`: Registro de homenagens e reconhecimentos emitidos pelo RH.
-11. `INDICACOES_RECONHECIMENTO`: Indicações de reconhecimento submetidas por colaboradores e avaliadas pelo RH.
-12. `NOTIFICACOES`: Notificações do sistema (`NOTICIA`, `EVENTO`, `EVENTO_DO_DIA`, `RECONHECIMENTO`).
-13. `NOTIFICACOES_LIDAS`: Tabela de associação registrando leitura individual por colaborador.
-14. `GOOGLE_AGENDA_INTEGRACOES`: Armazenamento de credenciais e tokens criptografados da integração Google.
-15. `EVENTOS_GOOGLE`: Mapeamento de eventos sincronizados para o Google Calendar.
-16. `ACESSOS_RAPIDOS`: Catálogo de sistemas externos gerenciados pelo administrador.
-17. `LOG_IA`: Auditoria operacional de requisições de Inteligência Artificial, latências e feedbacks.
-18. `ONBOARDING_ITENS`: Checklist do novo colaborador e orientações de primeiros atendimentos (gerenciados por ADMIN/RH).
-19. `ONBOARDING_PROGRESSO`: Itens do onboarding concluídos por cada colaborador.
-20. `ONBOARDING_CONTATOS`: Guia "quem procurar em cada situação" (responsável, setor e ramal).
+8. `FAQS`: Banco de dúvidas frequentes com categorias e ordenação.
+9. `RECONHECIMENTOS`: Registro de homenagens e reconhecimentos emitidos pelo RH.
+10. `INDICACOES_RECONHECIMENTO`: Indicações de reconhecimento submetidas por colaboradores e avaliadas pelo RH.
+11. `NOTIFICACOES`: Notificações do sistema (`NOTICIA`, `EVENTO`, `EVENTO_DO_DIA`, `RECONHECIMENTO`).
+12. `NOTIFICACOES_LIDAS`: Tabela de associação registrando leitura individual por colaborador.
+13. `GOOGLE_AGENDA_INTEGRACOES`: Armazenamento de credenciais e tokens criptografados da integração Google.
+14. `EVENTOS_GOOGLE`: Mapeamento de eventos sincronizados para o Google Calendar.
+15. `ACESSOS_RAPIDOS`: Catálogo de sistemas externos gerenciados pelo administrador.
+16. `ONBOARDING_ITENS`: Checklist do novo colaborador e orientações de primeiros atendimentos (gerenciados por ADMIN/RH).
+17. `ONBOARDING_PROGRESSO`: Itens do onboarding concluídos por cada colaborador.
+18. `ONBOARDING_CONTATOS`: Guia "quem procurar em cada situação" (responsável, setor e ramal).
 - `VW_DIRETORIO`: View relacional otimizada para consulta pública e interna de colaboradores ativos e seus ramais.
 
 ---
@@ -245,7 +234,6 @@ Sistema_Hospitalar/
 │   ├── Dockerfile                  # Imagem Docker de produção em Python slim com usuário não-root
 │   ├── .env.example                # Modelo de variáveis de ambiente do back-end
 │   ├── requirements.txt            # Dependências principais (FastAPI, oracledb, pydantic, etc.)
-│   ├── requirements-ia.txt         # Dependências de IA e vetorização (pypdf, sentence-transformers, etc.)
 │   ├── pyproject.toml              # Configurações do Pytest e Ruff Linter/Formatter
 │   ├── hospital.db                 # Banco de dados SQLite local (usado em modo fallback/testes)
 │   ├── scripts/
@@ -257,7 +245,6 @@ Sistema_Hospitalar/
 │   │   ├── models/                 # Modelos SQLAlchemy 2.0 (17 entidades mapeadas)
 │   │   ├── schemas/                # Schemas Pydantic v2 (validação de entrada/saída)
 │   │   ├── services/               # Camada de lógica de negócio e regras hospitalares
-│   │   │   └── ia/                 # Módulos de embeddings, extração de texto e indexador vetorial
 │   │   ├── routers/                # 14 routers FastAPI mapeados sob o prefixo /api/v1
 │   │   └── storage/                # StorageService e LocalStorage com validação de Magic Bytes
 │   └── tests/                      # Suíte de 106 testes automatizados com Pytest (16 módulos)
@@ -462,6 +449,8 @@ O script `python -m scripts.seed_usuarios` configura os seguintes perfis padrão
 | **Administrador** | `admin@decos.com.br` | `Admin@123` | `ATIVO` | Acesso irrestrito: gestão de usuários, auditoria, setores/ramais, acessos rápidos, documentos/POPs, FAQ, avisos e eventos. |
 | **RH** | `rh@decos.com.br` | `Rh@12345` | `ATIVO` | Cadastro e edição de colaboradores comuns, concessão de reconhecimentos, triagem de indicações, gestão de POPs e FAQ. |
 | **Marketing** | `marketing@decos.com.br` | `Mkt@12345` | `ATIVO` | Publicação e gestão do mural de avisos/notícias e criação/gerenciamento da agenda de eventos. |
+| **Colaborador** | `colaborador@decos.com.br` | `Colab@123` | `ATIVO` | Consulta ao Dashboard, avisos, eventos, diretório, ramais, aniversariantes, reconhecimentos, POPs e FAQ. |
+| **Inativo (Teste)** | `inativo@decos.com.br` | `Inativo@123` | `INATIVO` | Bloqueado no login (`HTTP 401` unificado) e oculto no diretório e aniversariantes. |
 
 ---
 
@@ -479,12 +468,11 @@ O sistema possui uma suíte completa com **113 testes automatizados** distribuí
 | `test_dashboard.py` | 3 | Resposta consolidada, regras de visibilidade para deslogados e aniversariantes. |
 | `test_documentos.py` | 11 | Upload seguro, Magic Bytes, versionamento automático e visualização de PDF. |
 | `test_faq.py` | 2 | FAQ estruturado, ordenação customizada e busca com grifo textual. |
-| `test_setores.py` | 3 | Setores prediais, múltiplos ramais, unicidade de ramal e proteção contra deleção com vínculo. |
+| `test_setores.py` | 3 | Setores prediais, múltiplos ramais, unicidade de ramal e exclusão com desvinculação segura. |
 | `test_diretorio.py` | 4 | Paginação via view `VW_DIRETORIO`, filtros por andar/setor e ocultação de e-mails para visitante. |
 | `test_aniversariantes.py` | 2 | Busca por mês/dia/setor, aniversário do dia e privacidade (sem exposição de ano/idade). |
 | `test_seguranca_mvp.py` | 6 | Auditoria de segurança, headers HTTP, proteção anti-bruteforce e matriz RBAC completa. |
 | `test_acessos_rapidos.py` | 2 | CRUD de atalhos externos pelo ADMIN, validação de URLs HTTP/HTTPS e bloqueio não-admin. |
-| `test_base_conhecimento.py` | 11 | Extração de texto (PDF/DOCX), divisão em trechos, embeddings e indexação vetorial. |
 | `test_notificacoes.py` | 8 | Disparo por tipo de publicação, leitura persistida individual e bloqueio de duplicatas. |
 | `test_reconhecimentos.py` | 20 | Reconhecimentos oficiais do RH (individual e por setor), indicações de colegas e setores, triagem e filtros. |
 | `test_google_agenda.py` | 13 | Fluxo OAuth 2.0, criptografia de tokens, sincronização sem duplicidade e resiliência a falhas. |
@@ -547,7 +535,7 @@ Projeto desenvolvido pelo **Squad 49** no âmbito do programa **RiseUp — Resid
 | Frente de Atuação | Responsabilidades no Projeto |
 | :--- | :--- |
 | **Engenharia de Banco de Dados & Infraestrutura (1)** | Modelagem relacional Oracle 23ai (`01_ddl_mvp.sql`, `04_ddl_extras.sql`), índices, view `VW_DIRETORIO`, consultas analíticas (`docs/consultas.md`), seeds, orquestração Docker Compose e scripts de automação. |
-| **Engenharia de Back-end (2–3)** | Arquitetura em camadas com FastAPI + SQLAlchemy 2.0, autenticação JWT/RBAC, proteção anti-força bruta, `StorageService` com Magic Bytes, versionamento de POPs, vetorização de trechos, integrações (Google Calendar) e suíte de 106 testes com `pytest`. |
+| **Engenharia de Back-end (2–3)** | Arquitetura em camadas com FastAPI + SQLAlchemy 2.0, autenticação JWT/RBAC, proteção anti-força bruta, `StorageService` com Magic Bytes, versionamento de POPs, integrações (Google Calendar) e suíte de testes com `pytest`. |
 | **Engenharia de Front-end & UX/UI (4)** | Prototipagem, Design System próprio (`src/components/ui/`), suporte a Tema Claro/Escuro, Modo Leitura, `QuickAccessFab`, acessibilidade e integração das 17 páginas da aplicação em React 19 + Vite. |
 | **Qualidade de Software (QA) & Documentação (1)** | Elaboração da coleção de API (`docs/api/colecao.json`), massa de POPs hospitalares de exemplo, roteiros de testes (`docs/qa/roteiro_mvp.md`, `docs/qa/roteiro_extras.md`) e Relatório de Homologação. |
 
@@ -557,9 +545,6 @@ Projeto desenvolvido pelo **Squad 49** no âmbito do programa **RiseUp — Resid
 - **George Delgado Gioseffi da Gama** — Engenharia de Back-end & Banco de Dados
 - **João Gabriel Mendonça Ribeiro** — Engenharia de Back-end & Banco de Dados
 - **João Vitor Nunes Oliveira Alves** — Engenharia de Front-end, UX/UI & QA
-- **Reinaldo Henrique de Brito Antunes**
-- **Guilherme Menezes Haji Antoniou**
-- **Carlos Vinicius Góis da Silva**
 
 ---
 

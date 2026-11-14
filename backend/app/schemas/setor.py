@@ -38,10 +38,25 @@ class RamalOut(BaseModel):
     descricao: str | None = None
 
 
+class LiderResumoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_usuario: int
+    nome: str
+
+
 class SetorIn(BaseModel):
     nome: str = Field(min_length=1, max_length=100)
     andar: str | None = Field(default=None, max_length=30)
+    id_lider: int | None = None
     ramais: list[RamalIn] = Field(min_length=1)
+
+    @field_validator("id_lider", mode="before")
+    @classmethod
+    def _limpar_id_lider(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
     @field_validator("nome", mode="before")
     @classmethod
@@ -74,5 +89,6 @@ class SetorOut(BaseModel):
     id_setor: int
     nome: str
     andar: str | None = None
+    lider: LiderResumoOut | None = None
     ramais: list[RamalOut] = Field(default_factory=list)
     total_usuarios: int = 0

@@ -11,6 +11,7 @@ from app.schemas.reconhecimento import (
     IndicacaoOut,
     PaginadoIndicacoesOut,
     PaginadoReconhecimentosOut,
+    PessoaResumoOut,
     ReconhecimentoIn,
     ReconhecimentoOut,
     ReconhecimentoUpdate,
@@ -28,22 +29,35 @@ def listar_reconhecimentos(
     tipo: str | None = Query(default=None, description="PROMOCAO, DESTAQUE, TEMPO_DE_CASA ou AGRADECIMENTO"),
     id_setor: int | None = Query(default=None, description="Setor reconhecido ou setor do colaborador"),
     alvo_tipo: str | None = Query(default=None, description="COLABORADOR ou SETOR"),
+    id_colaborador: int | None = Query(default=None, description="Filtrar por colaborador reconhecido"),
     pagina: int = Query(default=1, ge=1),
     tamanho: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _usuario_atual: Usuario = Depends(get_current_user),
+    usuario_atual: Usuario = Depends(get_current_user),
 ) -> PaginadoReconhecimentosOut:
-    """Lista os reconhecimentos publicados, mais recentes primeiro."""
-    return reconhecimento_service.listar_reconhecimentos(db, tipo, id_setor, alvo_tipo, pagina, tamanho)
+    """Lista os reconhecimentos publicados conforme o escopo do usuário, mais recentes primeiro."""
+    return reconhecimento_service.listar_reconhecimentos(
+        db, usuario_atual, tipo, id_setor, alvo_tipo, id_colaborador, pagina, tamanho
+    )
+
+
+@router.get("/colaboradores-filtro", response_model=list[PessoaResumoOut])
+def listar_colaboradores_filtro(
+    id_setor: int | None = Query(default=None, description="Filtrar colaboradores ativos pelo setor"),
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(get_current_user),
+) -> list[PessoaResumoOut]:
+    """Lista colaboradores ativos disponíveis para filtro (RH/Admin ou líderes de setor)."""
+    return reconhecimento_service.listar_colaboradores_filtro(db, usuario_atual, id_setor)
 
 
 @router.get("/{id_reconhecimento}", response_model=ReconhecimentoOut)
 def obter_reconhecimento(
     id_reconhecimento: int,
     db: Session = Depends(get_db),
-    _usuario_atual: Usuario = Depends(get_current_user),
+    usuario_atual: Usuario = Depends(get_current_user),
 ) -> ReconhecimentoOut:
-    return reconhecimento_service.obter_reconhecimento(db, id_reconhecimento)
+    return reconhecimento_service.obter_reconhecimento(db, id_reconhecimento, usuario_atual)
 
 
 @router.post("", response_model=ReconhecimentoOut, status_code=status.HTTP_201_CREATED)
@@ -97,12 +111,15 @@ def listar_minhas_indicacoes(
 @router_indicacoes.get("", response_model=PaginadoIndicacoesOut)
 def listar_indicacoes(
     status_indicacao: str | None = Query(default=None, alias="status", description="PENDENTE, APROVADA ou RECUSADA"),
+    id_colaborador: int | None = Query(default=None, description="Filtrar por colaborador indicado"),
     pagina: int = Query(default=1, ge=1),
     tamanho: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _gestor: Usuario = Depends(require_roles(*PERFIS_GESTAO_RECONHECIMENTOS)),
+    usuario_atual: Usuario = Depends(get_current_user),
 ) -> PaginadoIndicacoesOut:
-    return reconhecimento_service.listar_indicacoes(db, status_indicacao, pagina, tamanho)
+    return reconhecimento_service.listar_indicacoes(
+        db, usuario_atual, status_indicacao, id_colaborador, pagina, tamanho
+    )
 
 
 @router_indicacoes.post("/{id_indicacao}/recusar", response_model=IndicacaoOut)

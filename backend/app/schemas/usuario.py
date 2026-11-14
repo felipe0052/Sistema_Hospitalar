@@ -54,6 +54,13 @@ class SetorResumoOut(BaseModel):
     andar: str | None = None
 
 
+class SetorLideradoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_setor: int
+    nome: str
+
+
 class UsuarioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,6 +72,7 @@ class UsuarioOut(BaseModel):
     perfil: PerfilLiteral
     status: StatusLiteral
     setor: SetorResumoOut | None = None
+    setores_liderados: list[SetorLideradoOut] = Field(default_factory=list)
 
     @computed_field
     @property

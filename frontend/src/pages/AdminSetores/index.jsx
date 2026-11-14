@@ -5,6 +5,7 @@ import {
   excluirSetor,
   listarSetores,
 } from "../../api/setores";
+import { listarUsuarios } from "../../api/usuarios";
 import {
   Badge,
   Button,
@@ -60,6 +61,9 @@ export default function AdminSetores() {
   const [setorEditando, setSetorEditando] = useState(null);
   const [formNome, setFormNome] = useState("");
   const [formAndar, setFormAndar] = useState("");
+  const [formIdLider, setFormIdLider] = useState("");
+  const [lideresDisponiveis, setLideresDisponiveis] = useState([]);
+  const [carregandoLideres, setCarregandoLideres] = useState(false);
   const [formRamais, setFormRamais] = useState([{ numero: "", descricao: "" }]);
   const [errosForm, setErrosForm] = useState({});
   const [errosRamais, setErrosRamais] = useState({});
@@ -93,6 +97,8 @@ export default function AdminSetores() {
     setSetorEditando(null);
     setFormNome("");
     setFormAndar("Térreo");
+    setFormIdLider("");
+    setLideresDisponiveis([]);
     setFormRamais([{ numero: "", descricao: "" }]);
     setErrosForm({});
     setErrosRamais({});
@@ -103,6 +109,13 @@ export default function AdminSetores() {
     setSetorEditando(setor);
     setFormNome(setor.nome || "");
     setFormAndar(setor.andar || "");
+    setFormIdLider(setor.lider?.id_usuario ? String(setor.lider.id_usuario) : "");
+    setLideresDisponiveis([]);
+    setCarregandoLideres(true);
+    listarUsuarios({ id_setor: setor.id_setor, status: "ATIVO", tamanho: 100 })
+      .then((res) => setLideresDisponiveis(Array.isArray(res?.itens) ? res.itens : []))
+      .catch(() => setLideresDisponiveis([]))
+      .finally(() => setCarregandoLideres(false));
     const ramaisIniciais =
       Array.isArray(setor.ramais) && setor.ramais.length > 0
         ? setor.ramais.map((r) => ({
@@ -184,6 +197,7 @@ export default function AdminSetores() {
       const payload = {
         nome: formNome.trim(),
         andar: formAndar.trim() || null,
+        id_lider: formIdLider ? Number(formIdLider) : null,
         ramais: formRamais.map((r) => ({
           numero: String(r.numero).trim(),
           descricao: String(r.descricao || "").trim() || null,
@@ -240,6 +254,15 @@ export default function AdminSetores() {
       key: "andar",
       header: "Andar",
       render: (s) => <span className="text-[#475569]">{s.andar || "—"}</span>,
+    },
+    {
+      key: "lider",
+      header: "Líder",
+      render: (s) => (
+        <span className="text-[#475569]">
+          {s.lider?.nome ? <span className="font-medium text-[#1e293b]">{s.lider.nome}</span> : "—"}
+        </span>
+      ),
     },
     {
       key: "ramais",
@@ -400,6 +423,31 @@ export default function AdminSetores() {
             />
           </div>
 
+          <Select
+            label="Líder (opcional)"
+            value={formIdLider}
+            onChange={(e) => {
+              setFormIdLider(e.target.value);
+              if (errosForm.id_lider) setErrosForm((p) => ({ ...p, id_lider: "" }));
+            }}
+            disabled={!setorEditando || carregandoLideres}
+            options={[
+              {
+                value: "",
+                label: !setorEditando
+                  ? "Disponível após cadastrar e vincular colaboradores"
+                  : carregandoLideres
+                    ? "Carregando colaboradores do setor..."
+                    : "Sem líder",
+              },
+              ...lideresDisponiveis.map((u) => ({
+                value: String(u.id_usuario),
+                label: u.cargo ? `${u.nome} (${u.cargo})` : u.nome,
+              })),
+            ]}
+            error={errosForm.id_lider}
+          />
+
           {/* Lista dinâmica de ramais */}
           <div className="space-y-3 pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between">
@@ -484,7 +532,7 @@ export default function AdminSetores() {
         title="Excluir Setor"
         message={
           setorExcluindo?.total_usuarios > 0
-            ? `Atenção: o setor "${setorExcluindo?.nome}" possui ${setorExcluindo?.total_usuarios} colaborador(es) vinculado(s). Deseja tentar excluir mesmo assim?`
+            ? `Atenção: o setor "${setorExcluindo?.nome}" possui ${setorExcluindo?.total_usuarios} colaborador(es) vinculado(s). Ao excluir, esses colaboradores ficarão sem setor vinculado. Deseja excluir mesmo assim?`
             : `Confirma a exclusão do setor "${setorExcluindo?.nome}" e de todos os seus ramais vinculados?`
         }
         confirmLabel="Excluir Setor"

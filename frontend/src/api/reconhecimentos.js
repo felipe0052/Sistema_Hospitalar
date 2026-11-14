@@ -32,6 +32,11 @@ export async function listarReconhecimentos(filtros = {}) {
   return data;
 }
 
+export async function listarColaboradoresFiltro(filtros = {}) {
+  const { data } = await apiClient.get("/reconhecimentos/colaboradores-filtro", { params: filtros });
+  return data;
+}
+
 export async function obterReconhecimento(id) {
   const { data } = await apiClient.get(`/reconhecimentos/${id}`);
   return data;

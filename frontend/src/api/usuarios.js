@@ -65,3 +65,7 @@ export async function listarHistoricoAcesso(id) {
   const { data } = await apiClient.get(`/usuarios/${id}/historico-acesso`);
   return data;
 }
+
+export async function excluirUsuario(id) {
+  await apiClient.delete(`/usuarios/${id}`);
+}
