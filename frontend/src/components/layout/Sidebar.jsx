@@ -43,8 +43,8 @@ const MENU_PRINCIPAL = [
   { to: "/avisos", label: "Notícias e Comunicados", icon: ICONS.megaphone },
   { to: "/eventos", label: "Eventos", icon: ICONS.calendar },
   { to: "/aniversariantes", label: "Aniversariantes", icon: ICONS.gift, requerLogin: true },
-  { to: "/diretorio", label: "Diretório e Ramais", icon: ICONS.users, requerLogin: true },
-  { to: "/documentos", label: "Documentos (POPs)", icon: ICONS.folder, requerLogin: true },
+  { to: "/diretorio", label: "Diretório e Ramais", icon: ICONS.users },
+  { to: "/documentos", label: "Documentos (POPs)", icon: ICONS.folder },
   { to: "/faq", label: "FAQ (Central de Ajuda)", icon: ICONS.chat },
   { to: "/reconhecimentos", label: "Reconhecimentos", icon: ICONS.award, requerLogin: true },
   { to: "/onboarding", label: "Onboarding", icon: ICONS.clipboard, requerLogin: true },
@@ -115,11 +115,11 @@ export function Sidebar() {
                   <span className="flex-1 text-left truncate">Acesso Rápido</span>
                 </NavLink>
                 <NavLink
-                  to="/admin/links-aniversario"
+                  to="/admin/aniversariantes"
                   className={({ isActive }) => `nav-item${isActive ? " nav-item--active" : ""}`}
                 >
                   <NavIcon path={ICONS.gift} />
-                  <span className="flex-1 text-left truncate">Links de Aniversário</span>
+                  <span className="flex-1 text-left truncate">Gestão de Aniversariantes</span>
                 </NavLink>
               </>
             )}

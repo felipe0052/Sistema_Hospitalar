@@ -65,3 +65,34 @@ export async function excluirLinkAniversario(id) {
   }
   await apiClient.delete(`/links-aniversario/${id}`);
 }
+
+let configuracaoMemoria = {
+  mensagem:
+    "O Hospital Decós parabeniza você pelo seu aniversário! Agradecemos por sua dedicação diária no cuidado aos pacientes e no fortalecimento da nossa equipe. Desejamos um novo ciclo repleto de saúde, conquistas e alegrias!",
+  titulo: "🎉 Feliz aniversário, {nome}!",
+  assinatura: "— Equipe de Gestão de Pessoas • Hospital Decós",
+};
+
+export async function obterConfiguracaoAniversario() {
+  if (useMocks) {
+    return { ...configuracaoMemoria };
+  }
+  const { data } = await apiClient.get("/links-aniversario/configuracao");
+  return data;
+}
+
+export async function atualizarConfiguracaoAniversario(dados) {
+  if (useMocks) {
+    configuracaoMemoria = {
+      ...configuracaoMemoria,
+      mensagem: String(dados.mensagem || "").trim(),
+      titulo: String(dados.titulo || configuracaoMemoria.titulo).trim(),
+      assinatura: String(dados.assinatura || configuracaoMemoria.assinatura).trim(),
+      atualizado_em: new Date().toISOString(),
+    };
+    return { ...configuracaoMemoria };
+  }
+  const { data } = await apiClient.put("/links-aniversario/configuracao", dados);
+  return data;
+}
+

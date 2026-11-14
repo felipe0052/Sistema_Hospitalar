@@ -37,3 +37,26 @@ class LinkAniversarioOut(BaseModel):
     @classmethod
     def _converter_ativo(cls, v: int | bool) -> bool:
         return bool(v)
+
+
+class ConfiguracaoAniversarioIn(BaseModel):
+    mensagem: str = Field(min_length=5, max_length=2000)
+    titulo: str | None = Field(default=None, max_length=120)
+    assinatura: str | None = Field(default=None, max_length=150)
+
+    @field_validator("mensagem", mode="before")
+    @classmethod
+    def _limpar_mensagem(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+
+class ConfiguracaoAniversarioOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    mensagem: str
+    titulo: str
+    assinatura: str
+    atualizado_em: datetime | None = None
+

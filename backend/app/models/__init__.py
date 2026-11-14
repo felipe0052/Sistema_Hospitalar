@@ -1,5 +1,6 @@
 from app.models.acesso_rapido import AcessoRapido
 from app.models.aviso import Aviso
+from app.models.configuracao_aniversario import ConfiguracaoAniversario
 from app.models.documento import Documento
 from app.models.documento_trecho import DocumentoTrecho
 from app.models.evento import Evento
@@ -37,4 +38,5 @@ __all__ = [
     "OnboardingProgresso",
     "OnboardingContato",
     "LinkAniversario",
+    "ConfiguracaoAniversario",
 ]

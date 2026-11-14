@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import QuickAccessFab from "../components/layout/QuickAccessFab";
 import AdminAcessoRapido from "../pages/AdminAcessoRapido";
+import AdminAniversariantes from "../pages/AdminAniversariantes";
 import AdminLinksAniversario from "../pages/AdminLinksAniversario";
 import AdminSetores from "../pages/AdminSetores";
 import AdminUsuarios from "../pages/AdminUsuarios";
@@ -69,7 +70,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "users",
     component: Diretorio,
-    publica: false,
+    publica: true,
   },
   {
     path: "/documentos",
@@ -78,7 +79,7 @@ export const TELAS_PRINCIPAIS = [
     grupo: "Portal do Colaborador",
     icon: "folder",
     component: Documentos,
-    publica: false,
+    publica: true,
   },
   {
     path: "/faq",
@@ -113,9 +114,9 @@ export function AppRoutes() {
             <Route path="/avisos/:id" element={<Avisos />} />
             <Route path="/eventos" element={<Eventos />} />
             <Route path="/faq" element={<Faq />} />
+            <Route path="/diretorio" element={<Diretorio />} />
+            <Route path="/documentos" element={<Documentos />} />
             <Route element={<PrivateRoute requireAuth />}>
-              <Route path="/diretorio" element={<Diretorio />} />
-              <Route path="/documentos" element={<Documentos />} />
               <Route path="/aniversariantes" element={<Aniversariantes />} />
               <Route path="/reconhecimentos" element={<Reconhecimentos />} />
               <Route path="/notificacoes" element={<Notificacoes />} />
@@ -132,7 +133,8 @@ export function AppRoutes() {
             <Route element={<PermissaoRoute perfis={["ADMIN"]} />}>
               <Route path="/admin/setores" element={<AdminSetores />} />
               <Route path="/admin/acesso-rapido" element={<AdminAcessoRapido />} />
-              <Route path="/admin/links-aniversario" element={<AdminLinksAniversario />} />
+              <Route path="/admin/aniversariantes" element={<AdminAniversariantes />} />
+              <Route path="/admin/links-aniversario" element={<AdminAniversariantes />} />
             </Route>
 
             <Route path="*" element={<NaoEncontrada />} />

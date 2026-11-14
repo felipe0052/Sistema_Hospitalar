@@ -70,3 +70,45 @@ def test_links_aniversario_url_invalida(client: TestClient):
         json={"titulo": "Link", "url": "javascript:alert(1)"},
     )
     assert res.status_code == 422
+
+
+def test_configuracao_mensagem_aniversario_crud_e_permissoes(client: TestClient):
+    h_admin = _obter_headers(client, "admin@decos.com.br", "Admin@123")
+    h_colab = _obter_headers(client, "colaborador@decos.com.br", "Colab@123")
+
+    # Colaborador pode ler a mensagem configurada
+    res_get = client.get("/api/v1/links-aniversario/configuracao", headers=h_colab)
+    assert res_get.status_code == 200
+    dados = res_get.json()
+    assert "mensagem" in dados
+    assert "Hospital Decós" in dados["mensagem"]
+
+    # Colaborador não pode alterar (apenas ADMIN)
+    payload_novo = {
+        "mensagem": "Parabéns especial do Hospital Decós! Que seu novo ciclo seja repleto de realizações.",
+        "titulo": "🎉 Parabéns, {nome}!",
+        "assinatura": "— Gestão de Pessoas & Diretoria",
+    }
+    res_put_colab = client.put(
+        "/api/v1/links-aniversario/configuracao",
+        headers=h_colab,
+        json=payload_novo,
+    )
+    assert res_put_colab.status_code == 403
+
+    # Admin altera com sucesso
+    res_put_admin = client.put(
+        "/api/v1/links-aniversario/configuracao",
+        headers=h_admin,
+        json=payload_novo,
+    )
+    assert res_put_admin.status_code == 200
+    assert res_put_admin.json()["mensagem"] == payload_novo["mensagem"]
+    assert res_put_admin.json()["titulo"] == payload_novo["titulo"]
+    assert res_put_admin.json()["assinatura"] == payload_novo["assinatura"]
+
+    # Leitura reflete a nova mensagem
+    res_get_novo = client.get("/api/v1/links-aniversario/configuracao", headers=h_colab)
+    assert res_get_novo.status_code == 200
+    assert res_get_novo.json()["mensagem"] == payload_novo["mensagem"]
+

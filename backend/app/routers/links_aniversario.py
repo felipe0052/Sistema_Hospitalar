@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_roles
 from app.models.usuario import Usuario
-from app.schemas.link_aniversario import LinkAniversarioIn, LinkAniversarioOut
+from app.schemas.link_aniversario import (
+    ConfiguracaoAniversarioIn,
+    ConfiguracaoAniversarioOut,
+    LinkAniversarioIn,
+    LinkAniversarioOut,
+)
 from app.services import link_aniversario_service
 
 router = APIRouter(prefix="/links-aniversario", tags=["Links de Aniversário"])
@@ -16,6 +21,23 @@ def listar_links_aniversario(
     _usuario: Usuario = Depends(get_current_user),
 ):
     return link_aniversario_service.listar_ativos(db)
+
+
+@router.get("/configuracao", response_model=ConfiguracaoAniversarioOut)
+def obter_configuracao_aniversario(
+    db: Session = Depends(get_db),
+    _usuario: Usuario = Depends(get_current_user),
+):
+    return link_aniversario_service.obter_configuracao(db)
+
+
+@router.put("/configuracao", response_model=ConfiguracaoAniversarioOut)
+def atualizar_configuracao_aniversario(
+    dados: ConfiguracaoAniversarioIn,
+    db: Session = Depends(get_db),
+    admin: Usuario = Depends(require_roles("ADMIN")),
+):
+    return link_aniversario_service.atualizar_configuracao(db, dados, admin)
 
 
 @router.get("/admin", response_model=list[LinkAniversarioOut])
