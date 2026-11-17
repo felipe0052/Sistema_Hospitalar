@@ -588,16 +588,6 @@ ONBOARDING_CHECKLIST = [
     ("Participar do treinamento de integração", "Veja a próxima turma no menu Eventos."),
 ]
 
-ONBOARDING_ATENDIMENTOS = [
-    ("Higienize as mãos", "Antes e depois de cada contato com o paciente, use álcool 70% ou água e sabão (os 5 momentos da higiene das mãos)."),
-    ("Apresente-se e confirme a identificação do paciente", "Diga seu nome e função. Confira nome completo e data de nascimento na pulseira antes de qualquer procedimento."),
-    ("Verifique alergias e riscos", "Confira no prontuário alergias, risco de queda e de lesão por pressão."),
-    ("Siga o POP do procedimento", "Na dúvida, consulte o POP vigente ou chame o profissional de referência do seu turno."),
-    ("Registre tudo no prontuário", "Anote o que foi feito, o horário e as intercorrências logo após o atendimento."),
-    ("Em emergência, acione a equipe", "Peça ajuda imediatamente e ligue para a Sala de Emergência (ramal 1003)."),
-    ("Passe o plantão com clareza", "Informe ao próximo turno o estado do paciente, pendências e cuidados especiais."),
-]
-
 # (situação, quem procurar, setor, ramal, observação)
 ONBOARDING_CONTATOS = [
     ("Dúvidas sobre salário, holerite, férias ou benefícios", "Departamento Pessoal", "RH", "4102", None),
@@ -620,9 +610,8 @@ ONBOARDING_CONTATOS = [
 def _seed_onboarding(db, mapa_setores: dict[str, int]) -> None:
     """Insere o conteúdo inicial do onboarding apenas se ainda não houver nada cadastrado."""
     if db.query(OnboardingItem).count() == 0:
-        for tipo, lista in (("CHECKLIST", ONBOARDING_CHECKLIST), ("ATENDIMENTO", ONBOARDING_ATENDIMENTOS)):
-            for ordem, (titulo, descricao) in enumerate(lista, start=1):
-                db.add(OnboardingItem(tipo=tipo, titulo=titulo, descricao=descricao, ordem=ordem))
+        for ordem, (titulo, descricao) in enumerate(ONBOARDING_CHECKLIST, start=1):
+            db.add(OnboardingItem(tipo="CHECKLIST", titulo=titulo, descricao=descricao, ordem=ordem))
     if db.query(OnboardingContato).count() == 0:
         for ordem, (situacao, responsavel, setor, ramal, obs) in enumerate(ONBOARDING_CONTATOS, start=1):
             db.add(

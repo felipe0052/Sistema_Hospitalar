@@ -185,7 +185,7 @@ O esquema do banco de dados cobre todas as áreas do sistema:
 13. `GOOGLE_AGENDA_INTEGRACOES`: Armazenamento de credenciais e tokens criptografados da integração Google.
 14. `EVENTOS_GOOGLE`: Mapeamento de eventos sincronizados para o Google Calendar.
 15. `ACESSOS_RAPIDOS`: Catálogo de sistemas externos gerenciados pelo administrador.
-16. `ONBOARDING_ITENS`: Checklist do novo colaborador e orientações de primeiros atendimentos (gerenciados por ADMIN/RH).
+16. `ONBOARDING_ITENS`: Checklist do novo colaborador (gerenciados por ADMIN/RH).
 17. `ONBOARDING_PROGRESSO`: Itens do onboarding concluídos por cada colaborador.
 18. `ONBOARDING_CONTATOS`: Guia "quem procurar em cada situação" (responsável, setor e ramal).
 - `VW_DIRETORIO`: View relacional otimizada para consulta pública e interna de colaboradores ativos e seus ramais.

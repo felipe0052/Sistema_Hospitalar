@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class OnboardingItem(Base):
-    """Item do onboarding digital: tarefa do checklist ou orientação de primeiros atendimentos."""
+    """Item do onboarding digital: tarefa do checklist."""
 
     __tablename__ = "ONBOARDING_ITENS"
 

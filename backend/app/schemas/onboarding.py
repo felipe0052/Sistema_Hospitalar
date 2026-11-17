@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-TipoItemOnboarding = Literal["CHECKLIST", "ATENDIMENTO"]
+TipoItemOnboarding = Literal["CHECKLIST"]
 
 
 def _limpar(v):
@@ -103,7 +103,6 @@ class OnboardingOut(BaseModel):
     colaborador: ColaboradorOnboardingOut
     progresso: ProgressoOnboardingOut
     checklist: list[OnboardingItemOut]
-    atendimentos: list[OnboardingItemOut]
     contatos: list[OnboardingContatoOut]
 
 

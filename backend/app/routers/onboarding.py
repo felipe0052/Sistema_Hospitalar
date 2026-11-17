@@ -1,6 +1,6 @@
 """Endpoints do Onboarding Digital do novo colaborador.
 
-Reúne o checklist de integração, as orientações de primeiros atendimentos e o guia
+Reúne o checklist de integração e o guia
 'quem procurar em cada situação'. O mapa do hospital reaproveita o guia de ramais por
 andar já existente em `/diretorio/ramais`.
 """
@@ -52,7 +52,7 @@ def criar_item(
     db: Session = Depends(get_db),
     usuario_atual: Usuario = Depends(require_roles(*GESTORES)),
 ) -> OnboardingItemOut:
-    """Cadastra um item de checklist ou de primeiros atendimentos (Admin e RH)."""
+    """Cadastra um item de checklist (Admin e RH)."""
     return onboarding_service.criar_item(db, payload, usuario_atual)
 
 

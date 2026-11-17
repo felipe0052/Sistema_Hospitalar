@@ -34,7 +34,6 @@ const ABAS = [
   { id: "checklist", label: "✅ Checklist" },
   { id: "mapa", label: "🗺️ Mapa do Hospital" },
   { id: "contatos", label: "📞 Quem Procurar" },
-  { id: "atendimentos", label: "🩺 Primeiros Atendimentos" },
   { id: "treinamentos", label: "🎓 Primeiros Treinamentos" },
 ];
 
@@ -141,7 +140,6 @@ export default function Onboarding() {
   const [carregandoTreinamentos, setCarregandoTreinamentos] = useState(false);
   const [erroTreinamentos, setErroTreinamentos] = useState("");
 
-  // Modal de item (checklist / primeiros atendimentos)
   const [modalItemOpen, setModalItemOpen] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
   const [formItem, setFormItem] = useState(ITEM_VAZIO);
@@ -247,10 +245,9 @@ export default function Onboarding() {
 
   // ------------------------------------------------------------- Itens
 
-  function abrirNovoItem(tipo) {
+  function abrirNovoItem() {
     setItemEditando(null);
-    const lista = tipo === "ATENDIMENTO" ? dados?.atendimentos : dados?.checklist;
-    setFormItem({ ...ITEM_VAZIO, tipo, ordem: String((lista?.length || 0) + 1) });
+    setFormItem({ ...ITEM_VAZIO, tipo: "CHECKLIST", ordem: String((dados?.checklist?.length || 0) + 1) });
     setErrosItem({});
     setModalItemOpen(true);
   }
@@ -279,7 +276,7 @@ export default function Onboarding() {
     setSalvandoItem(true);
     try {
       const payload = {
-        tipo: formItem.tipo,
+        tipo: "CHECKLIST",
         titulo: formItem.titulo.trim(),
         descricao: formItem.descricao.trim() || null,
         ordem: ordemNum || 0,
@@ -386,40 +383,37 @@ export default function Onboarding() {
 
   // ------------------------------------------------------------- Render
 
-  function renderListaItens(lista, tipo) {
-    const ehAtendimento = tipo === "ATENDIMENTO";
+  function renderListaItens(lista) {
     return (
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div>
             <h2 className="text-base font-bold text-[#800020]">
-              {ehAtendimento ? "Primeiros Atendimentos" : "Checklist do Novo Colaborador"}
+              Checklist do Novo Colaborador
             </h2>
             <p className="text-xs text-[#64748b] mt-0.5">
-              {ehAtendimento
-                ? "Passo a passo para os seus primeiros atendimentos. Marque cada orientação depois de ler."
-                : "Marque cada etapa conforme for concluindo sua integração."}
+              Marque cada etapa conforme for concluindo sua integração.
             </p>
           </div>
           {podeGerir && (
-            <Button variant="primary" size="sm" onClick={() => abrirNovoItem(tipo)}>
-              + Adicionar {ehAtendimento ? "Orientação" : "Item"}
+            <Button variant="primary" size="sm" onClick={() => abrirNovoItem()}>
+              + Adicionar Item
             </Button>
           )}
         </div>
 
         {lista.length === 0 ? (
           <EmptyState
-            title={ehAtendimento ? "Nenhuma orientação cadastrada" : "Nenhum item no checklist"}
+            title="Nenhum item no checklist"
             description="O RH ainda não cadastrou conteúdo para esta etapa."
           />
         ) : (
           <div className="space-y-2.5">
-            {lista.map((item, idx) => (
+            {lista.map((item) => (
               <ItemMarcavel
                 key={item.id_item}
                 item={item}
-                numero={ehAtendimento ? idx + 1 : null}
+                numero={null}
                 podeGerir={podeGerir}
                 marcando={marcandoId === item.id_item}
                 onAlternar={alternarItem}
@@ -639,7 +633,7 @@ export default function Onboarding() {
         <div>
           <h1 className="text-xl font-bold text-[#1e293b]">Onboarding do Colaborador</h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Seu guia de integração: checklist, mapa do hospital, contatos de referência, primeiros atendimentos e treinamentos
+            Seu guia de integração: checklist, mapa do hospital, contatos de referência e treinamentos
           </p>
         </div>
 
@@ -725,10 +719,9 @@ export default function Onboarding() {
             </div>
           </Card>
 
-          {abaAtiva === "checklist" && renderListaItens(dados?.checklist || [], "CHECKLIST")}
+          {abaAtiva === "checklist" && renderListaItens(dados?.checklist || [])}
           {abaAtiva === "mapa" && renderMapa()}
           {abaAtiva === "contatos" && renderContatos()}
-          {abaAtiva === "atendimentos" && renderListaItens(dados?.atendimentos || [], "ATENDIMENTO")}
           {abaAtiva === "treinamentos" && renderTreinamentos()}
         </>
       )}
@@ -751,28 +744,14 @@ export default function Onboarding() {
         }
       >
         <form onSubmit={salvarItem} className="space-y-4" noValidate>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <Select
-                label="Etapa"
-                required
-                value={formItem.tipo}
-                onChange={(e) => setFormItem((f) => ({ ...f, tipo: e.target.value }))}
-                options={[
-                  { value: "CHECKLIST", label: "Checklist do novo colaborador" },
-                  { value: "ATENDIMENTO", label: "Primeiros atendimentos" },
-                ]}
-              />
-            </div>
-            <Input
-              label="Ordem de Exibição"
-              type="number"
-              min="0"
-              value={formItem.ordem}
-              onChange={(e) => setFormItem((f) => ({ ...f, ordem: e.target.value }))}
-              error={errosItem.ordem}
-            />
-          </div>
+          <Input
+            label="Ordem de Exibição"
+            type="number"
+            min="0"
+            value={formItem.ordem}
+            onChange={(e) => setFormItem((f) => ({ ...f, ordem: e.target.value }))}
+            error={errosItem.ordem}
+          />
           <Input
             label="Título"
             required

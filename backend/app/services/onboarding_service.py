@@ -1,4 +1,4 @@
-"""Regras de negócio do Onboarding Digital: checklist, primeiros atendimentos e 'quem procurar'."""
+"""Regras de negócio do Onboarding Digital: checklist e 'quem procurar'."""
 
 from datetime import UTC, datetime
 
@@ -47,7 +47,6 @@ def obter_onboarding(db: Session, usuario: Usuario) -> OnboardingOut:
     concluidos = _ids_concluidos(db, usuario.id_usuario)
 
     checklist = [i for i in itens if i.tipo == "CHECKLIST"]
-    atendimentos = [i for i in itens if i.tipo == "ATENDIMENTO"]
 
     contatos = (
         db.query(OnboardingContato)
@@ -60,9 +59,8 @@ def obter_onboarding(db: Session, usuario: Usuario) -> OnboardingOut:
 
     return OnboardingOut(
         colaborador=ColaboradorOnboardingOut(nome=usuario.nome, cargo=usuario.cargo, setor=setor),
-        progresso=_calcular_progresso(itens, concluidos),
+        progresso=_calcular_progresso(checklist, concluidos),
         checklist=[_item_out(i, concluidos) for i in checklist],
-        atendimentos=[_item_out(i, concluidos) for i in atendimentos],
         contatos=[OnboardingContatoOut.model_validate(c) for c in contatos],
     )
 

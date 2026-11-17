@@ -24,7 +24,7 @@ def test_onboarding_mostra_nome_funcao_e_setor_do_colaborador(client: TestClient
     assert dados["colaborador"]["setor"]["nome"] == "UTI"
     assert dados["colaborador"]["setor"]["andar"] == "2º andar"
     assert dados["progresso"] == {"total": 0, "concluidos": 0, "percentual": 0}
-    assert dados["checklist"] == [] and dados["atendimentos"] == [] and dados["contatos"] == []
+    assert dados["checklist"] == [] and dados["contatos"] == []
 
 
 def test_checklist_e_progresso_por_colaborador(client: TestClient):
@@ -32,19 +32,18 @@ def test_checklist_e_progresso_por_colaborador(client: TestClient):
     headers_colab = _obter_headers(client, "colaborador@decos.com.br", "Colab@123")
 
     ids = []
-    for ordem, (tipo, titulo) in enumerate(
+    for ordem, titulo in enumerate(
         [
-            ("CHECKLIST", "Retirar crachá na portaria"),
-            ("CHECKLIST", "Assinar termo de confidencialidade"),
-            ("ATENDIMENTO", "Higienizar as mãos antes de cada atendimento"),
-            ("CHECKLIST", "Conhecer o POP de admissão"),
+            "Retirar crachá na portaria",
+            "Assinar termo de confidencialidade",
+            "Conhecer o POP de admissão",
         ],
         start=1,
     ):
         res = client.post(
             "/api/v1/onboarding/itens",
             headers=headers_rh,
-            json={"tipo": tipo, "titulo": titulo, "descricao": "Detalhes", "ordem": ordem},
+            json={"tipo": "CHECKLIST", "titulo": titulo, "descricao": "Detalhes", "ordem": ordem},
         )
         assert res.status_code == 201
         ids.append(res.json()["id_item"])
@@ -60,9 +59,9 @@ def test_checklist_e_progresso_por_colaborador(client: TestClient):
         "Assinar termo de confidencialidade",
         "Conhecer o POP de admissão",
     ]
-    assert [i["titulo"] for i in dados["atendimentos"]] == ["Higienizar as mãos antes de cada atendimento"]
+    assert "atendimentos" not in dados
     assert dados["checklist"][0]["concluido"] is True
-    assert dados["progresso"] == {"total": 4, "concluidos": 1, "percentual": 25}
+    assert dados["progresso"] == {"total": 3, "concluidos": 1, "percentual": 33}
 
     # O progresso é individual: o RH não vê o item do colaborador como concluído
     dados_rh = client.get("/api/v1/onboarding", headers=headers_rh).json()
@@ -77,7 +76,7 @@ def test_checklist_e_progresso_por_colaborador(client: TestClient):
     client.put(f"/api/v1/onboarding/itens/{ids[1]}/conclusao", headers=headers_colab, json={"concluido": True})
     assert client.delete(f"/api/v1/onboarding/itens/{ids[1]}", headers=headers_rh).status_code == 204
     dados = client.get("/api/v1/onboarding", headers=headers_colab).json()
-    assert dados["progresso"] == {"total": 3, "concluidos": 0, "percentual": 0}
+    assert dados["progresso"] == {"total": 2, "concluidos": 0, "percentual": 0}
 
     res = client.put("/api/v1/onboarding/itens/9999/conclusao", headers=headers_colab, json={"concluido": True})
     assert res.status_code == 404
@@ -145,6 +144,12 @@ def test_somente_admin_e_rh_gerenciam_onboarding(client: TestClient):
 def test_validacao_tipo_e_titulo(client: TestClient):
     headers_rh = _obter_headers(client, "rh@decos.com.br", "Rh@12345")
     res = client.post("/api/v1/onboarding/itens", headers=headers_rh, json={"tipo": "OUTRO", "titulo": "Válido"})
+    assert res.status_code == 422
+    res = client.post(
+        "/api/v1/onboarding/itens",
+        headers=headers_rh,
+        json={"tipo": "ATENDIMENTO", "titulo": "Higienizar as mãos"},
+    )
     assert res.status_code == 422
     res = client.post("/api/v1/onboarding/itens", headers=headers_rh, json={"titulo": "  "})
     assert res.status_code == 422

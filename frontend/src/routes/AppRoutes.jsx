@@ -93,7 +93,7 @@ export const TELAS_PRINCIPAIS = [
   {
     path: "/onboarding",
     label: "Onboarding",
-    descricao: "Checklist, mapa do hospital, contatos e primeiros atendimentos",
+    descricao: "Checklist, mapa do hospital, contatos e treinamentos",
     grupo: "Portal do Colaborador",
     icon: "clipboard",
     component: Onboarding,
