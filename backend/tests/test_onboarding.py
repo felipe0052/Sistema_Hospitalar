@@ -62,7 +62,7 @@ def test_checklist_e_progresso_por_colaborador(client: TestClient):
     ]
     assert [i["titulo"] for i in dados["atendimentos"]] == ["Higienizar as mãos antes de cada atendimento"]
     assert dados["checklist"][0]["concluido"] is True
-    assert dados["progresso"] == {"total": 4, "concluidos": 1, "percentual": 25}
+    assert dados["progresso"] == {"total": 3, "concluidos": 1, "percentual": 33}
 
     # O progresso é individual: o RH não vê o item do colaborador como concluído
     dados_rh = client.get("/api/v1/onboarding", headers=headers_rh).json()
@@ -77,7 +77,7 @@ def test_checklist_e_progresso_por_colaborador(client: TestClient):
     client.put(f"/api/v1/onboarding/itens/{ids[1]}/conclusao", headers=headers_colab, json={"concluido": True})
     assert client.delete(f"/api/v1/onboarding/itens/{ids[1]}", headers=headers_rh).status_code == 204
     dados = client.get("/api/v1/onboarding", headers=headers_colab).json()
-    assert dados["progresso"] == {"total": 3, "concluidos": 0, "percentual": 0}
+    assert dados["progresso"] == {"total": 2, "concluidos": 0, "percentual": 0}
 
     res = client.put("/api/v1/onboarding/itens/9999/conclusao", headers=headers_colab, json={"concluido": True})
     assert res.status_code == 404

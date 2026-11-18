@@ -34,7 +34,6 @@ const ABAS = [
   { id: "checklist", label: "✅ Checklist" },
   { id: "mapa", label: "🗺️ Mapa do Hospital" },
   { id: "contatos", label: "📞 Quem Procurar" },
-  { id: "atendimentos", label: "🩺 Primeiros Atendimentos" },
   { id: "treinamentos", label: "🎓 Primeiros Treinamentos" },
 ];
 
@@ -639,7 +638,7 @@ export default function Onboarding() {
         <div>
           <h1 className="text-xl font-bold text-[#1e293b]">Onboarding do Colaborador</h1>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Seu guia de integração: checklist, mapa do hospital, contatos de referência, primeiros atendimentos e treinamentos
+            Seu guia de integração: checklist, mapa do hospital, contatos de referência e treinamentos
           </p>
         </div>
 
@@ -728,7 +727,6 @@ export default function Onboarding() {
           {abaAtiva === "checklist" && renderListaItens(dados?.checklist || [], "CHECKLIST")}
           {abaAtiva === "mapa" && renderMapa()}
           {abaAtiva === "contatos" && renderContatos()}
-          {abaAtiva === "atendimentos" && renderListaItens(dados?.atendimentos || [], "ATENDIMENTO")}
           {abaAtiva === "treinamentos" && renderTreinamentos()}
         </>
       )}
@@ -760,7 +758,6 @@ export default function Onboarding() {
                 onChange={(e) => setFormItem((f) => ({ ...f, tipo: e.target.value }))}
                 options={[
                   { value: "CHECKLIST", label: "Checklist do novo colaborador" },
-                  { value: "ATENDIMENTO", label: "Primeiros atendimentos" },
                 ]}
               />
             </div>
